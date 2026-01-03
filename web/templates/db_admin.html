@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Admin - ACSLite</title>
+
+    <!-- Bootstrap 5 & Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="gembok_theme.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-content {
+            padding: 25px;
+            flex: 1;
+        }
+
+        .table-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .table-item {
+            padding: 12px 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .table-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            transform: translateX(5px);
+        }
+
+        .table-item.active {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            border-color: transparent;
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 25px;
+        }
+
+        .data-table {
+            width: 100%;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .data-table th {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 15px;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .sql-editor {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--neon-green);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .sql-editor:focus {
+            outline: none;
+            border-color: var(--neon-green);
+            box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.1);
+        }
+
+        .btn-run {
+            background: var(--gradient-primary);
+            border: none;
+            color: var(--bg-primary);
+            padding: 10px 30px;
+            border-radius: 10px;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .result-box {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 12px;
+            padding: 15px;
+            font-family: monospace;
+        }
+
+        .column-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 8px 16px;
+            border-radius: 12px;
+            margin: 6px;
+            font-size: 0.95rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .column-chip:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--neon-blue);
+            transform: translateY(-2px);
+        }
+
+        .column-chip .field-name {
+            color: #ffffff;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .column-chip .type {
+            color: #00f3ff;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: rgba(0, 243, 255, 0.15);
+            padding: 2px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu">
+                <a href="packages.html" class="submenu-item">
+                    <i class="fas fa-cube"></i><span>Paket</span>
+                </a>
+                <a href="customers.html" class="submenu-item">
+                    <i class="fas fa-users"></i><span>Pelanggan</span>
+                </a>
+                <a href="invoices.html" class="submenu-item">
+                    <i class="fas fa-file-invoice"></i><span>Invoice</span>
+                </a>
+                <a href="payments.html" class="submenu-item">
+                    <i class="fas fa-money-bill-wave"></i><span>Pembayaran</span>
+                </a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Data & Laporan</div>
+            <a href="reports.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 active">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="logout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle btn btn-link text-white p-0 border-0" onclick="toggleSidebar()">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+                <h5 class="mb-0 fw-bold text-white">Database Admin</h5>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-primary btn-sm" onclick="loadTables()">
+                    <i class="fas fa-sync me-1"></i> Refresh Tables
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="openCreateTableModal()">
+                    <i class="fas fa-plus me-1"></i> New Table
+                </button>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <div class="row g-4">
+                <!-- Left Sidebar: Table List -->
+                <div class="col-lg-3">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0 fw-bold text-white"><i class="fas fa-list me-2"></i>Tables</h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <ul class="table-list" id="table-list">
+                                <li class="text-center text-secondary py-3">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Loading...
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Content: SQL Editor & Results -->
+                <div class="col-lg-9">
+                    <!-- SQL Query Card -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0 fw-bold text-white"><i class="fas fa-terminal me-2"></i>Terminal SQL</h6>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="sql-editor" id="sql-query"
+                                placeholder="SELECT * FROM onu_locations LIMIT 10;&#10;&#10;-- Press Ctrl+Enter to execute"></textarea>
+                            <div class="mt-3 d-flex gap-2">
+                                <button class="btn-run" onclick="executeQuery()">
+                                    <i class="fas fa-play me-2"></i>Execute Query
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="clearQuery()">
+                                    <i class="fas fa-eraser me-2"></i>Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Card -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold text-white"><i class="fas fa-table me-2"></i>Results</h6>
+                            <span class="badge bg-primary rounded-pill px-3" id="result-count">0 rows</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="results-container">
+                                <div class="empty-state">
+                                    <i class="fas fa-database fa-3x mb-3 opacity-25"></i>
+                                    <p class="mb-0">Select a table or run a query to see results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table Structure Card (hidden by default) -->
+                    <div class="card mt-4" id="structure-card" style="display:none;">
+                        <div class="card-header">
+                            <h6 class="mb-0 fw-bold text-white"><i class="fas fa-columns me-2"></i>Structure: <span
+                                    id="structure-table-name" class="text-info"></span></h6>
+                        </div>
+                        <div class="card-body" id="structure-container">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create Table Modal -->
+    <div class="modal fade" id="createTableModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Create New Table</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Table Name</label>
+                        <input type="text" class="form-control" id="new-table-name" placeholder="e.g., customers">
+                    </div>
+
+                    <h6 class="mb-3">Columns</h6>
+                    <div id="columns-container">
+                        <!-- Default ID column -->
+                        <div class="row mb-2 column-row">
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" value="id" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select">
+                                    <option selected>INT</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" checked disabled>
+                                    <label class="form-check-label">Primary Key</label>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="text-muted">Auto</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-outline-primary btn-sm mt-2" onclick="addColumnRow()">
+                        <i class="fas fa-plus me-1"></i>Add Column
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createTable()">
+                        <i class="fas fa-plus me-2"></i>Create Table
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insert Data Modal -->
+    <div class="modal fade" id="insertModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Insert Data</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="insert-form-container">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="insertData()">
+                        <i class="fas fa-save me-2"></i>Insert
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
+        }
+
+        function toggleSubmenu(element) {
+            const submenu = element.nextElementSibling;
+            const arrow = element.querySelector('.menu-arrow');
+            submenu.classList.toggle('show');
+            arrow.style.transform = submenu.classList.contains('show') ? 'rotate(90deg)' : 'rotate(0deg)';
+        }
+
+        // API Base - use PHP API on port 8888
+        const DB_API = `http://${window.location.hostname}:8888/api/db_admin_api.php`;
+
+        let currentTable = null;
+        let currentColumns = [];
+        let createTableModal, insertModal;
+
+        // Check if user is logged in
+        function checkSession() {
+            const session = sessionStorage.getItem('acs_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session first
+            if (!checkSession()) return;
+
+            createTableModal = new bootstrap.Modal(document.getElementById('createTableModal'));
+            insertModal = new bootstrap.Modal(document.getElementById('insertModal'));
+            loadTables();
+
+            // ========================================
+            // REAL-TIME MONITORING - Auto refresh every 15 seconds
+            // ========================================
+            let autoRefreshInterval = setInterval(() => {
+                console.log('🔄 Auto-refresh: Updating table list...');
+                loadTables();
+            }, 15000); // 15 seconds
+
+            // Stop auto-refresh when page is hidden (save resources)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    clearInterval(autoRefreshInterval);
+                    console.log('⏸️ Auto-refresh paused (tab hidden)');
+                } else {
+                    loadTables(); // Refresh immediately when tab becomes visible
+                    autoRefreshInterval = setInterval(() => {
+                        loadTables();
+                    }, 15000);
+                    console.log('▶️ Auto-refresh resumed');
+                }
+            });
+        });
+
+
+        async function loadTables() {
+            try {
+                const response = await fetch(`${DB_API}?action=tables`);
+                const result = await response.json();
+
+                if (result.success) {
+                    renderTableList(result.tables);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('table-list').innerHTML = `
+                    <li class="text-center text-danger py-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Failed to load
+                    </li>
+                `;
+            }
+        }
+
+        function renderTableList(tables) {
+            const list = document.getElementById('table-list');
+            if (tables.length === 0) {
+                list.innerHTML = '<li class="text-center text-muted py-3">No tables found</li>';
+                return;
+            }
+
+            list.innerHTML = tables.map(t => `
+                <li class="table-item ${currentTable === t.name ? 'active' : ''}" onclick="selectTable('${t.name}')">
+                    <span><i class="fas fa-table me-2"></i>${t.name}</span>
+                    <span class="badge rounded-pill ${currentTable === t.name ? 'bg-dark text-white' : 'bg-primary'}">${t.rows}</span>
+                </li>
+            `).join('');
+        }
+
+        async function selectTable(tableName) {
+            currentTable = tableName;
+            loadTables(); // Refresh to update active state
+
+            // Load structure
+            try {
+                const structRes = await fetch(`${DB_API}?action=describe&table=${tableName}`);
+                const structResult = await structRes.json();
+
+                if (structResult.success) {
+                    currentColumns = structResult.columns;
+                    renderStructure(structResult.columns, tableName);
+                }
+            } catch (e) {
+                console.error('Error loading structure:', e);
+            }
+
+            // Set query and execute
+            document.getElementById('sql-query').value = `SELECT * FROM \`${tableName}\` LIMIT 50;`;
+            executeQuery();
+        }
+
+        function renderStructure(columns, tableName) {
+            document.getElementById('structure-card').style.display = 'block';
+            document.getElementById('structure-table-name').textContent = tableName;
+
+            const container = document.getElementById('structure-container');
+            container.innerHTML = columns.map(col => `
+                <span class="column-chip">
+                    <span class="field-name">${col.Field}</span>
+                    <span class="type">${col.Type}</span>
+                    ${col.Key === 'PRI' ? '<i class="fas fa-key text-warning animate-pulse"></i>' : ''}
+                </span>
+            `).join('');
+
+            // Add insert button
+            container.innerHTML += `
+                <div class="mt-3">
+                    <button class="btn btn-success btn-sm" onclick="openInsertModal('${tableName}')">
+                        <i class="fas fa-plus me-1"></i>Insert Row
+                    </button>
+                </div>
+            `;
+        }
+
+        async function executeQuery() {
+            const sql = document.getElementById('sql-query').value.trim();
+            if (!sql) {
+                alert('Enter a SQL query');
+                return;
+            }
+
+            // Show loading state
+            const runBtn = document.querySelector('.btn-run');
+            const originalBtnText = runBtn.innerHTML;
+            runBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Executing...';
+            runBtn.disabled = true;
+
+            document.getElementById('results-container').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin fa-3x mb-3"></i>
+                    <p class="mb-0">Executing query...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(DB_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'query', sql: sql })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.data) {
+                        renderResults(result.data);
+                        document.getElementById('result-count').textContent = `${result.count} rows`;
+                        document.getElementById('result-count').className = 'badge bg-success rounded-pill px-3';
+                    } else {
+                        document.getElementById('results-container').innerHTML = `
+                            <div class="result-box" style="margin: 20px;">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                ${result.message}
+                                ${result.affected ? `<br><small class="text-muted">Rows affected: ${result.affected}</small>` : ''}
+                            </div>
+                        `;
+                        document.getElementById('result-count').textContent = 'Success';
+                        document.getElementById('result-count').className = 'badge bg-success rounded-pill px-3';
+                        loadTables(); // Refresh table list
+                    }
+                } else {
+                    document.getElementById('results-container').innerHTML = `
+                        <div class="result-box text-danger" style="margin: 20px;">
+                            <i class="fas fa-times-circle me-2"></i>
+                            <strong>Error:</strong> ${result.error}
+                        </div>
+                    `;
+                    document.getElementById('result-count').textContent = 'Error';
+                    document.getElementById('result-count').className = 'badge bg-danger rounded-pill px-3';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('results-container').innerHTML = `
+                    <div class="result-box text-danger" style="margin: 20px;">
+                        <i class="fas fa-times-circle me-2"></i>
+                        <strong>Network Error:</strong> ${error.message}
+                    </div>
+                `;
+                document.getElementById('result-count').textContent = 'Error';
+                document.getElementById('result-count').className = 'badge bg-danger rounded-pill px-3';
+            } finally {
+                // Restore button state
+                runBtn.innerHTML = originalBtnText;
+                runBtn.disabled = false;
+            }
+        }
+
+        // Keyboard shortcut: Ctrl+Enter to execute query
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                const sqlEditor = document.getElementById('sql-query');
+                if (document.activeElement === sqlEditor || sqlEditor.contains(document.activeElement)) {
+                    e.preventDefault();
+                    executeQuery();
+                }
+            }
+        });
+
+        function renderResults(data) {
+            const container = document.getElementById('results-container');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="empty-state">No data returned</div>';
+                return;
+            }
+
+            const columns = Object.keys(data[0]);
+
+            // Try to detect primary key column
+            const pkCandidates = ['id', '_id', 'ID', 'Id', columns[0]];
+            let pkColumn = null;
+            for (const pk of pkCandidates) {
+                if (columns.includes(pk)) {
+                    pkColumn = pk;
+                    break;
+                }
+            }
+
+            let html = `<div class="table-responsive"><table class="data-table"><thead><tr>`;
+            html += columns.map(col => `<th>${col}</th>`).join('');
+            html += `<th>Actions</th></tr></thead><tbody>`;
+
+            data.forEach((row, idx) => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    let val = row[col];
+                    if (val === null) val = '<span class="text-muted">NULL</span>';
+                    else if (typeof val === 'string' && val.length > 50) val = val.substring(0, 50) + '...';
+                    html += `<td>${val}</td>`;
+                });
+
+                // Add action buttons if we have a table selected
+                if (currentTable && pkColumn && row[pkColumn] !== undefined) {
+                    const pkValue = typeof row[pkColumn] === 'string' ? `'${row[pkColumn]}'` : row[pkColumn];
+                    html += `<td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-info btn-sm" onclick="viewRowDetails(${idx})" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteRowByPK('${currentTable}', '${pkColumn}', ${pkValue})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>`;
+                } else {
+                    html += `<td>
+                        <span class="text-muted small">-</span>
+                    </td>`;
+                }
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+
+            // Store data for viewing details
+            window.currentResultData = data;
+        }
+
+        // View row details in alert
+        function viewRowDetails(rowIndex) {
+            if (window.currentResultData && window.currentResultData[rowIndex]) {
+                const row = window.currentResultData[rowIndex];
+                let details = '';
+                for (const [key, value] of Object.entries(row)) {
+                    details += `${key}: ${value}\n`;
+                }
+                alert(details);
+            }
+        }
+
+        // Delete by any primary key
+        async function deleteRowByPK(tableName, pkColumn, pkValue) {
+            if (!confirm(`Delete row where ${pkColumn} = ${pkValue}?`)) return;
+
+            try {
+                const response = await fetch(DB_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete',
+                        table: tableName,
+                        where: { [pkColumn]: typeof pkValue === 'string' ? pkValue.replace(/'/g, '') : pkValue }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Row deleted successfully');
+                    selectTable(tableName); // Refresh
+                } else {
+                    alert('❌ Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        function clearQuery() {
+            document.getElementById('sql-query').value = '';
+        }
+
+        function openCreateTableModal() {
+            // Reset form
+            document.getElementById('new-table-name').value = '';
+            document.getElementById('columns-container').innerHTML = `
+                <div class="row mb-2 column-row">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" value="id" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" disabled>
+                            <option selected>INT</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted">PRIMARY KEY AUTO_INCREMENT</span>
+                    </div>
+                    <div class="col-md-2"></div>
+                </div>
+            `;
+            createTableModal.show();
+        }
+
+        function addColumnRow() {
+            const container = document.getElementById('columns-container');
+            const row = document.createElement('div');
+            row.className = 'row mb-2 column-row';
+            row.innerHTML = `
+                <div class="col-md-3">
+                    <input type="text" class="form-control col-name" placeholder="column_name">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select col-type">
+                        <option>VARCHAR(255)</option>
+                        <option>INT</option>
+                        <option>TEXT</option>
+                        <option>DATETIME</option>
+                        <option>DECIMAL(10,2)</option>
+                        <option>BOOLEAN</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input col-nullable" type="checkbox" checked>
+                        <label class="form-check-label">Nullable</label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-danger btn-sm" onclick="this.closest('.column-row').remove()">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(row);
+        }
+
+        async function createTable() {
+            const tableName = document.getElementById('new-table-name').value.trim();
+            if (!tableName) {
+                alert('Enter table name');
+                return;
+            }
+
+            // Build columns array
+            const columns = [
+                { name: 'id', type: 'INT', primary: true }
+            ];
+
+            document.querySelectorAll('.column-row').forEach((row, idx) => {
+                if (idx === 0) return; // Skip ID row
+
+                const name = row.querySelector('.col-name')?.value?.trim();
+                const type = row.querySelector('.col-type')?.value;
+                const nullable = row.querySelector('.col-nullable')?.checked;
+
+                if (name) {
+                    columns.push({ name, type, nullable });
+                }
+            });
+
+            // Add timestamps
+            columns.push({ name: 'created_at', type: 'TIMESTAMP', default: 'CURRENT_TIMESTAMP' });
+            columns.push({ name: 'updated_at', type: 'TIMESTAMP', default: 'CURRENT_TIMESTAMP' });
+
+            try {
+                const response = await fetch(DB_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create_table',
+                        table_name: tableName,
+                        columns: columns
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Table created successfully!');
+                    createTableModal.hide();
+                    loadTables();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function openInsertModal(tableName) {
+            const container = document.getElementById('insert-form-container');
+            container.innerHTML = '';
+            container.setAttribute('data-table', tableName);
+
+            currentColumns.forEach(col => {
+                if (col.Field === 'id' || col.Field === 'created_at' || col.Field === 'updated_at') return;
+
+                container.innerHTML += `
+                    <div class="mb-3">
+                        <label class="form-label">${col.Field} <small class="text-muted">(${col.Type})</small></label>
+                        <input type="text" class="form-control insert-field" data-field="${col.Field}" 
+                               placeholder="${col.Null === 'YES' ? 'Optional' : 'Required'}">
+                    </div>
+                `;
+            });
+
+            insertModal.show();
+        }
+
+        async function insertData() {
+            const container = document.getElementById('insert-form-container');
+            const tableName = container.getAttribute('data-table');
+            const data = {};
+
+            container.querySelectorAll('.insert-field').forEach(input => {
+                const field = input.getAttribute('data-field');
+                const value = input.value.trim();
+                if (value) {
+                    data[field] = value;
+                }
+            });
+
+            if (Object.keys(data).length === 0) {
+                alert('Enter at least one field');
+                return;
+            }
+
+            try {
+                const response = await fetch(DB_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'insert',
+                        table: tableName,
+                        data: data
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Data inserted! ID: ' + result.id);
+                    insertModal.hide();
+                    selectTable(tableName); // Refresh
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function deleteRow(tableName, id) {
+            if (!confirm(`Delete row with ID ${id}?`)) return;
+
+            try {
+                const response = await fetch(DB_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete',
+                        table: tableName,
+                        where: { id: id }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    selectTable(tableName); // Refresh
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav-admin">
+        <div class="nav-item-admin" id="nav-admin-dashboard" onclick="navigateToPage('dashboard', 'dashboard.html')">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-customers" onclick="navigateToPage('customers', 'customers.html')">
+            <i class="fas fa-users"></i>
+            <span>Pelanggan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-network" onclick="navigateToPage('network', 'acs.html')">
+            <i class="fas fa-network-wired"></i>
+            <span>Jaringan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-reports" onclick="navigateToPage('reports', 'reports.html')">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+        </div>
+        <div class="nav-item-admin active" id="nav-admin-settings"
+            onclick="navigateToPage('settings', 'settings.html')">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+    </nav>
+
+    <!-- Bottom Nav Script -->
+    <script src="bottom-nav.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>

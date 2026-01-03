@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ACSLite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="gembok_theme.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-login: radial-gradient(circle at top right, #1a1a2e 0%, #0a0a0f 100%);
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--bg-login);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background Elements */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--neon-cyan);
+            filter: blur(150px);
+            opacity: 0.1;
+            top: 10%;
+            right: 15%;
+            z-index: -1;
+            animation: pulse-glow 8s infinite alternate;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--neon-purple);
+            filter: blur(150px);
+            opacity: 0.1;
+            bottom: 10%;
+            left: 15%;
+            z-index: -1;
+            animation: pulse-glow 8s infinite alternate-reverse;
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                opacity: 0.05;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 0.15;
+                transform: scale(1.2);
+            }
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(20px);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .login-header {
+            padding: 50px 40px 30px;
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-primary);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            font-size: 36px;
+            color: var(--bg-primary);
+            box-shadow: var(--shadow-neon);
+            position: relative;
+        }
+
+        .login-logo::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--gradient-primary);
+            border-radius: 24px;
+            z-index: -1;
+            opacity: 0.5;
+            filter: blur(10px);
+        }
+
+        .login-header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-header p {
+            color: var(--text-secondary);
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        .login-body {
+            padding: 0 40px 40px;
+        }
+
+        .input-group-modern {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .input-group-modern label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding-left: 4px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 14px 14px 45px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 0 4px rgba(0, 245, 255, 0.1);
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+
+        .input-wrapper input:focus+i {
+            color: var(--neon-cyan);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            background: var(--gradient-primary);
+            border: none;
+            color: var(--bg-primary);
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 245, 255, 0.4);
+        }
+
+        .btn-login:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+
+        .form-check-input {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-color: var(--border-color);
+        }
+
+        .form-check-input:checked {
+            background-color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+        }
+
+        .form-check-label {
+            color: var(--text-secondary);
+        }
+
+        .remember-forgot a {
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .remember-forgot a:hover {
+            color: var(--neon-purple);
+        }
+
+        .login-footer {
+            text-align: center;
+            padding: 25px 40px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .alert-error {
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid var(--neon-red);
+            color: #ff8888;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slide-in 0.3s ease;
+        }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .apikey-info {
+            background: rgba(0, 245, 255, 0.05);
+            border-left: 3px solid var(--neon-cyan);
+            padding: 10px 15px;
+            border-radius: 4px 8px 8px 4px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-8px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(8px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.4s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h1>ACS-Lite</h1>
+                <p>ISP Billing & Management System</p>
+            </div>
+
+            <div class="login-body">
+                <div class="alert-error d-none" id="error-alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="error-message"></span>
+                </div>
+
+                <form id="login-form" onsubmit="return handleLogin(event)">
+                    <div class="input-group-modern">
+                        <label for="username">Username</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="username" placeholder="Enter your username" required autofocus>
+                            <i class="fas fa-user-ninja"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group-modern">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="password" placeholder="Enter password" required>
+                            <i class="fas fa-shield-halved"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group-modern">
+                        <label for="apikey">API Security Key</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="apikey" placeholder="Enter system API key" required>
+                            <i class="fas fa-fingerprint"></i>
+                        </div>
+                    </div>
+
+                    <div class="apikey-info">
+                        <i class="fas fa-info-circle me-1" style="color: var(--neon-cyan)"></i>
+                        API Key diperlukan untuk validasi keamanan akses administrator.
+                    </div>
+
+                    <div class="remember-forgot">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="remember">
+                            <label class="form-check-label" for="remember">Ingat Saya</label>
+                        </div>
+                        <a href="#">Bantuan Login?</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-login" id="btn-login">
+                        <span>MASUK SEKARANG</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div class="login-footer">
+                <p class="mb-0">&copy; 2024 ACS-Lite &bull; Gembok Theme</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = sessionStorage.getItem('acs_session');
+            if (session) {
+                window.location.href = 'dashboard.html';
+            }
+
+            // Check for remembered username
+            const remembered = localStorage.getItem('acs_remember');
+            if (remembered) {
+                document.getElementById('username').value = remembered;
+                document.getElementById('remember').checked = true;
+            }
+        });
+
+        async function handleLogin(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const apikey = document.getElementById('apikey').value;
+            const remember = document.getElementById('remember').checked;
+            const btn = document.getElementById('btn-login');
+            const errorAlert = document.getElementById('error-alert');
+            const card = document.querySelector('.login-card');
+
+            // Show loading
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> LOADING...';
+            errorAlert.classList.add('d-none');
+
+            // Try multiple API endpoints (for different network configurations)
+            const hostname = window.location.hostname;
+            const apiEndpoints = [
+                `http://${hostname}/api/auth_api.php`,        // Port 80 via nginx proxy (prioritas)
+                `http://${hostname}:8888/api/auth_api.php`,   // Direct PHP API port
+                `http://${hostname}:8080/api/auth_api.php`,   // Alternative port
+            ];
+
+            let lastError = null;
+            let success = false;
+
+            for (const API_URL of apiEndpoints) {
+                if (success) break;
+
+                try {
+                    console.log('Trying API:', API_URL);
+
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            action: 'login',
+                            username: username,
+                            password: password,
+                            apikey: apikey
+                        }),
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        success = true;
+                        // Success animation
+                        btn.innerHTML = '<i class="fas fa-check-circle me-2"></i> BERHASIL!';
+                        btn.style.background = 'var(--gradient-success)';
+
+                        // Save session with API key
+                        const session = {
+                            username: result.data.username,
+                            role: result.data.role,
+                            token: result.data.token,
+                            apikey: apikey, // Save API key for future requests
+                            loginTime: result.data.loginTime,
+                            expiry: result.data.expiry * 1000, // Convert to milliseconds
+                            apiUrl: API_URL.replace('/auth_api.php', '') // Save working API base
+                        };
+
+                        sessionStorage.setItem('acs_session', JSON.stringify(session));
+
+                        if (remember) {
+                            localStorage.setItem('acs_remember', username);
+                        } else {
+                            localStorage.removeItem('acs_remember');
+                        }
+
+                        // Delay for animation
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 600);
+                        return false;
+                    } else {
+                        // API returned error response
+                        lastError = result.error || 'Login gagal. Cek kembali kredensial Anda.';
+                        break; // Don't try other endpoints if we got a response
+                    }
+                } catch (error) {
+                    console.warn('API endpoint failed:', API_URL, error.message);
+                    lastError = error.message;
+                    // Continue to next endpoint
+                }
+            }
+
+            // All endpoints failed or login error
+            errorAlert.classList.remove('d-none');
+
+            if (lastError && lastError.includes('aborted')) {
+                document.getElementById('error-message').textContent =
+                    'Koneksi timeout. Server API tidak merespons.';
+            } else if (lastError && (lastError.includes('fetch') || lastError.includes('network') || lastError.includes('Failed'))) {
+                document.getElementById('error-message').innerHTML =
+                    'Tidak dapat terhubung ke server API.<br><small class="text-muted">Pastikan port 8888 terbuka dari jaringan Anda.</small>';
+            } else {
+                document.getElementById('error-message').textContent = lastError || 'Terjadi kesalahan koneksi.';
+            }
+
+            card.classList.add('shake');
+            setTimeout(() => {
+                card.classList.remove('shake');
+            }, 400);
+
+            btn.disabled = false;
+            btn.innerHTML = '<span>MASUK SEKARANG</span> <i class="fas fa-arrow-right"></i>';
+
+            return false;
+        }
+    </script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>

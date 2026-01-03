@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONU Mapping - ACSLite</title>
+
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https://*.openstreetmap.org https://*.tile.openstreetmap.org; connect-src 'self' https://*.openstreetmap.org;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .08);
+            background: linear-gradient(to right, #1a237e, #283593) !important;
+        }
+
+        #map {
+            height: calc(100vh - 120px);
+            border-radius: 10px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            margin-bottom: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-online {
+            background-color: #4caf50;
+        }
+
+        .status-offline {
+            background-color: #f44336;
+        }
+
+        .status-warning {
+            background-color: #ff9800;
+        }
+
+        .leaflet-popup-content {
+            min-width: 300px;
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+            padding: 12px;
+            margin: -15px -15px 10px -15px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .popup-body {
+            padding: 5px 0;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .badge-online {
+            background-color: #4caf50;
+        }
+
+        .badge-offline {
+            background-color: #f44336;
+        }
+
+        .btn-map-action {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .stats-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-3 py-3">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="index.html">
+                <i class="fas fa-network-wired me-2"></i>ACSLite Manager
+            </a>
+            <div class="d-flex align-items-center">
+                <a href="index.html" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fas fa-list me-1"></i> Device List
+                </a>
+                <span class="text-white me-3">
+                    <small class="opacity-75">Logged in as:</small>
+                    <strong id="username-display" class="ms-1">-</strong>
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="handleLogout()">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <!-- Stats -->
+                <div class="stats-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="stat-number text-success" id="mapped-count">0</p>
+                            <p class="stat-label">Mapped ONUs</p>
+                        </div>
+                        <i class="fas fa-map-marker-alt fa-3x text-success opacity-25"></i>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="stat-number text-warning" id="unmapped-count">0</p>
+                            <p class="stat-label">Unmapped ONUs</p>
+                        </div>
+                        <i class="fas fa-map-pin fa-3x text-warning opacity-25"></i>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <h6 class="fw-bold mb-3"><i class="fas fa-info-circle me-2"></i>Legend</h6>
+                    <div class="legend-item">
+                        <div class="legend-icon status-online"></div>
+                        <span>Online ONU</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon status-offline"></div>
+                        <span>Offline ONU</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-icon status-warning"></div>
+                        <span>Warning (Poor Signal)</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title fw-bold mb-3">
+                            <i class="fas fa-tools me-2"></i>Actions
+                        </h6>
+                        <button class="btn btn-primary w-100 mb-2" onclick="refreshMap()">
+                            <i class="fas fa-sync-alt me-2"></i>Refresh Map
+                        </button>
+                        <button class="btn btn-success w-100 mb-2" onclick="centerMap()">
+                            <i class="fas fa-crosshairs me-2"></i>Center Map
+                        </button>
+                        <button class="btn btn-info w-100" onclick="showUnmappedDevices()">
+                            <i class="fas fa-list me-2"></i>Unmapped Devices
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="col-md-9">
+                <div class="position-relative">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Location Modal -->
+    <div class="modal fade" id="addLocationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-map-marker-alt me-2"></i>Add ONU Location
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="location-form">
+                        <div class="mb-3">
+                            <label class="form-label">Serial Number</label>
+                            <input type="text" class="form-control" id="location-sn" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location Name</label>
+                            <input type="text" class="form-control" id="location-name"
+                                placeholder="e.g., Customer House, Office, etc.">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Latitude</label>
+                                <input type="number" step="any" class="form-control" id="location-lat" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Longitude</label>
+                                <input type="number" step="any" class="form-control" id="location-lng" required>
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Click on the map to get coordinates automatically!
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveLocation()">
+                        <i class="fas fa-save me-2"></i>Save Location
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unmapped Devices Modal -->
+    <div class="modal fade" id="unmappedModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-list me-2"></i>Unmapped Devices
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Serial Number</th>
+                                    <th>Model</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unmapped-list">
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Configuration
+        const API_BASE = '/api';
+        let map;
+        let markers = [];
+        let devices = [];
+        let onuLocations = {};
+        let currentSession = null;
+        let addLocationModal;
+        let unmappedModal;
+        let selectedDevice = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session
+            if (!checkSession()) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('username-display').textContent = currentSession.username;
+
+            // Initialize modals
+            addLocationModal = new bootstrap.Modal(document.getElementById('addLocationModal'));
+            unmappedModal = new bootstrap.Modal(document.getElementById('unmappedModal'));
+
+            // Initialize map
+            initMap();
+
+            // Load data
+            loadDevices();
+        });
+
+        function checkSession() {
+            const savedSession = sessionStorage.getItem('acs_session');
+            if (!savedSession) return false;
+
+            try {
+                const session = JSON.parse(savedSession);
+                if (session.expiry < Date.now()) {
+                    sessionStorage.removeItem('acs_session');
+                    return false;
+                }
+                currentSession = session;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+
+        function initMap() {
+            // Initialize map (centered on Indonesia)
+            map = L.map('map').setView([-2.5489, 118.0149], 5);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Add click event to get coordinates
+            map.on('click', function (e) {
+                if (selectedDevice) {
+                    document.getElementById('location-lat').value = e.latlng.lat.toFixed(6);
+                    document.getElementById('location-lng').value = e.latlng.lng.toFixed(6);
+                }
+            });
+        }
+
+        async function loadDevices() {
+            try {
+                const response = await fetch(`${API_BASE}/devices`, {
+                    headers: getHeaders()
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch devices');
+
+                const result = await response.json();
+                devices = Array.isArray(result) ? result : (result.data || []);
+
+                // Load ONU locations (mock data for now - replace with API call)
+                await loadOnuLocations();
+
+                // Update map
+                updateMap();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading devices:', error);
+                alert('Error loading devices: ' + error.message);
+            }
+        }
+
+        async function loadOnuLocations() {
+            // TODO: Replace with actual API call
+            // For now, using localStorage as mock database
+            const saved = localStorage.getItem('onu_locations');
+            onuLocations = saved ? JSON.parse(saved) : {};
+        }
+
+        function saveOnuLocations() {
+            // TODO: Replace with actual API call
+            localStorage.setItem('onu_locations', JSON.stringify(onuLocations));
+        }
+
+        function updateMap() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            // Add markers for mapped devices
+            devices.forEach(device => {
+                const location = onuLocations[device.serial_number];
+                if (location) {
+                    addMarker(device, location);
+                }
+            });
+
+            // Auto-fit bounds if there are markers
+            if (markers.length > 0) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function addMarker(device, location) {
+            const isOnline = checkIfOnline(device);
+            const hasWarning = checkSignalWarning(device);
+
+            // Determine marker color
+            let markerColor = '#f44336'; // offline (red)
+            if (isOnline) {
+                markerColor = hasWarning ? '#ff9800' : '#4caf50'; // warning (orange) or online (green)
+            }
+
+            // Create custom icon
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${markerColor}; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+
+            // Create marker
+            const marker = L.marker([location.lat, location.lng], { icon: icon })
+                .addTo(map)
+                .bindPopup(createPopupContent(device, location));
+
+            markers.push(marker);
+        }
+
+        function createPopupContent(device, location) {
+            const isOnline = checkIfOnline(device);
+            const statusBadge = isOnline
+                ? '<span class="badge badge-online">Online</span>'
+                : '<span class="badge badge-offline">Offline</span>';
+
+            return `
+                <div class="popup-header">
+                    <h6 class="mb-0"><i class="fas fa-router me-2"></i>${device.serial_number}</h6>
+                </div>
+                <div class="popup-body">
+                    <div class="info-row">
+                        <span class="info-label">Location:</span>
+                        <span class="info-value">${location.name || 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value">${statusBadge}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Model:</span>
+                        <span class="info-value">${device.model || 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">IP Address:</span>
+                        <span class="info-value">${device.ip_address || 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Signal:</span>
+                        <span class="info-value">${device.rx_power || 'N/A'} dBm</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Last Seen:</span>
+                        <span class="info-value">${formatLastSeen(device.last_inform_time)}</span>
+                    </div>
+                    <button class="btn btn-sm btn-primary btn-map-action" onclick="editLocation('${device.serial_number}')">
+                        <i class="fas fa-edit me-1"></i>Edit Location
+                    </button>
+                    <button class="btn btn-sm btn-danger btn-map-action" onclick="deleteLocation('${device.serial_number}')">
+                        <i class="fas fa-trash me-1"></i>Remove from Map
+                    </button>
+                </div>
+            `;
+        }
+
+        function checkIfOnline(device) {
+            if (!device.last_inform_time) return false;
+            const lastSeen = new Date(device.last_inform_time).getTime();
+            const now = Date.now();
+            return (now - lastSeen) < (30 * 60 * 1000); // 30 minutes
+        }
+
+        function checkSignalWarning(device) {
+            if (!device.rx_power) return false;
+            const signal = parseFloat(device.rx_power);
+            return signal < -25; // Warning if signal < -25 dBm
+        }
+
+        function formatLastSeen(timestamp) {
+            if (!timestamp) return 'Never';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+        }
+
+        function updateStats() {
+            const mapped = Object.keys(onuLocations).length;
+            const unmapped = devices.length - mapped;
+
+            document.getElementById('mapped-count').textContent = mapped;
+            document.getElementById('unmapped-count').textContent = unmapped;
+        }
+
+        function showUnmappedDevices() {
+            const unmappedDevices = devices.filter(d => !onuLocations[d.serial_number]);
+            const tbody = document.getElementById('unmapped-list');
+
+            if (unmappedDevices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">All devices are mapped!</td></tr>';
+            } else {
+                tbody.innerHTML = unmappedDevices.map(device => `
+                    <tr>
+                        <td>${device.serial_number}</td>
+                        <td>${device.model || 'N/A'}</td>
+                        <td>${checkIfOnline(device) ? '<span class="badge bg-success">Online</span>' : '<span class="badge bg-danger">Offline</span>'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="addDeviceLocation('${device.serial_number}')">
+                                <i class="fas fa-map-marker-alt me-1"></i>Add to Map
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            unmappedModal.show();
+        }
+
+        function addDeviceLocation(serialNumber) {
+            selectedDevice = devices.find(d => d.serial_number === serialNumber);
+            if (!selectedDevice) return;
+
+            document.getElementById('location-sn').value = serialNumber;
+            document.getElementById('location-name').value = '';
+            document.getElementById('location-lat').value = '';
+            document.getElementById('location-lng').value = '';
+
+            unmappedModal.hide();
+            addLocationModal.show();
+        }
+
+        function editLocation(serialNumber) {
+            selectedDevice = devices.find(d => d.serial_number === serialNumber);
+            const location = onuLocations[serialNumber];
+
+            if (!selectedDevice || !location) return;
+
+            document.getElementById('location-sn').value = serialNumber;
+            document.getElementById('location-name').value = location.name || '';
+            document.getElementById('location-lat').value = location.lat;
+            document.getElementById('location-lng').value = location.lng;
+
+            addLocationModal.show();
+        }
+
+        function saveLocation() {
+            const sn = document.getElementById('location-sn').value;
+            const name = document.getElementById('location-name').value;
+            const lat = parseFloat(document.getElementById('location-lat').value);
+            const lng = parseFloat(document.getElementById('location-lng').value);
+
+            if (!lat || !lng) {
+                alert('Please enter valid coordinates!');
+                return;
+            }
+
+            // Save location
+            onuLocations[sn] = { name, lat, lng };
+            saveOnuLocations();
+
+            // Update map
+            updateMap();
+            updateStats();
+
+            // Close modal
+            addLocationModal.hide();
+            selectedDevice = null;
+
+            alert('Location saved successfully!');
+        }
+
+        function deleteLocation(serialNumber) {
+            if (!confirm('Remove this ONU from map?')) return;
+
+            delete onuLocations[serialNumber];
+            saveOnuLocations();
+
+            updateMap();
+            updateStats();
+        }
+
+        function refreshMap() {
+            loadDevices();
+        }
+
+        function centerMap() {
+            if (markers.length > 0) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            } else {
+                map.setView([-2.5489, 118.0149], 5);
+            }
+        }
+
+        function getHeaders() {
+            const headers = {};
+            if (currentSession && currentSession.apiKey) {
+                headers['X-API-Key'] = currentSession.apiKey;
+            }
+            return headers;
+        }
+    </script>
+</body>
+
+</html>

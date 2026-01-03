@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembayaran - ACSLite Billing</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="gembok_theme.css" rel="stylesheet">
+    <style>
+        /* Base styles that might not be in the theme file */
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .page-content {
+            padding: 25px;
+        }
+
+        .page-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            border-radius: 15px;
+        }
+
+        .payment-card {
+            background: var(--gradient-success);
+            color: var(--bg-primary);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .payment-card h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .payment-card small {
+            opacity: 0.8;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-mini {
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-mini-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-mini-icon.primary {
+            background: rgba(0, 245, 255, 0.1);
+            color: var(--neon-cyan);
+        }
+
+        .stat-mini-icon.success {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--neon-green);
+        }
+
+        .stat-mini-icon.warning {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--neon-orange);
+        }
+
+        .stat-mini-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-mini-label {
+            font-size: 0.8rem;
+        }
+
+        .data-table {
+            width: 100%;
+        }
+
+        .data-table th {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            padding: 12px 15px;
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 15px;
+            vertical-align: middle;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 15px 10px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            width: 300px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .method-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .method-badge.cash {
+            background: rgba(0, 245, 255, 0.1);
+            color: var(--neon-cyan);
+        }
+
+        .method-badge.transfer {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--neon-orange);
+        }
+
+        .method-badge.qris {
+            background: rgba(255, 0, 170, 0.1);
+            color: var(--neon-pink);
+        }
+
+        .method-badge.ewallet {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--neon-green);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+
+        .header-icon:hover {
+            color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            background: rgba(0, 245, 255, 0.05);
+        }
+
+        .user-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .user-dropdown:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .user-info {
+            text-align: left;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        /* Menu Item Submenu overrides */
+        .menu-item-parent {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .page-content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 open active"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu active">
+                <a href="packages.html" class="submenu-item">
+                    <i class="fas fa-cube"></i><span>Paket</span>
+                </a>
+                <a href="customers.html" class="submenu-item">
+                    <i class="fas fa-users"></i><span>Pelanggan</span>
+                </a>
+                <a href="invoices.html" class="submenu-item">
+                    <i class="fas fa-file-invoice"></i><span>Invoice</span>
+                </a>
+                <a href="payments.html" class="submenu-item active">
+                    <i class="fas fa-money-bill-wave"></i><span>Pembayaran</span>
+                </a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Data & Laporan</div>
+            <a href="reports.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="logout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Cari transaksi, pelanggan...">
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="d-flex gap-2 me-3">
+                    <input type="month" class="form-control" id="filter-month" style="width: 160px; height: 40px;">
+                </div>
+                <div class="header-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="user-dropdown">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info d-none d-md-block">
+                        <div class="user-name">Admin</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <h2 class="page-title">Riwayat Pembayaran</h2>
+            <p class="page-subtitle">Lihat semua transaksi pembayaran pelanggan</p>
+
+            <!-- Revenue Summary -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="payment-card">
+                        <small>Pendapatan Bulan Ini</small>
+                        <h3 id="revenue-month">Rp 0</h3>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="stats-row">
+                        <div class="stat-mini">
+                            <div class="stat-mini-icon success"><i class="fas fa-receipt"></i></div>
+                            <div>
+                                <div class="stat-mini-value" id="stat-count">0</div>
+                                <div class="stat-mini-label">Transaksi</div>
+                            </div>
+                        </div>
+                        <div class="stat-mini">
+                            <div class="stat-mini-icon primary"><i class="fas fa-wallet"></i></div>
+                            <div>
+                                <div class="stat-mini-value" id="stat-cash">0</div>
+                                <div class="stat-mini-label">Cash</div>
+                            </div>
+                        </div>
+                        <div class="stat-mini">
+                            <div class="stat-mini-icon warning"><i class="fas fa-university"></i></div>
+                            <div>
+                                <div class="stat-mini-value" id="stat-transfer">0</div>
+                                <div class="stat-mini-label">Transfer</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payments Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="fas fa-history"></i> Riwayat Transaksi</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>No. Pembayaran</th>
+                                    <th>Tanggal</th>
+                                    <th>Pelanggan</th>
+                                    <th>No. Invoice</th>
+                                    <th>Metode</th>
+                                    <th class="text-end">Jumlah</th>
+                                    <th>Referensi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payments-table">
+                                <tr>
+                                    <td colspan="7" class="text-center py-5"><i
+                                            class="fas fa-spinner fa-spin fa-2x text-muted"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API = `http://${window.location.hostname}:8888/api/billing_api.php`;
+        let allPayments = [];
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
+        }
+
+        function toggleSubmenu(el) {
+            const submenu = el.nextElementSibling;
+            el.classList.toggle('open');
+            submenu.classList.toggle('active');
+        }
+
+        function formatRupiah(amount) {
+            return 'Rp ' + parseInt(amount || 0).toLocaleString('id-ID');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        // Check if user is logged in
+        function checkSession() {
+            const session = sessionStorage.getItem('acs_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session first
+            if (!checkSession()) return;
+
+            const today = new Date();
+            document.getElementById('filter-month').value = today.toISOString().slice(0, 7);
+            document.getElementById('filter-month').addEventListener('change', loadPayments);
+            document.getElementById('search-input').addEventListener('keyup', searchPayments);
+            loadPayments();
+        });
+
+        async function loadPayments() {
+            const tbody = document.getElementById('payments-table');
+
+            try {
+                const response = await fetch(`${API}?action=recent_transactions&limit=100`);
+                const result = await response.json();
+
+                if (result.success) {
+                    allPayments = result.transactions || [];
+                    renderPayments(allPayments);
+                    updateStats(allPayments);
+                } else {
+                    // Show empty state
+                    allPayments = [];
+                    renderPayments([]);
+                    updateStats([]);
+                }
+            } catch (e) {
+                allPayments = [];
+                renderPayments([]);
+                updateStats([]);
+            }
+        }
+
+        function renderPayments(payments) {
+            const tbody = document.getElementById('payments-table');
+
+            if (!payments || payments.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fas fa-receipt"></i><p>Belum ada pembayaran</p></div></td></tr>`;
+                return;
+            }
+
+            const methodIcons = { cash: 'money-bill-wave', transfer: 'university', qris: 'qrcode', ewallet: 'wallet' };
+            const methodLabels = { cash: 'Cash', transfer: 'Transfer', qris: 'QRIS', ewallet: 'E-Wallet' };
+
+            tbody.innerHTML = payments.map(p => `
+                <tr>
+                    <td><strong>${p.payment_no}</strong></td>
+                    <td>${formatDate(p.payment_date)}</td>
+                    <td><div>${p.customer_name || '-'}</div><small class="text-muted">${p.customer_code || ''}</small></td>
+                    <td><a href="invoices.html">${p.invoice_no || '-'}</a></td>
+                    <td>
+                        <span class="method-badge ${p.payment_method || 'cash'}">
+                            <i class="fas fa-${methodIcons[p.payment_method] || 'money-bill'}"></i>
+                            ${methodLabels[p.payment_method] || p.payment_method || 'Cash'}
+                        </span>
+                    </td>
+                    <td class="text-end fw-bold text-success">${formatRupiah(p.amount)}</td>
+                    <td><small class="text-muted">${p.reference_no || '-'}</small></td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats(payments) {
+            const total = payments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+            const cashCount = payments.filter(p => p.payment_method === 'cash').length;
+            const transferCount = payments.filter(p => p.payment_method === 'transfer').length;
+
+            document.getElementById('revenue-month').textContent = formatRupiah(total);
+            document.getElementById('stat-count').textContent = payments.length;
+            document.getElementById('stat-cash').textContent = cashCount;
+            document.getElementById('stat-transfer').textContent = transferCount;
+        }
+
+        function searchPayments() {
+            const term = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allPayments.filter(p =>
+                (p.payment_no && p.payment_no.toLowerCase().includes(term)) ||
+                (p.customer_name && p.customer_name.toLowerCase().includes(term)) ||
+                (p.invoice_no && p.invoice_no.toLowerCase().includes(term)) ||
+                (p.reference_no && p.reference_no.toLowerCase().includes(term))
+            );
+            renderPayments(filtered);
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav-admin">
+        <div class="nav-item-admin" id="nav-admin-dashboard" onclick="navigateToPage('dashboard', 'dashboard.html')">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item-admin active" id="nav-admin-customers"
+            onclick="navigateToPage('customers', 'customers.html')">
+            <i class="fas fa-users"></i>
+            <span>Pelanggan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-network" onclick="navigateToPage('network', 'acs.html')">
+            <i class="fas fa-network-wired"></i>
+            <span>Jaringan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-reports" onclick="navigateToPage('reports', 'reports.html')">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-settings" onclick="navigateToPage('settings', 'settings.html')">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+    </nav>
+
+    <!-- Bottom Nav Script -->
+    <script src="bottom-nav.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,1325 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RADIUS Manager - ACSLite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="gembok_theme.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            background: var(--bg-primary);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-content {
+            padding: 25px;
+        }
+
+        .router-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-card);
+        }
+
+        .router-stat {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .router-stat .number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .router-stat .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-tabs {
+            border-bottom: 1px solid var(--border-color);
+            gap: 10px;
+            margin-bottom: 25px !important;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-secondary);
+            padding: 12px 20px;
+            border-radius: 10px 10px 0 0;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .nav-tabs .nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-tabs .nav-link.active {
+            background: rgba(0, 245, 255, 0.1) !important;
+            color: var(--neon-cyan) !important;
+            border-bottom: 2px solid var(--neon-cyan);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px;
+            color: var(--text-primary);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 10px;
+        }
+
+        .data-table th {
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: var(--text-primary) !important;
+            border-bottom: 2px solid var(--border-color);
+            padding: 18px 15px;
+            background: var(--bg-secondary) !important;
+        }
+
+        .data-table td {
+            padding: 16px 15px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary) !important;
+            font-size: 0.95rem;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(0, 245, 255, 0.1) !important;
+        }
+
+        .search-box {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 0 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .search-box i {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-box input {
+            background: transparent !important;
+            border: none !important;
+            color: var(--text-primary) !important;
+            box-shadow: none !important;
+        }
+
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.5) !important;
+            opacity: 1;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-badge.online {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--neon-green);
+        }
+
+        .status-badge.offline {
+            background: rgba(255, 0, 170, 0.1);
+            color: var(--neon-pink);
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu">
+                <a href="packages.html" class="submenu-item"><i class="fas fa-cube"></i><span>Paket</span></a>
+                <a href="customers.html" class="submenu-item"><i class="fas fa-users"></i><span>Pelanggan</span></a>
+                <a href="invoices.html" class="submenu-item"><i class="fas fa-file-invoice"></i><span>Invoice</span></a>
+                <a href="payments.html" class="submenu-item"><i
+                        class="fas fa-money-bill-wave"></i><span>Pembayaran</span></a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 active">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="logout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle btn btn-link text-white p-0 border-0" onclick="toggleSidebar()">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+                <h5 class="mb-0 fw-bold text-white">RADIUS Manager</h5>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-primary btn-sm" onclick="loadAll()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <h2 class="page-title text-white mb-1">Manajemen RADIUS</h2>
+                    <p class="text-secondary mb-0">Kelola FreeRADIUS, NAS MikroTik, sinkronisasi voucher, dan accounting
+                    </p>
+                </div>
+            </div>
+
+            <div class="router-card" id="radius-status">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h4><i class="fas fa-shield-alt me-2"></i><span id="radius-title">FreeRADIUS</span></h4>
+                        <p class="mb-0 opacity-75"><i class="fas fa-circle me-1"></i><span id="service-status">-</span>
+                        </p>
+                        <p class="mb-0 opacity-75 mt-1"><i class="fas fa-database me-1"></i><span
+                                id="db-status">-</span></p>
+                        <button class="btn btn-outline-warning btn-sm mt-2" onclick="cleanupOrphaned()"
+                            title="Bersihkan sesi yang menggantung (tidak ada Accounting-Stop)">
+                            <i class="fas fa-broom me-1"></i> Cleanup Orphaned
+                        </button>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col router-stat">
+                                <div class="number text-info" id="stat-users">-</div>
+                                <div class="label">Total Users</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-success" id="stat-online">-</div>
+                                <div class="label">Online Now</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-warning" id="stat-sessions">-</div>
+                                <div class="label">Sessions Today</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-primary" id="stat-unique">-</div>
+                                <div class="label">Unique Users</div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col router-stat">
+                                <div class="number text-success" id="stat-download" style="font-size: 1.2rem;">-</div>
+                                <div class="label"><i class="fas fa-download me-1"></i>Download Today</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-warning" id="stat-upload" style="font-size: 1.2rem;">-</div>
+                                <div class="label"><i class="fas fa-upload me-1"></i>Upload Today</div>
+                            </div>
+                            <div class="col router-stat"
+                                title="Sesi orphaned yang perlu dibersihkan (tidak ada Accounting-Stop)">
+                                <div class="number" id="stat-orphaned" style="font-size: 1.2rem;">-</div>
+                                <div class="label"><i class="fas fa-ghost me-1"></i>Orphaned</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="nav nav-tabs mb-3" id="mainTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#tab-config">
+                        <i class="fas fa-cog me-1"></i> Configuration
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-hotspot-profiles">
+                        <i class="fas fa-wifi me-1"></i> Hotspot Profiles
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-pppoe">
+                        <i class="fas fa-sitemap me-1"></i> PPPoE Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-clients">
+                        <i class="fas fa-network-wired me-1"></i> NAS Clients
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-sync">
+                        <i class="fas fa-rotate me-1"></i> Sync Voucher
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-active">
+                        <i class="fas fa-signal me-1"></i> Active Sessions
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-accounting">
+                        <i class="fas fa-chart-line me-1"></i> Accounting
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="tab-config">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-cog me-2"></i>RADIUS Configuration</h5>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-light btn-sm" onclick="testRadiusDb()"><i
+                                        class="fas fa-plug me-1"></i> Test DB</button>
+                                <button class="btn btn-primary btn-sm" onclick="saveRadiusConfig()"><i
+                                        class="fas fa-save me-1"></i> Save</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">Hotspot Backend</label>
+                                    <select class="form-select" id="hotspot-backend">
+                                        <option value="mikrotik">MikroTik</option>
+                                        <option value="radius">RADIUS</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">Enabled</label>
+                                    <select class="form-select" id="radius-enabled">
+                                        <option value="false">false</option>
+                                        <option value="true">true</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">DB Host</label>
+                                    <input class="form-control" id="db-host" placeholder="127.0.0.1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">DB Port</label>
+                                    <input class="form-control" id="db-port" placeholder="3306" type="number">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-white">DB Name</label>
+                                    <input class="form-control" id="db-name" placeholder="radius">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-white">DB User</label>
+                                    <input class="form-control" id="db-user" placeholder="radius">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-white">DB Pass</label>
+                                    <input class="form-control" id="db-pass" placeholder="" type="password">
+                                </div>
+                            </div>
+                            <div class="mt-3" id="config-message"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-hotspot-profiles">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-wifi me-2"></i>Hotspot Profiles</h5>
+                            <div class="d-flex gap-2">
+                                <a class="btn btn-outline-light btn-sm" href="hotspot.html"><i
+                                        class="fas fa-ticket-alt me-1"></i> Open Hotspot Voucher</a>
+                                <button class="btn btn-outline-light btn-sm" onclick="loadHotspotProfiles()"><i
+                                        class="fas fa-sync-alt me-1"></i> Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info mb-3"
+                                style="background: rgba(0,245,255,0.08); border: 1px solid var(--border-color); color: var(--text-primary);">
+                                Ini hanya tampilan profile Hotspot (paket) dari database ACS. Untuk membuat voucher dan
+                                edit profile, gunakan menu <strong>Hotspot Voucher</strong>.
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Rate Limit</th>
+                                            <th>Duration</th>
+                                            <th>Price</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hotspot-profiles-table">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-5"><i
+                                                    class="fas fa-spinner fa-spin fa-2x text-muted"></i></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-pppoe">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-sitemap me-2"></i>PPPoE Users (RADIUS)</h5>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-light btn-sm" onclick="loadPppoeUsers()"><i
+                                        class="fas fa-sync-alt me-1"></i> Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info mb-3"
+                                style="background: rgba(0,245,255,0.08); border: 1px solid var(--border-color); color: var(--text-primary);">
+                                Buat <strong>PPPoE Plan</strong> (paket speed/durasi), lalu pilih plan saat membuat
+                                user.
+                            </div>
+
+                            <div class="card mb-3"
+                                style="background: var(--bg-card); border: 1px solid var(--border-color);">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="fas fa-layer-group me-2"></i>PPPoE Plans</h6>
+                                    <button class="btn btn-outline-light btn-sm" onclick="loadPppoePlans()"><i
+                                            class="fas fa-sync-alt me-1"></i> Refresh</button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label text-white">Plan Name</label>
+                                            <input class="form-control" id="pppoe-plan-name" placeholder="Paket 10Mbps">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label text-white">Rate Limit</label>
+                                            <input class="form-control" id="pppoe-plan-rate" placeholder="10M/10M">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label text-white">Session Timeout (sec)</label>
+                                            <input class="form-control" id="pppoe-plan-timeout" type="number"
+                                                placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2 mt-3">
+                                        <button class="btn btn-primary" onclick="addPppoePlan()"><i
+                                                class="fas fa-plus me-1"></i> Add Plan</button>
+                                    </div>
+                                    <div class="mt-3" id="pppoe-plan-message"></div>
+
+                                    <div class="table-responsive mt-3">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Rate Limit</th>
+                                                    <th>Session Timeout</th>
+                                                    <th class="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="pppoe-plan-table">
+                                                <tr>
+                                                    <td colspan="4" class="text-center py-4 text-muted">No plans</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">Username</label>
+                                    <input class="form-control" id="pppoe-username" placeholder="user01">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">Password</label>
+                                    <input class="form-control" id="pppoe-password" type="password"
+                                        placeholder="password">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">Plan</label>
+                                    <select class="form-select" id="pppoe-plan-select">
+                                        <option value="">(manual)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">Rate Limit</label>
+                                    <input class="form-control" id="pppoe-rate" placeholder="10M/10M">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-white">Session Timeout (sec)</label>
+                                    <input class="form-control" id="pppoe-timeout" type="number" placeholder="0">
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-primary" onclick="savePppoeUser()"><i
+                                        class="fas fa-save me-1"></i> Save User</button>
+                            </div>
+                            <div class="mt-3" id="pppoe-message"></div>
+
+                            <div class="table-responsive mt-3">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Password</th>
+                                            <th>Rate Limit</th>
+                                            <th>Session Timeout</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pppoe-table">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-5"><i
+                                                    class="fas fa-spinner fa-spin fa-2x text-muted"></i></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-clients">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-network-wired me-2"></i>NAS Clients (MikroTik)</h5>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-light btn-sm" onclick="openAddClientModal()"><i
+                                        class="fas fa-plus me-1"></i> Add Client</button>
+                                <button class="btn btn-primary btn-sm" onclick="applyClients()"><i
+                                        class="fas fa-check me-1"></i> Apply to FreeRADIUS</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>IP / CIDR</th>
+                                            <th>Secret</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="clients-table">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-5"><i
+                                                    class="fas fa-spinner fa-spin fa-2x text-muted"></i></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-sync">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-rotate me-2"></i>Sync Voucher to RADIUS</h5>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm" onclick="runSync()"><i
+                                        class="fas fa-play me-1"></i> Run Sync Now</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <div class="alert alert-info mb-0"
+                                    style="background: rgba(0,245,255,0.08); border: 1px solid var(--border-color); color: var(--text-primary);">
+                                    Sync akan mengisi `radcheck` dan `radreply` dari tabel `hotspot_vouchers` dan
+                                    `hotspot_profiles`.
+                                </div>
+                            </div>
+                            <div class="mt-3" id="sync-output"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-active">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0"><i class="fas fa-signal me-2"></i>Active Sessions (Online Now)</h5>
+                                <small class="text-muted"><i class="fas fa-clock me-1"></i>Auto-refresh setiap 30
+                                    detik</small>
+                            </div>
+                            <div class="d-flex gap-2 align-items-center">
+                                <span class="badge bg-success" id="auto-refresh-badge"><i
+                                        class="fas fa-sync-alt fa-spin me-1"></i>Live</span>
+                                <button class="btn btn-outline-light btn-sm" onclick="loadActiveSessions()"><i
+                                        class="fas fa-sync-alt me-1"></i> Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info mb-3"
+                                style="background: rgba(0,245,255,0.08); border: 1px solid var(--border-color); color: var(--text-primary);">
+                                <i class="fas fa-info-circle me-1"></i> Menampilkan user yang sedang terkoneksi
+                                (AcctStopTime = NULL). Data diambil dari tabel <code>radacct</code>.
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Framed IP</th>
+                                            <th>NAS IP</th>
+                                            <th>Start Time</th>
+                                            <th>Duration</th>
+                                            <th>Download</th>
+                                            <th>Upload</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="active-sessions-table">
+                                        <tr>
+                                            <td colspan="8" class="text-center py-5"><i
+                                                    class="fas fa-spinner fa-spin fa-2x text-muted"></i></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-accounting">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Accounting (radacct)</h5>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success btn-sm" onclick="exportAccountingCSV()"><i
+                                        class="fas fa-file-csv me-1"></i> Export CSV</button>
+                                <button class="btn btn-outline-light btn-sm" onclick="loadAccounting()"><i
+                                        class="fas fa-sync-alt me-1"></i> Refresh</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" class="form-control" id="acct-search"
+                                            placeholder="Search username..." onkeyup="filterAccounting()">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Start</th>
+                                            <th>Stop</th>
+                                            <th>Session (s)</th>
+                                            <th>In</th>
+                                            <th>Out</th>
+                                            <th>NAS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="acct-table">
+                                        <tr>
+                                            <td colspan="7" class="text-center py-5"><i
+                                                    class="fas fa-spinner fa-spin fa-2x text-muted"></i></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal fade" id="clientModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+                <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+                    <h5 class="modal-title text-white">Add NAS Client</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label text-white">Name</label>
+                            <input class="form-control" id="client-name" placeholder="mikrotik-1">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-white">IP / CIDR</label>
+                            <input class="form-control" id="client-ip" placeholder="192.168.88.1/32">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-white">Secret</label>
+                            <input class="form-control" id="client-secret" placeholder="sharedsecret" type="password">
+                        </div>
+                    </div>
+                    <div class="mt-3" id="client-message"></div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-color);">
+                    <button class="btn btn-outline-light" data-bs-dismiss="modal">Close</button>
+                    <button class="btn btn-primary" onclick="saveClient()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+    <script>
+        const SETTINGS_API = `http://${window.location.hostname}:8888/api/settings_api.php`;
+        const RADIUS_API = `http://${window.location.hostname}:8888/api/radius_api.php`;
+        const VOUCHER_API = `http://${window.location.hostname}:8888/api/voucher_api.php`;
+
+        let clients = [];
+        let accountingRows = [];
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        function toggleSubmenu(el) {
+            const submenu = el.nextElementSibling;
+            const arrow = el.querySelector('.menu-arrow');
+            submenu.classList.toggle('show');
+            if (arrow) arrow.style.transform = submenu.classList.contains('show') ? 'rotate(90deg)' : 'rotate(0deg)';
+        }
+
+        function logout() {
+            window.location.href = 'login.html';
+        }
+
+        function setMessage(elId, ok, msg) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.innerHTML = `<div class="alert ${ok ? 'alert-success' : 'alert-danger'}">${msg}</div>`;
+        }
+
+        async function apiGet(url) {
+            const r = await fetch(url);
+            return await r.json();
+        }
+
+        async function apiPost(url, body) {
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            return await r.json();
+        }
+
+        async function loadSettings() {
+            const data = await apiGet(`${SETTINGS_API}?action=get`);
+            const hotspot = (data.settings && data.settings.hotspot) ? data.settings.hotspot : { backend: 'mikrotik', radius: { enabled: false, db_host: '127.0.0.1', db_port: 3306, db_name: 'radius', db_user: 'radius', db_pass: '' } };
+
+            document.getElementById('hotspot-backend').value = hotspot.backend || 'mikrotik';
+            document.getElementById('radius-enabled').value = String((hotspot.radius && hotspot.radius.enabled) ? true : false);
+            document.getElementById('db-host').value = (hotspot.radius && hotspot.radius.db_host) ? hotspot.radius.db_host : '127.0.0.1';
+            document.getElementById('db-port').value = (hotspot.radius && hotspot.radius.db_port) ? hotspot.radius.db_port : 3306;
+            document.getElementById('db-name').value = (hotspot.radius && hotspot.radius.db_name) ? hotspot.radius.db_name : 'radius';
+            document.getElementById('db-user').value = (hotspot.radius && hotspot.radius.db_user) ? hotspot.radius.db_user : 'radius';
+            document.getElementById('db-pass').value = (hotspot.radius && hotspot.radius.db_pass) ? hotspot.radius.db_pass : '';
+        }
+
+        async function saveRadiusConfig() {
+            const backend = document.getElementById('hotspot-backend').value;
+            const enabled = document.getElementById('radius-enabled').value === 'true';
+
+            const payload = {
+                action: 'save_hotspot',
+                hotspot: {
+                    backend,
+                    radius: {
+                        enabled,
+                        db_host: document.getElementById('db-host').value.trim(),
+                        db_port: parseInt(document.getElementById('db-port').value, 10) || 3306,
+                        db_name: document.getElementById('db-name').value.trim(),
+                        db_user: document.getElementById('db-user').value.trim(),
+                        db_pass: document.getElementById('db-pass').value
+                    }
+                }
+            };
+
+            const res = await apiPost(SETTINGS_API, payload);
+            setMessage('config-message', !!res.success, res.message || res.error || 'Unknown');
+            await loadAll();
+        }
+
+        async function testRadiusDb() {
+            const res = await apiGet(`${RADIUS_API}?action=test_db`);
+            setMessage('config-message', !!res.success, res.message || res.error || 'Unknown');
+            await loadAll();
+        }
+
+        async function loadStatus() {
+            const res = await apiGet(`${RADIUS_API}?action=status`);
+
+            document.getElementById('service-status').innerHTML = res.service_active ? '<span class="status-badge online">ACTIVE</span>' : '<span class="status-badge offline">INACTIVE</span>';
+            document.getElementById('db-status').innerHTML = res.db_ok ? '<span class="status-badge online">DB OK</span>' : '<span class="status-badge offline">DB FAIL</span>';
+
+            document.getElementById('stat-users').textContent = (res.stats && res.stats.users != null) ? res.stats.users : '-';
+            document.getElementById('stat-online').textContent = (res.stats && res.stats.online != null) ? res.stats.online : '-';
+            document.getElementById('stat-sessions').textContent = (res.stats && res.stats.sessions_today != null) ? res.stats.sessions_today : '-';
+            document.getElementById('stat-unique').textContent = (res.stats && res.stats.unique_users_today != null) ? res.stats.unique_users_today : '-';
+
+            // Format traffic stats
+            const downloadToday = (res.stats && res.stats.total_download_today != null) ? formatBytes(res.stats.total_download_today) : '-';
+            const uploadToday = (res.stats && res.stats.total_upload_today != null) ? formatBytes(res.stats.total_upload_today) : '-';
+            document.getElementById('stat-download').textContent = downloadToday;
+            document.getElementById('stat-upload').textContent = uploadToday;
+
+            // Orphaned sessions with dynamic color
+            const orphaned = (res.stats && res.stats.orphaned != null) ? res.stats.orphaned : 0;
+            const orphanedEl = document.getElementById('stat-orphaned');
+            orphanedEl.textContent = orphaned;
+            orphanedEl.className = 'number ' + (orphaned > 10 ? 'text-danger' : orphaned > 0 ? 'text-warning' : 'text-success');
+        }
+
+        async function cleanupOrphaned() {
+            if (!confirm('Bersihkan sesi orphaned (yang sudah tidak update > 10 menit)?\\n\\nIni akan menutup sesi yang "menggantung" karena tidak ada Accounting-Stop dari NAS.')) return;
+
+            try {
+                const res = await apiPost(RADIUS_API, { action: 'cleanup_orphaned' });
+                if (res.success) {
+                    alert(`✅ Berhasil!\\n\\nSebelum: ${res.before} sesi aktif\\nDibersihkan: ${res.cleaned} sesi orphaned\\nSesudah: ${res.after} sesi aktif`);
+                    await loadAll();
+                    await loadActiveSessions();
+                } else {
+                    alert('❌ Gagal: ' + (res.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function loadClients() {
+            const res = await apiGet(`${RADIUS_API}?action=get_clients`);
+            clients = res.clients || [];
+
+            const tbody = document.getElementById('clients-table');
+            if (!clients.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No clients configured</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = clients.map((c, idx) => {
+                const secret = (c.secret && c.secret.length) ? '********' : '';
+                return `<tr>
+                    <td>${c.name || ''}</td>
+                    <td>${c.ip || ''}</td>
+                    <td>${secret}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteClient(${idx})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function openAddClientModal() {
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-ip').value = '';
+            document.getElementById('client-secret').value = '';
+            document.getElementById('client-message').innerHTML = '';
+            const modal = new bootstrap.Modal(document.getElementById('clientModal'));
+            modal.show();
+        }
+
+        async function saveClient() {
+            const payload = {
+                action: 'add_client',
+                name: document.getElementById('client-name').value.trim(),
+                ip: document.getElementById('client-ip').value.trim(),
+                secret: document.getElementById('client-secret').value
+            };
+            const res = await apiPost(RADIUS_API, payload);
+            setMessage('client-message', !!res.success, res.message || res.error || 'Unknown');
+            if (res.success) {
+                await loadClients();
+            }
+        }
+
+        async function deleteClient(idx) {
+            if (!confirm('Delete this NAS client?')) return;
+            const res = await apiPost(RADIUS_API, { action: 'delete_client', index: idx });
+            if (!res.success) {
+                alert(res.error || 'Failed');
+                return;
+            }
+            await loadClients();
+        }
+
+        async function applyClients() {
+            const res = await apiPost(RADIUS_API, { action: 'apply_clients' });
+            alert(res.message || res.error || 'Unknown');
+            await loadAll();
+        }
+
+        async function runSync() {
+            document.getElementById('sync-output').innerHTML = '<div class="text-muted"><i class="fas fa-spinner fa-spin"></i> Running sync...</div>';
+            const res = await apiPost(RADIUS_API, { action: 'run_sync' });
+            const ok = !!res.success;
+            document.getElementById('sync-output').innerHTML = `<div class="alert ${ok ? 'alert-success' : 'alert-danger'}">${(res.message || res.error || 'Unknown')}</div>`;
+            await loadAll();
+        }
+
+        async function loadAccounting() {
+            const res = await apiGet(`${RADIUS_API}?action=accounting&limit=200`);
+            accountingRows = res.rows || [];
+            renderAccounting(accountingRows);
+        }
+
+        async function loadHotspotProfiles() {
+            const res = await apiGet(`${VOUCHER_API}?action=get_profiles`);
+            const profiles = (res && res.profiles) ? res.profiles : (res.data && res.data.profiles ? res.data.profiles : []);
+            const tbody = document.getElementById('hotspot-profiles-table');
+            if (!profiles.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No profiles</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = profiles.map(p => {
+                const name = p.name || '';
+                const rate = p.rate_limit || '';
+                const dur = p.duration || '';
+                const price = (p.price != null) ? p.price : '';
+                return `<tr>
+                    <td><strong>${name}</strong></td>
+                    <td><code>${rate}</code></td>
+                    <td>${dur}</td>
+                    <td>${price}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function loadPppoeUsers() {
+            const res = await apiGet(`${RADIUS_API}?action=list_pppoe_users&limit=500`);
+            const rows = res.users || [];
+            const tbody = document.getElementById('pppoe-table');
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No PPPoE users</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.map(r => {
+                return `<tr>
+                    <td>${r.username || ''}</td>
+                    <td>${r.password || ''}</td>
+                    <td><code>${r.rate_limit || ''}</code></td>
+                    <td>${(r.session_timeout == null) ? '' : r.session_timeout}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deletePppoeUser('${r.username || ''}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function savePppoeUser() {
+            const payload = {
+                action: 'add_pppoe_user',
+                username: (document.getElementById('pppoe-username').value || '').trim(),
+                password: document.getElementById('pppoe-password').value || '',
+                plan_id: (document.getElementById('pppoe-plan-select').value || '').trim(),
+                rate_limit: (document.getElementById('pppoe-rate').value || '').trim(),
+                session_timeout: parseInt(document.getElementById('pppoe-timeout').value || '0', 10) || 0
+            };
+            const res = await apiPost(RADIUS_API, payload);
+            setMessage('pppoe-message', !!res.success, res.message || res.error || 'Unknown');
+            if (res.success) {
+                document.getElementById('pppoe-password').value = '';
+                await loadPppoeUsers();
+            }
+        }
+
+        async function loadPppoePlans() {
+            const res = await apiGet(`${RADIUS_API}?action=list_pppoe_plans`);
+            const plans = res.plans || [];
+
+            const select = document.getElementById('pppoe-plan-select');
+            if (select) {
+                const current = select.value;
+                select.innerHTML = '<option value="">(manual)</option>' + plans.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                if (current) select.value = current;
+            }
+
+            const tbody = document.getElementById('pppoe-plan-table');
+            if (!plans.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No plans</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = plans.map(p => {
+                return `<tr>
+                    <td><strong>${p.name || ''}</strong></td>
+                    <td><code>${p.rate_limit || ''}</code></td>
+                    <td>${(p.session_timeout || 0) ? p.session_timeout : ''}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deletePppoePlan('${p.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function addPppoePlan() {
+            const payload = {
+                action: 'add_pppoe_plan',
+                name: (document.getElementById('pppoe-plan-name').value || '').trim(),
+                rate_limit: (document.getElementById('pppoe-plan-rate').value || '').trim(),
+                session_timeout: parseInt(document.getElementById('pppoe-plan-timeout').value || '0', 10) || 0
+            };
+            const res = await apiPost(RADIUS_API, payload);
+            setMessage('pppoe-plan-message', !!res.success, res.message || res.error || 'Unknown');
+            if (res.success) {
+                document.getElementById('pppoe-plan-name').value = '';
+                await loadPppoePlans();
+            }
+        }
+
+        async function deletePppoePlan(planId) {
+            if (!planId) return;
+            if (!confirm('Delete this plan?')) return;
+            const res = await apiPost(RADIUS_API, { action: 'delete_pppoe_plan', plan_id: planId });
+            setMessage('pppoe-plan-message', !!res.success, res.message || res.error || 'Unknown');
+            await loadPppoePlans();
+        }
+
+        async function deletePppoeUser(username) {
+            if (!username) return;
+            if (!confirm(`Delete PPPoE user '${username}' from RADIUS?`)) return;
+            const res = await apiPost(RADIUS_API, { action: 'delete_pppoe_user', username });
+            setMessage('pppoe-message', !!res.success, res.message || res.error || 'Unknown');
+            await loadPppoeUsers();
+        }
+
+        function renderAccounting(rows) {
+            const tbody = document.getElementById('acct-table');
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-database me-2"></i>No accounting data</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map(r => {
+                const inputOctets = parseInt(r.acctinputoctets) || 0;
+                const outputOctets = parseInt(r.acctoutputoctets) || 0;
+                const sessionTime = parseInt(r.acctsessiontime) || 0;
+
+                const download = formatBytes(inputOctets);
+                const upload = formatBytes(outputOctets);
+                const duration = formatDuration(sessionTime);
+
+                // Check if session is still active (no stop time)
+                const isActive = !r.acctstoptime || r.acctstoptime === '' || r.acctstoptime === null;
+                const statusBadge = isActive
+                    ? '<span class="status-badge online">ONLINE</span>'
+                    : '<span class="status-badge offline">SELESAI</span>';
+
+                return `<tr>
+                    <td><strong>${r.username || ''}</strong></td>
+                    <td><small>${r.acctstarttime || '-'}</small></td>
+                    <td>${isActive ? statusBadge : '<small>' + r.acctstoptime + '</small>'}</td>
+                    <td><code>${duration}</code></td>
+                    <td><span class="text-success">↓ ${download}</span></td>
+                    <td><span class="text-warning">↑ ${upload}</span></td>
+                    <td><code>${r.nasipaddress || ''}</code></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filterAccounting() {
+            const q = (document.getElementById('acct-search').value || '').toLowerCase();
+            if (!q) {
+                renderAccounting(accountingRows);
+                return;
+            }
+            const filtered = accountingRows.filter(r => (r.username || '').toLowerCase().includes(q));
+            renderAccounting(filtered);
+        }
+
+        // Format bytes to human readable
+        function formatBytes(bytes) {
+            const numBytes = parseInt(bytes) || 0;
+            if (numBytes === 0) return '0 B';
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(numBytes) / Math.log(1024));
+            return (numBytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+        }
+
+        // Format seconds to duration
+        function formatDuration(seconds) {
+            const numSeconds = parseInt(seconds) || 0;
+            if (numSeconds === 0) return '0s';
+            const h = Math.floor(numSeconds / 3600);
+            const m = Math.floor((numSeconds % 3600) / 60);
+            const s = numSeconds % 60;
+            if (h > 0) return `${h}h ${m}m ${s}s`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
+        }
+
+        // Load Active Sessions
+        async function loadActiveSessions() {
+            const tbody = document.getElementById('active-sessions-table');
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-muted"></i></td></tr>';
+
+            try {
+                const res = await apiGet(`${RADIUS_API}?action=active_sessions`);
+                const sessions = res.sessions || [];
+
+                if (!sessions.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fas fa-user-slash me-2"></i>Tidak ada user yang sedang online</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = sessions.map(s => {
+                    const inputOctets = parseInt(s.acctinputoctets) || 0;
+                    const outputOctets = parseInt(s.acctoutputoctets) || 0;
+                    const sessionTime = parseInt(s.acctsessiontime) || 0;
+
+                    const download = formatBytes(inputOctets);
+                    const upload = formatBytes(outputOctets);
+                    const duration = formatDuration(sessionTime);
+                    return `<tr>
+                        <td><strong>${s.username || ''}</strong></td>
+                        <td><code>${s.framedipaddress || '-'}</code></td>
+                        <td>${s.nasipaddress || ''}</td>
+                        <td>${s.acctstarttime || ''}</td>
+                        <td><span class="status-badge online">${duration}</span></td>
+                        <td><span class="text-success">↓ ${download}</span></td>
+                        <td><span class="text-warning">↑ ${upload}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="disconnectSession('${s.username}', '${s.acctsessionid || ''}')" title="Disconnect">
+                                <i class="fas fa-power-off"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load active sessions:', e);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Gagal memuat data aktif sessions</td></tr>';
+            }
+        }
+
+        // Disconnect session (placeholder - requires RADIUS CoA support)
+        async function disconnectSession(username, sessionId) {
+            if (!confirm(`Disconnect user "${username}"?\n\nNote: Ini memerlukan dukungan CoA (Change of Authorization) pada NAS/MikroTik.`)) return;
+
+            const res = await apiPost(RADIUS_API, { action: 'disconnect_session', username, session_id: sessionId });
+            alert(res.message || res.error || 'Unknown result');
+            await loadActiveSessions();
+        }
+
+        async function loadAll() {
+            await loadStatus();
+            await loadClients();
+        }
+
+        // Auto-refresh active sessions every 30 seconds
+        let autoRefreshInterval = null;
+        function startAutoRefresh() {
+            if (autoRefreshInterval) return;
+            autoRefreshInterval = setInterval(async () => {
+                await loadActiveSessions();
+                await loadStatus();
+            }, 30000);
+            console.log('Auto-refresh started (30s interval)');
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                console.log('Auto-refresh stopped');
+            }
+        }
+
+        // Export accounting data to CSV
+        function exportAccountingCSV() {
+            if (!accountingRows.length) {
+                alert('Tidak ada data untuk di-export');
+                return;
+            }
+
+            const headers = ['Username', 'Start Time', 'Stop Time', 'Duration (sec)', 'Download (bytes)', 'Upload (bytes)', 'NAS IP'];
+            const csvRows = [headers.join(',')];
+
+            accountingRows.forEach(r => {
+                const row = [
+                    r.username || '',
+                    r.acctstarttime || '',
+                    r.acctstoptime || '',
+                    r.acctsessiontime || 0,
+                    r.acctinputoctets || 0,
+                    r.acctoutputoctets || 0,
+                    r.nasipaddress || ''
+                ].map(v => `"${String(v).replace(/"/g, '""')}"`);
+                csvRows.push(row.join(','));
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `radius_accounting_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+        }
+
+        async function init() {
+            await loadSettings();
+            await loadAll();
+            await loadHotspotProfiles();
+            await loadPppoePlans();
+            await loadPppoeUsers();
+            await loadActiveSessions();
+            await loadAccounting();
+
+            // Start auto-refresh
+            startAutoRefresh();
+        }
+
+        // Stop auto-refresh when page is hidden (tab switched)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                startAutoRefresh();
+            }
+        });
+
+        init();
+    </script>
+</body>
+
+</html>

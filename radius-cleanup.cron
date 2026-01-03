@@ -1,0 +1,1 @@
+*/5 * * * * root mysql -u radius -pradius123 -D radius -e "UPDATE radacct SET acctstoptime = NOW(), acctterminatecause = 'Auto-Cleanup-Orphaned' WHERE acctstoptime IS NULL AND acctstarttime < DATE_SUB(NOW(), INTERVAL 30 MINUTE) AND (acctupdatetime IS NULL OR acctupdatetime < DATE_SUB(NOW(), INTERVAL 10 MINUTE));"

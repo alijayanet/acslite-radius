@@ -1,0 +1,16 @@
+{
+    "routers": [
+        {
+            "id": "router1",
+            "name": "Main Router",
+            "ip": "192.168.8.1",
+            "port": 8700,
+            "username": "alijaya",
+            "password": "060111",
+            "isolir_profile": "isolir",
+            "default_profile": "default",
+            "enabled": true
+        }
+    ],
+    "notes": "Edit konfigurasi ini via Settings Panel atau edit langsung file ini. Pastikan profile 'isolir' dan profile normal sudah ada di MikroTik."
+}

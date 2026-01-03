@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paket Internet - ACSLite Billing</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="gembok_theme.css" rel="stylesheet">
+    <style>
+        /* Base styles that might not be in the theme file */
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .page-content {
+            padding: 25px;
+        }
+
+        .page-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+
+        .package-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .package-card {
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .package-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-cyan);
+            box-shadow: var(--shadow-neon);
+        }
+
+        .package-card.popular {
+            border-color: var(--neon-orange);
+        }
+
+        .package-card.popular .package-header {
+            background: var(--gradient-warning);
+        }
+
+        .package-header {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .package-header .badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            font-size: 0.7rem;
+        }
+
+        .package-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .package-speed {
+            font-size: 2.5rem;
+            font-weight: 800;
+        }
+
+        .package-speed small {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.8;
+        }
+
+        .package-body {
+            padding: 25px;
+        }
+
+        .package-price {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .package-price .amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .package-price .period {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .package-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+
+        .package-features li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .package-features li:last-child {
+            border-bottom: none;
+        }
+
+        .package-features li i {
+            color: var(--neon-green);
+            width: 20px;
+        }
+
+        .package-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .package-actions .btn {
+            flex: 1;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-header {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            border-bottom: none;
+        }
+
+        .btn-close-white {
+            filter: invert(1);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        /* Menu Item Submenu overrides */
+        .menu-item-parent {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .page-content {
+                padding: 15px;
+            }
+
+            .package-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 open active"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu active">
+                <a href="packages.html" class="submenu-item active">
+                    <i class="fas fa-cube"></i><span>Paket</span>
+                </a>
+                <a href="customers.html" class="submenu-item">
+                    <i class="fas fa-users"></i><span>Pelanggan</span>
+                </a>
+                <a href="invoices.html" class="submenu-item">
+                    <i class="fas fa-file-invoice"></i><span>Invoice</span>
+                </a>
+                <a href="payments.html" class="submenu-item">
+                    <i class="fas fa-money-bill-wave"></i><span>Pembayaran</span>
+                </a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Data & Laporan</div>
+            <a href="reports.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="logout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <h5 class="mb-0 fw-bold">Paket Internet</h5>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" onclick="syncFromMikroTik()">
+                    <i class="fas fa-sync me-1"></i> Sync dari MikroTik
+                </button>
+                <button class="btn btn-primary" onclick="openAddModal()">
+                    <i class="fas fa-plus me-1"></i> Tambah Paket
+                </button>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <h2 class="page-title">Manajemen Paket</h2>
+            <p class="page-subtitle">Kelola paket internet dengan integrasi profil MikroTik</p>
+
+            <!-- Packages Grid -->
+            <div class="package-grid" id="packages-container">
+                <div class="text-center py-5">
+                    <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                    <p class="mt-2 text-muted">Loading packages...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Package Modal -->
+    <div class="modal fade" id="packageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal-title"><i class="fas fa-cube me-2"></i>Tambah Paket</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-id">
+
+                    <div class="mb-3">
+                        <label class="form-label">Nama Paket <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="input-name" placeholder="cth: Premium 50 Mbps">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Kecepatan</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="input-speed" placeholder="50">
+                                <span class="input-group-text">Mbps</span>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Harga Bulanan <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control" id="input-price" placeholder="350000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label"><i class="fas fa-server text-primary me-1"></i> Profil
+                                Utama</label>
+                            <select class="form-select" id="input-mikrotik-profile">
+                                <option value="">-- Pilih Profil --</option>
+                            </select>
+                            <small class="text-muted">Profil normal saat aktif</small>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label"><i class="fas fa-ban text-danger me-1"></i> Profil Isolir</label>
+                            <select class="form-select" id="input-mikrotik-profile-isolir">
+                                <option value="isolir">isolir (Default)</option>
+                            </select>
+                            <small class="text-muted">Profil saat telat bayar</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea class="form-control" id="input-description" rows="2"
+                            placeholder="Deskripsi paket..."></textarea>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="input-active" checked>
+                        <label class="form-check-label" for="input-active">Paket Aktif</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="savePackage()">
+                        <i class="fas fa-save me-1"></i> Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const BILLING_API = `http://${window.location.hostname}:8888/api/billing_api.php`;
+        const MIKROTIK_API = `http://${window.location.hostname}:8888/api/mikrotik_api.php`;
+
+        let packages = [];
+        let mikrotikProfiles = [];
+        let packageModal;
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
+        }
+
+        function toggleSubmenu(el) {
+            const submenu = el.nextElementSibling;
+            el.classList.toggle('open');
+            submenu.classList.toggle('active');
+        }
+
+        function formatRupiah(amount) {
+            return 'Rp ' + parseInt(amount || 0).toLocaleString('id-ID');
+        }
+
+        // Check if user is logged in
+        function checkSession() {
+            const session = sessionStorage.getItem('acs_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session first
+            if (!checkSession()) return;
+
+            packageModal = new bootstrap.Modal(document.getElementById('packageModal'));
+            loadMikroTikProfiles();
+            loadPackages();
+        });
+
+        async function loadMikroTikProfiles() {
+            try {
+                const response = await fetch(`${MIKROTIK_API}?action=profiles`);
+                const result = await response.json();
+
+                if (result.success && result.profiles) {
+                    mikrotikProfiles = result.profiles;
+                    updateProfileSelect();
+                }
+            } catch (e) {
+                console.error('Error loading MikroTik profiles:', e);
+            }
+        }
+
+        function updateProfileSelect() {
+            const options = '<option value="">-- Pilih Profil --</option>' +
+                mikrotikProfiles.map(p => `<option value="${p.name}">${p.name} ${p.rate_limit ? '(' + p.rate_limit + ')' : ''}</option>`).join('');
+
+            document.getElementById('input-mikrotik-profile').innerHTML = options;
+
+            // For Isolir select, also add 'isolir' hardcoded option if not present
+            let isolirOptions = '<option value="isolir">isolir (Default)</option>';
+            isolirOptions += mikrotikProfiles.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+            document.getElementById('input-mikrotik-profile-isolir').innerHTML = isolirOptions;
+        }
+
+        async function loadPackages() {
+            const container = document.getElementById('packages-container');
+
+            try {
+                const response = await fetch(`${BILLING_API}?action=packages`);
+                const result = await response.json();
+
+                if (result.success) {
+                    packages = result.packages || [];
+                    renderPackages(packages);
+                } else {
+                    container.innerHTML = `<div class="empty-state"><i class="fas fa-cube"></i><p>${result.error || 'Error loading packages'}</p></div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-cube"></i><p>Gagal memuat paket</p><button class="btn btn-primary mt-3" onclick="loadPackages()"><i class="fas fa-sync me-1"></i> Coba Lagi</button></div>`;
+            }
+        }
+
+        function renderPackages(pkgs) {
+            const container = document.getElementById('packages-container');
+
+            if (!pkgs || pkgs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <i class="fas fa-cube"></i>
+                        <p>Belum ada paket</p>
+                        <button class="btn btn-primary mt-3" onclick="openAddModal()">
+                            <i class="fas fa-plus me-1"></i> Tambah Paket Pertama
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = pkgs.map((pkg, index) => {
+                const isPopular = index === 1; // Mark second package as popular
+                return `
+                    <div class="package-card ${isPopular ? 'popular' : ''}">
+                        <div class="package-header">
+                            ${isPopular ? '<span class="badge"><i class="fas fa-star me-1"></i>Populer</span>' : ''}
+                            <div class="package-name">${pkg.name}</div>
+                            <div class="package-speed">${pkg.speed || '-'}<small>bps</small></div>
+                        </div>
+                        <div class="package-body">
+                            <div class="package-price">
+                                <div class="amount">${formatRupiah(pkg.price)}</div>
+                                <div class="period">per bulan</div>
+                            </div>
+                            <ul class="package-features">
+                                <li><i class="fas fa-check"></i> Kecepatan ${pkg.speed || '-'}</li>
+                                <li><i class="fas fa-check"></i> ${pkg.description || 'Internet Unlimited'}</li>
+                                <li>
+                                    <i class="fas fa-server text-primary"></i> 
+                                    <span class="text-muted ms-1">Utama:</span> 
+                                    <strong>${pkg.mikrotik_profile || '-'}</strong>
+                                </li>
+                                <li>
+                                    <i class="fas fa-ban text-danger"></i> 
+                                    <span class="text-muted ms-1">Isolir:</span> 
+                                    <strong>${pkg.mikrotik_profile_isolir || 'isolir'}</strong>
+                                </li>
+                                <li>
+                                    <i class="fas fa-${pkg.is_active == 1 ? 'check-circle text-success' : 'times-circle text-danger'}"></i>
+                                    ${pkg.is_active == 1 ? 'Aktif' : 'Non-aktif'}
+                                </li>
+                            </ul>
+                            <div class="package-actions">
+                                <button class="btn btn-outline-primary" onclick="editPackage(${pkg.id})">
+                                    <i class="fas fa-edit me-1"></i> Edit
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deletePackage(${pkg.id}, '${pkg.name}')">
+                                    <i class="fas fa-trash me-1"></i> Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-cube me-2"></i>Tambah Paket';
+            document.getElementById('edit-id').value = '';
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-speed').value = '';
+            document.getElementById('input-price').value = '';
+            document.getElementById('input-mikrotik-profile').value = '';
+            document.getElementById('input-mikrotik-profile-isolir').value = 'isolir';
+            document.getElementById('input-description').value = '';
+            document.getElementById('input-active').checked = true;
+            packageModal.show();
+        }
+
+        function editPackage(id) {
+            const pkg = packages.find(p => p.id == id);
+            if (!pkg) return;
+
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Paket';
+            document.getElementById('edit-id').value = pkg.id;
+            document.getElementById('input-name').value = pkg.name;
+            document.getElementById('input-speed').value = pkg.speed || '';
+            document.getElementById('input-price').value = pkg.price;
+            document.getElementById('input-mikrotik-profile').value = pkg.mikrotik_profile || '';
+            document.getElementById('input-mikrotik-profile-isolir').value = pkg.mikrotik_profile_isolir || 'isolir';
+            document.getElementById('input-description').value = pkg.description || '';
+            document.getElementById('input-active').checked = pkg.is_active == 1;
+            packageModal.show();
+        }
+
+        async function savePackage() {
+            const id = document.getElementById('edit-id').value;
+            const data = {
+                action: id ? 'update_package' : 'add_package',
+                id: id || undefined,
+                name: document.getElementById('input-name').value,
+                speed: document.getElementById('input-speed').value,
+                price: document.getElementById('input-price').value,
+                mikrotik_profile: document.getElementById('input-mikrotik-profile').value,
+                mikrotik_profile_isolir: document.getElementById('input-mikrotik-profile-isolir').value,
+                description: document.getElementById('input-description').value,
+                is_active: document.getElementById('input-active').checked ? 1 : 0
+            };
+
+            if (!data.name || !data.price) {
+                alert('Nama dan Harga wajib diisi');
+                return;
+            }
+
+            try {
+                const response = await fetch(BILLING_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message || 'Paket berhasil disimpan'}`);
+                    packageModal.hide();
+                    loadPackages();
+                } else {
+                    alert(`❌ ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function deletePackage(id, name) {
+            if (!confirm(`Hapus paket "${name}"?`)) return;
+
+            try {
+                const response = await fetch(BILLING_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_package', id })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Paket berhasil dihapus');
+                    loadPackages();
+                } else {
+                    alert(`❌ ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function syncFromMikroTik() {
+            if (!confirm('Sinkronkan profil dari MikroTik?\nProfil yang ada di MikroTik akan ditambahkan sebagai paket baru.')) return;
+
+            try {
+                // Reload profiles first
+                await loadMikroTikProfiles();
+
+                if (mikrotikProfiles.length === 0) {
+                    alert('❌ Tidak ada profil MikroTik ditemukan. Pastikan konfigurasi MikroTik sudah benar.');
+                    return;
+                }
+
+                let added = 0;
+                for (const profile of mikrotikProfiles) {
+                    // Skip default and isolir profiles
+                    if (profile.name === 'default' || profile.name.toLowerCase().includes('isolir')) continue;
+
+                    // Check if package already exists
+                    const exists = packages.some(p => p.mikrotik_profile === profile.name);
+                    if (exists) continue;
+
+                    // Extract speed from rate_limit if available
+                    let speed = '';
+                    let price = 100000; // Default price
+                    if (profile.rate_limit) {
+                        const match = profile.rate_limit.match(/(\d+)[Mm]/);
+                        if (match) {
+                            speed = match[1] + 'M';
+                            price = parseInt(match[1]) * 10000; // 10k per Mbps
+                        }
+                    }
+
+                    // Add package
+                    const data = {
+                        action: 'add_package',
+                        name: profile.name,
+                        speed: speed,
+                        price: price,
+                        mikrotik_profile: profile.name,
+                        mikrotik_profile_isolir: 'isolir', // Default
+                        description: `Paket ${profile.name}`,
+                        is_active: 1
+                    };
+
+                    await fetch(BILLING_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    added++;
+                }
+
+                if (added > 0) {
+                    alert(`✅ Berhasil menambahkan ${added} paket dari MikroTik`);
+                    loadPackages();
+                } else {
+                    alert('ℹ️ Tidak ada profil baru untuk ditambahkan');
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav-admin">
+        <div class="nav-item-admin" id="nav-admin-dashboard" onclick="navigateToPage('dashboard', 'dashboard.html')">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item-admin active" id="nav-admin-customers"
+            onclick="navigateToPage('customers', 'customers.html')">
+            <i class="fas fa-users"></i>
+            <span>Pelanggan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-network" onclick="navigateToPage('network', 'acs.html')">
+            <i class="fas fa-network-wired"></i>
+            <span>Jaringan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-reports" onclick="navigateToPage('reports', 'reports.html')">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-settings" onclick="navigateToPage('settings', 'settings.html')">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+    </nav>
+
+    <!-- Bottom Nav Script -->
+    <script src="bottom-nav.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>

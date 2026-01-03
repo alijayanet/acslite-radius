@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Checker - ACSLite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+            min-height: 100vh;
+            padding: 30px 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 30px;
+            color: white;
+            text-align: center;
+        }
+
+        .header-section h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8fafc;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .status-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
+        }
+
+        .status-icon.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .status-icon.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .status-icon.info {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary);
+        }
+
+        .status-icon.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .status-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .status-value.success {
+            color: var(--success);
+        }
+
+        .status-value.error {
+            color: var(--danger);
+        }
+
+        .status-value.warning {
+            color: var(--warning);
+        }
+
+        .content-section {
+            padding: 30px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .data-table thead {
+            background: var(--primary);
+            color: white;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table th {
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .data-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .data-table td {
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #94a3b8;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(30, 27, 75, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn-refresh {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-refresh:hover {
+            transform: scale(1.05);
+        }
+
+        .online-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .online-badge.online {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .online-badge.offline {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .device-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid var(--primary);
+        }
+
+        .device-card.online {
+            border-left-color: var(--success);
+        }
+
+        .device-card.offline {
+            border-left-color: var(--danger);
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .device-sn {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #1e293b;
+            font-family: monospace;
+        }
+
+        .device-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .info-item i {
+            color: var(--primary);
+            width: 20px;
+        }
+
+        .info-label {
+            color: #64748b;
+        }
+
+        .info-value {
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .scroll-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .json-viewer {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            max-height: 400px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .json-key {
+            color: #818cf8;
+        }
+
+        .json-string {
+            color: #34d399;
+        }
+
+        .json-number {
+            color: #fbbf24;
+        }
+
+        .json-boolean {
+            color: #f472b6;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Loading data from Go API...</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-11">
+                <div class="main-card">
+                    <div class="header-section">
+                        <h1><i class="fas fa-database me-2"></i>ACS-Lite Data Viewer</h1>
+                        <p>Monitor devices dan data dari Go API</p>
+                    </div>
+
+                    <div class="status-grid">
+                        <div class="status-card">
+                            <div class="status-icon" id="conn-icon">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div class="status-label">Go API</div>
+                            <div class="status-value" id="api-status">Checking...</div>
+                        </div>
+
+                        <div class="status-card">
+                            <div class="status-icon info">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <div class="status-label">Total Devices</div>
+                            <div class="status-value" id="device-count">-</div>
+                        </div>
+
+                        <div class="status-card">
+                            <div class="status-icon success">
+                                <i class="fas fa-wifi"></i>
+                            </div>
+                            <div class="status-label">Online</div>
+                            <div class="status-value success" id="online-count">-</div>
+                        </div>
+
+                        <div class="status-card">
+                            <div class="status-icon error">
+                                <i class="fas fa-plug"></i>
+                            </div>
+                            <div class="status-label">Offline</div>
+                            <div class="status-value error" id="offline-count">-</div>
+                        </div>
+
+                        <div class="status-card">
+                            <div class="status-icon warning">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div class="status-label">Mapped</div>
+                            <div class="status-value warning" id="mapped-count">-</div>
+                        </div>
+                    </div>
+
+                    <div class="content-section">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3 class="section-title m-0">
+                                <i class="fas fa-list text-primary"></i>
+                                Data dari API
+                            </h3>
+                            <button class="btn-refresh" onclick="loadData()">
+                                <i class="fas fa-sync-alt me-2"></i>Refresh
+                            </button>
+                        </div>
+
+                        <div class="tab-buttons">
+                            <button class="tab-btn active" onclick="showTab('devices', this)">
+                                <i class="fas fa-microchip me-2"></i>Devices
+                            </button>
+                            <button class="tab-btn" onclick="showTab('locations', this)">
+                                <i class="fas fa-map-marker-alt me-2"></i>Locations (DB)
+                            </button>
+                            <button class="tab-btn" onclick="showTab('raw', this)">
+                                <i class="fas fa-code me-2"></i>Raw JSON
+                            </button>
+                        </div>
+
+                        <div id="tab-devices" class="tab-content active">
+                            <div id="devices-container" class="scroll-container">
+                                <!-- Devices will be loaded here -->
+                            </div>
+                        </div>
+
+                        <div id="tab-locations" class="tab-content">
+                            <div id="locations-container">
+                                <!-- Locations will be loaded here -->
+                            </div>
+                        </div>
+
+                        <div id="tab-raw" class="tab-content">
+                            <div id="raw-json" class="json-viewer">
+                                Loading...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="index.html" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Dashboard
+                    </a>
+                    <a href="map.html" class="btn btn-outline-light me-2">
+                        <i class="fas fa-map me-2"></i>Map
+                    </a>
+                    <a href="migrate.html" class="btn btn-outline-light">
+                        <i class="fas fa-database me-2"></i>Migration
+                    </a>
+                </div>
+
+                <p class="text-center mt-3" style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">
+                    Last Updated: <span id="update-time">-</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let allDevices = [];
+        let allLocations = [];
+
+        function showTab(tabName, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        async function loadData() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+
+            document.getElementById('update-time').textContent = new Date().toLocaleString('id-ID');
+
+            try {
+                // 1. Get devices from Go API
+                const devicesResponse = await fetch(`${API_BASE}/devices?per_page=1000`, {
+                    headers: { 'X-API-Key': 'secret' }
+                });
+
+                if (!devicesResponse.ok) {
+                    throw new Error(`API Error: ${devicesResponse.status}`);
+                }
+
+                const devicesResult = await devicesResponse.json();
+
+                // Handle different response formats
+                allDevices = Array.isArray(devicesResult) ? devicesResult :
+                    (devicesResult.data ? devicesResult.data : []);
+
+                // Update status
+                document.getElementById('api-status').textContent = 'Online';
+                document.getElementById('api-status').className = 'status-value success';
+                document.getElementById('conn-icon').className = 'status-icon success';
+
+                // Count stats
+                const totalDevices = allDevices.length;
+                const onlineDevices = allDevices.filter(d => d.online === true).length;
+                const offlineDevices = totalDevices - onlineDevices;
+
+                document.getElementById('device-count').textContent = totalDevices;
+                document.getElementById('online-count').textContent = onlineDevices;
+                document.getElementById('offline-count').textContent = offlineDevices;
+
+                // 2. Try to get locations
+                let mappedCount = 0;
+                try {
+                    const locResponse = await fetch(`${API_BASE}/locations`, {
+                        headers: { 'X-API-Key': 'secret' }
+                    });
+                    if (locResponse.ok) {
+                        const locResult = await locResponse.json();
+                        allLocations = Array.isArray(locResult) ? locResult :
+                            (locResult.data ? locResult.data : []);
+                        mappedCount = allLocations.length;
+                    }
+                } catch (e) {
+                    console.log('Locations not available');
+                    allLocations = [];
+                }
+
+                document.getElementById('mapped-count').textContent = mappedCount;
+
+                // Render devices
+                renderDevices(allDevices);
+
+                // Render locations
+                renderLocations(allLocations);
+
+                // Render raw JSON
+                renderRawJson({ devices: allDevices, locations: allLocations });
+
+            } catch (error) {
+                console.error('Load error:', error);
+
+                document.getElementById('api-status').textContent = 'Offline';
+                document.getElementById('api-status').className = 'status-value error';
+                document.getElementById('conn-icon').className = 'status-icon error';
+
+                document.getElementById('devices-container').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                        <p class="text-danger">${error.message}</p>
+                        <p>Pastikan Go ACS server berjalan di port 7547</p>
+                    </div>
+                `;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function renderDevices(devices) {
+            const container = document.getElementById('devices-container');
+
+            if (devices.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Belum ada device terdaftar</p>
+                        <p style="font-size: 0.9rem;">Device ONU akan muncul setelah connect ke ACS server</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            devices.forEach(device => {
+                const isOnline = device.online === true;
+                const sn = device.serial_number || device._id || 'Unknown';
+                const manufacturer = device.manufacturer || 'Unknown';
+                const productClass = device.product_class || 'ONU';
+                const ip = device.ip_address || device.ip || '-';
+                const lastInform = device.last_inform_time || device._lastInform || '-';
+                const ssid = device.ssid || (device.parameters ? device.parameters['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID'] : null) || '-';
+                const pppoe = device.pppoe_user || '-';
+
+                html += `
+                    <div class="device-card ${isOnline ? 'online' : 'offline'}">
+                        <div class="device-header">
+                            <div class="device-sn">${sn}</div>
+                            <span class="online-badge ${isOnline ? 'online' : 'offline'}">
+                                <i class="fas fa-circle" style="font-size: 8px;"></i>
+                                ${isOnline ? 'Online' : 'Offline'}
+                            </span>
+                        </div>
+                        <div class="device-info">
+                            <div class="info-item">
+                                <i class="fas fa-industry"></i>
+                                <span class="info-label">Manufacturer:</span>
+                                <span class="info-value">${manufacturer}</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-cube"></i>
+                                <span class="info-label">Product:</span>
+                                <span class="info-value">${productClass}</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-network-wired"></i>
+                                <span class="info-label">IP:</span>
+                                <span class="info-value">${ip}</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-wifi"></i>
+                                <span class="info-label">SSID:</span>
+                                <span class="info-value">${ssid}</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-user"></i>
+                                <span class="info-label">PPPoE:</span>
+                                <span class="info-value">${pppoe}</span>
+                            </div>
+                            <div class="info-item">
+                                <i class="fas fa-clock"></i>
+                                <span class="info-label">Last Inform:</span>
+                                <span class="info-value">${formatDate(lastInform)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderLocations(locations) {
+            const container = document.getElementById('locations-container');
+
+            if (locations.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <p>Belum ada lokasi tersimpan di database</p>
+                        <p style="font-size: 0.9rem;">Gunakan halaman Map untuk menyimpan lokasi ONU</p>
+                        <a href="map.html" class="btn btn-primary mt-3">
+                            <i class="fas fa-map me-2"></i>Buka Map
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Serial Number</th>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Latitude</th>
+                                <th>Longitude</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            locations.forEach(loc => {
+                html += `
+                    <tr>
+                        <td>${loc.id || '-'}</td>
+                        <td><code>${loc.serial_number || '-'}</code></td>
+                        <td>${loc.name || '-'}</td>
+                        <td>${loc.username || '-'}</td>
+                        <td>${loc.latitude || '-'}</td>
+                        <td>${loc.longitude || '-'}</td>
+                        <td>${formatDate(loc.created_at)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function renderRawJson(data) {
+            const container = document.getElementById('raw-json');
+            const json = JSON.stringify(data, null, 2);
+
+            // Simple syntax highlighting
+            const highlighted = json
+                .replace(/"([^"]+)":/g, '"<span class="json-key">$1</span>":')
+                .replace(/: "([^"]+)"/g, ': "<span class="json-string">$1</span>"')
+                .replace(/: (\d+)/g, ': <span class="json-number">$1</span>')
+                .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>');
+
+            container.innerHTML = highlighted;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === '-') return '-';
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return dateStr;
+                return date.toLocaleString('id-ID');
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        // Load on page ready
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+
+            // ========================================
+            // REAL-TIME MONITORING - Auto refresh every 15 seconds
+            // ========================================
+            let autoRefreshInterval = setInterval(() => {
+                console.log('🔄 Auto-refresh: Loading latest data...');
+                loadData();
+            }, 15000); // 15 seconds
+
+            // Stop auto-refresh when page is hidden (save resources)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    clearInterval(autoRefreshInterval);
+                    console.log('⏸️ Auto-refresh paused (tab hidden)');
+                } else {
+                    loadData(); // Refresh immediately when tab becomes visible
+                    autoRefreshInterval = setInterval(() => {
+                        loadData();
+                    }, 15000);
+                    console.log('▶️ Auto-refresh resumed');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,3950 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MikroTik Manager - ACSLite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="gembok_theme.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            background: var(--bg-primary);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-content {
+            padding: 25px;
+        }
+
+        .router-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-card);
+        }
+
+        .router-stat {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .router-stat .number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .router-stat .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Tabs styling for Gembok */
+        .nav-tabs {
+            border-bottom: 1px solid var(--border-color);
+            gap: 10px;
+            margin-bottom: 25px !important;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-secondary);
+            padding: 12px 20px;
+            border-radius: 10px 10px 0 0;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .nav-tabs .nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-tabs .nav-link.active {
+            background: rgba(0, 245, 255, 0.1) !important;
+            color: var(--neon-cyan) !important;
+            border-bottom: 2px solid var(--neon-cyan);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px;
+            color: var(--text-primary);
+        }
+
+        .data-table {
+            width: 100%;
+            color: var(--text-primary);
+        }
+
+        .data-table th {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-badge.online {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--neon-green);
+        }
+
+        .status-badge.offline {
+            background: rgba(255, 0, 170, 0.1);
+            color: var(--neon-pink);
+        }
+
+        .status-badge.isolir {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--neon-orange);
+        }
+
+        .search-box {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 0 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .search-box i {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .search-box input {
+            background: transparent !important;
+            border: none !important;
+            color: var(--text-primary) !important;
+            box-shadow: none !important;
+        }
+
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.5) !important;
+            opacity: 1;
+        }
+
+        /* High Visibility Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 10px;
+        }
+
+        .data-table th {
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: var(--text-primary) !important;
+            border-bottom: 2px solid var(--border-color);
+            padding: 18px 15px;
+            background: var(--bg-secondary) !important;
+        }
+
+        .data-table td {
+            padding: 16px 15px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary) !important;
+            font-size: 0.95rem;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(0, 245, 255, 0.1) !important;
+        }
+
+        /* Card Header & Body Overrides for Visibility */
+        .card {
+            background-color: var(--bg-card) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+
+        .card-header {
+            background: var(--bg-secondary) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+        }
+
+        .card-header h5 {
+            color: var(--text-primary) !important;
+            font-weight: 700;
+        }
+
+        .text-muted {
+            color: var(--text-secondary) !important;
+        }
+
+
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            border-color: transparent;
+        }
+
+        .refresh-indicator {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-isolir {
+            background: var(--neon-orange);
+            color: white;
+            border: none;
+        }
+
+        .btn-unisolir {
+            background: var(--neon-green);
+            color: white;
+            border: none;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu">
+                <a href="packages.html" class="submenu-item">
+                    <i class="fas fa-cube"></i><span>Paket</span>
+                </a>
+                <a href="customers.html" class="submenu-item">
+                    <i class="fas fa-users"></i><span>Pelanggan</span>
+                </a>
+                <a href="invoices.html" class="submenu-item">
+                    <i class="fas fa-file-invoice"></i><span>Invoice</span>
+                </a>
+                <a href="payments.html" class="submenu-item">
+                    <i class="fas fa-money-bill-wave"></i><span>Pembayaran</span>
+                </a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 active">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Data & Laporan</div>
+            <a href="reports.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="logout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle btn btn-link text-white p-0 border-0" onclick="toggleSidebar()">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+                <h5 class="mb-0 fw-bold text-white">MikroTik Manager</h5>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="refresh-indicator">
+                    <i class="fas fa-circle pulse text-success" style="font-size: 8px;"></i>
+                    Auto-refresh: <span id="refresh-timer">15</span>s
+                </span>
+                <button class="btn btn-primary btn-sm" onclick="loadData()">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <h2 class="page-title text-white mb-1">Manajemen Router</h2>
+                    <p class="text-secondary mb-0">Kelola operasional MikroTik, PPPoE, dan Hotspot</p>
+                </div>
+            </div>
+            <!-- Router Status Card -->
+            <div class="router-card" id="router-status">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <h4><i class="fas fa-server me-2"></i><span id="router-name">Router</span></h4>
+                        <p class="mb-0 opacity-75">
+                            <i class="fas fa-link me-1"></i><span id="router-ip">-</span>
+                            <span class="ms-3" id="router-version"></span>
+                        </p>
+                        <p class="mb-0 opacity-75 mt-1">
+                            <i class="fas fa-clock me-1"></i><span class="text-info" id="router-uptime">-</span>
+                        </p>
+                    </div>
+                    <div class="col-md-8">
+                        <!-- PPPoE Stats -->
+                        <div class="row">
+                            <div class="col router-stat">
+                                <div class="number text-success" id="stat-active">-</div>
+                                <div class="label">Active PPPoE</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-info" id="stat-total">-</div>
+                                <div class="label">Total Users</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-warning" id="stat-isolir">-</div>
+                                <div class="label">Isolated</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-danger" id="stat-offline">-</div>
+                                <div class="label">User Offline</div>
+                            </div>
+                        </div>
+                        <!-- Hotspot Stats -->
+                        <hr style="border-color: rgba(255,255,255,0.2); margin: 15px 0;">
+                        <div class="row">
+                            <div class="col router-stat">
+                                <div class="number text-success" id="stat-hotspot-active">-</div>
+                                <div class="label">Active Hotspot</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-info" id="stat-hotspot-total">-</div>
+                                <div class="label">Total Vouchers</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-warning" id="stat-hotspot-online">-</div>
+                                <div class="label">Online Now</div>
+                            </div>
+                            <div class="col router-stat">
+                                <div class="number text-danger" id="stat-hotspot-blocked">-</div>
+                                <div class="label">Blocked</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-3" id="mainTabs">
+                <!-- PPPoE Section -->
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#tab-users">
+                        <i class="fas fa-users me-1"></i> PPPoE Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-active">
+                        <i class="fas fa-plug me-1"></i> PPPoE Active
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-profiles">
+                        <i class="fas fa-layer-group me-1"></i> PPPoE Profiles
+                    </a>
+                </li>
+
+                <!-- Separator -->
+                <li class="nav-item" style="border-left: 2px solid rgba(255,255,255,0.2); margin: 0 10px;"></li>
+
+                <!-- Hotspot Section -->
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-hotspot">
+                        <i class="fas fa-wifi me-1"></i> Hotspot Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-hotspot-active">
+                        <i class="fas fa-signal me-1"></i> Hotspot Active
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-hotspot-profiles">
+                        <i class="fas fa-id-card me-1"></i> Hotspot Profiles
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-voucher-template">
+                        <i class="fas fa-paint-brush me-1"></i> Voucher Template
+                    </a>
+                </li>
+
+                <!-- Separator -->
+                <li class="nav-item" style="border-left: 2px solid rgba(255,255,255,0.2); margin: 0 10px;"></li>
+
+                <!-- Configuration -->
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-config">
+                        <i class="fas fa-cog me-1"></i> Configuration
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- PPPoE Users Tab -->
+                <div class="tab-pane fade show active" id="tab-users">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-users me-2"></i>PPPoE Users</h5>
+                            <button class="btn btn-light btn-sm" onclick="openAddUserModal()">
+                                <i class="fas fa-plus me-1"></i> Add User
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <!-- Search & Filter -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" class="form-control" id="user-search"
+                                            placeholder="Search username..." onkeyup="filterUsers()">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <button class="btn btn-outline-secondary filter-btn me-1 active"
+                                        onclick="setFilter('all', this)">All</button>
+                                    <button class="btn btn-outline-success filter-btn me-1"
+                                        onclick="setFilter('active', this)">Active</button>
+                                    <button class="btn btn-outline-warning filter-btn me-1"
+                                        onclick="setFilter('isolir', this)">Isolated</button>
+                                    <button class="btn btn-outline-danger filter-btn"
+                                        onclick="setFilter('disabled', this)">Disabled</button>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Profile</th>
+                                            <th>Status</th>
+                                            <th>Last Login</th>
+                                            <th>Comment</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                                <p class="mt-2 text-muted">Loading users...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Sessions Tab -->
+                <div class="tab-pane fade" id="tab-active">
+                    <div class="card">
+                        <div class="card-header success">
+                            <h5 class="mb-0"><i class="fas fa-plug me-2"></i>Active PPPoE Sessions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>IP Address</th>
+                                            <th>Caller ID</th>
+                                            <th>Uptime</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="active-table">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-5">
+                                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hotspot Tab -->
+                <div class="tab-pane fade" id="tab-hotspot">
+                    <!-- Hotspot User Profiles -->
+                    <div class="card">
+                        <div class="card-header info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Hotspot User Profiles</h5>
+                                <button class="btn btn-light btn-sm" onclick="openAddHotspotUserModal()">
+                                    <i class="fas fa-plus me-1"></i> Add Hotspot User
+                                </button>
+                                <button class="btn btn-primary btn-sm ms-2" onclick="openGenerateVoucherModal()">
+                                    <i class="fas fa-ticket-alt me-1"></i> Generate Vouchers
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Generated Result Section (Hidden initially) -->
+                            <div id="generated-result"
+                                style="display: none; margin-bottom: 25px; background: rgba(0, 245, 255, 0.05); padding: 20px; border-radius: 12px; border: 1px solid var(--neon-cyan);">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0 text-white">
+                                        <i class="fas fa-check-circle text-success me-2"></i>Vouchers Generated
+                                        Successfully
+                                    </h5>
+                                    <div>
+                                        <button class="btn btn-primary btn-sm" onclick="printVouchers()">
+                                            <i class="fas fa-print me-1"></i> Print All
+                                        </button>
+                                        <button class="btn btn-warning btn-sm ms-1" onclick="printVouchersThermal58()">
+                                            <i class="fas fa-receipt me-1"></i> Thermal 58mm
+                                        </button>
+                                        <button class="btn btn-outline-light btn-sm ms-2"
+                                            onclick="document.getElementById('generated-result').style.display='none'">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive" style="max-height: 300px;">
+                                    <table class="data-table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Username</th>
+                                                <th>Password</th>
+                                                <th>Profile</th>
+                                                <th>Price</th>
+                                                <th class="text-end">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="generated-table-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Search & Filter -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="search-box">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" class="form-control" id="hotspot-user-search"
+                                            placeholder="Search username..." onkeyup="filterHotspotUsers()">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <button class="btn btn-outline-secondary filter-btn me-1 active"
+                                        onclick="setHotspotFilter('all', this)">All</button>
+                                    <button class="btn btn-outline-success filter-btn me-1"
+                                        onclick="setHotspotFilter('active', this)">Active</button>
+                                    <button class="btn btn-outline-danger filter-btn"
+                                        onclick="setHotspotFilter('disabled', this)">Disabled</button>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Profile</th>
+                                            <th>MAC Address</th>
+                                            <th>Limit Uptime</th>
+                                            <th>Status</th>
+                                            <th>Comment</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hotspot-users-table">
+                                        <tr>
+                                            <td colspan="7" class="text-center py-5">
+                                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hotspot Active Tab -->
+                <div class="tab-pane fade" id="tab-hotspot-active">
+                    <div class="card">
+                        <div class="card-header" style="background: linear-gradient(135deg, #27ae60, #1e8449);">
+                            <h5 class="mb-0"><i class="fas fa-signal me-2"></i>Active Hotspot Sessions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>MAC Address</th>
+                                            <th>IP Address</th>
+                                            <th>Uptime</th>
+                                            <th>Session Time Left</th>
+                                            <th>Bytes In</th>
+                                            <th>Bytes Out</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hotspot-active-only-table">
+                                        <tr>
+                                            <td colspan="8" class="text-center py-5">
+                                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hotspot Profiles Tab -->
+                <div class="tab-pane fade" id="tab-hotspot-profiles">
+                    <!-- Hotspot User Profiles -->
+                    <div class="card mb-3">
+                        <div class="card-header" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-id-card me-2"></i>Hotspot User Profiles</h5>
+                                <button class="btn btn-light btn-sm" onclick="openAddHotspotProfileModal()">
+                                    <i class="fas fa-plus me-1"></i> Add Profile
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Profile Name</th>
+                                            <th>Rate Limit</th>
+                                            <th>Session Timeout</th>
+                                            <th>Idle Timeout</th>
+                                            <th>Shared Users</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hotspot-profiles-table">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hotspot Server Profiles -->
+                    <div class="card">
+                        <div class="card-header" style="background: linear-gradient(135deg, #16a085, #1abc9c);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-server me-2"></i>Hotspot Server Profiles</h5>
+                                <button class="btn btn-light btn-sm" onclick="openAddServerProfileModal()">
+                                    <i class="fas fa-plus me-1"></i> Add Server Profile
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>HTML Directory</th>
+                                            <th>DNS Name</th>
+                                            <th>Login By</th>
+                                            <th>SMTP Server</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hotspot-server-profiles-table">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profiles Tab -->
+                <div class="tab-pane fade" id="tab-profiles">
+                    <div class="card">
+                        <div class="card-header info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>PPPoE Profiles</h5>
+                                <button class="btn btn-light btn-sm" onclick="openAddPPPoEProfileModal()">
+                                    <i class="fas fa-plus me-1"></i> Add Profile
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Local Address</th>
+                                            <th>Remote Address</th>
+                                            <th>Rate Limit</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="profiles-table">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-5">
+                                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Voucher Template Tab -->
+                <div class="tab-pane fade" id="tab-voucher-template">
+                    <div class="row">
+                        <!-- Editor Panel -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-edit"></i> Template Editor</h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Header Text -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Header Text</label>
+                                        <input type="text" class="form-control" id="tmpl-header" value="WIFI VOUCHER">
+                                    </div>
+
+                                    <!-- Footer Text -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Footer Text</label>
+                                        <input type="text" class="form-control" id="tmpl-footer"
+                                            value="Powered by ACS-Lite">
+                                    </div>
+
+                                    <!-- Instructions -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Instruksi Login</label>
+                                        <textarea class="form-control" id="tmpl-instructions" rows="3">Hubungkan ke wifi hotspot
+Buka browser ketik: 192.168.8.1/login</textarea>
+                                    </div>
+
+                                    <!-- Color Settings -->
+                                    <h6 class="mt-4 mb-3 fw-bold"><i class="fas fa-palette"></i> Warna Berdasarkan Harga
+                                    </h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 1.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-1000" value="#FF1493">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 2.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-2000" value="#8B008B">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 3.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-3000" value="#666666">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 5.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-5000" value="#FF4500">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 10.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-10000" value="#E65100">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 15.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-15000" value="#228B22">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 20.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-20000" value="#008000">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 25.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-25000" value="#FF00FF">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 30.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-30000" value="#9C27B0">
+                                        </div>
+                                        <div class="col-md-6 col-sm-6">
+                                            <label class="form-label small">Rp 50.000</label>
+                                            <input type="color" class="form-control form-control-color w-100"
+                                                id="color-50000" value="#E60C00">
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="mt-4 d-flex gap-2 flex-wrap">
+                                        <button class="btn btn-primary" onclick="saveTemplate()">
+                                            <i class="fas fa-save"></i> Simpan Template
+                                        </button>
+                                        <button class="btn btn-secondary" onclick="resetTemplate()">
+                                            <i class="fas fa-undo"></i> Reset Default
+                                        </button>
+                                        <button class="btn btn-info" onclick="updatePreview()">
+                                            <i class="fas fa-eye"></i> Update Preview
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Panel -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-eye"></i> Live Preview</h5>
+                                    <small class="text-muted">Contoh voucher Rp 3.000</small>
+                                </div>
+                                <div class="card-body">
+                                    <div id="voucher-preview"
+                                        style="background: #f5f5f5; padding: 20px; border-radius: 8px; min-height: 300px; display: flex; align-items: center; justify-content: center;">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                                            <p>Loading preview...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuration Tab -->
+                <div class="tab-pane fade" id="tab-config">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Router Configuration</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="config-form">
+                                <div class="config-section">
+                                    <h6 class="mb-3"><i class="fas fa-server me-2"></i>Router Settings</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Router Name</label>
+                                            <input type="text" class="form-control" id="cfg-name" value="Main Router">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">IP Address</label>
+                                            <input type="text" class="form-control" id="cfg-ip"
+                                                placeholder="192.168.88.1">
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label">API Port</label>
+                                            <input type="number" class="form-control" id="cfg-port" value="8728">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Username</label>
+                                            <input type="text" class="form-control" id="cfg-username"
+                                                placeholder="admin">
+                                        </div>
+                                        <div class="col-md-5 mb-3">
+                                            <label class="form-label">Password</label>
+                                            <input type="password" class="form-control" id="cfg-password"
+                                                placeholder="********">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="config-section">
+                                    <h6 class="mb-3"><i class="fas fa-ban me-2"></i>Isolation Settings</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Isolir Profile</label>
+                                            <select class="form-select" id="cfg-isolir-profile">
+                                                <option value="isolir">isolir</option>
+                                            </select>
+                                            <small class="text-muted">Profile untuk pelanggan yang di-isolir</small>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Default Profile</label>
+                                            <select class="form-select" id="cfg-default-profile">
+                                                <option value="default">default</option>
+                                            </select>
+                                            <small class="text-muted">Profile normal untuk pelanggan aktif</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary" onclick="saveConfig()">
+                                        <i class="fas fa-save me-2"></i>Save Configuration
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="testConnection()">
+                                        <i class="fas fa-plug me-2"></i>Test Connection
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add User Modal -->
+        <div class="modal fade" id="addUserModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add PPPoE User</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="add-username" placeholder="pelanggan001">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="text" class="form-control" id="add-password" placeholder="password123">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Profile</label>
+                            <select class="form-select" id="add-profile"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Comment</label>
+                            <input type="text" class="form-control" id="add-comment"
+                                placeholder="Customer name or notes">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="addUser()">
+                            <i class="fas fa-plus me-2"></i>Add User
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change Profile Modal -->
+        <div class="modal fade" id="changeProfileModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-exchange-alt me-2"></i>Change Profile</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Change profile for user: <strong id="change-username-display"></strong></p>
+                        <input type="hidden" id="change-username">
+                        <div class="mb-3">
+                            <label class="form-label">New Profile</label>
+                            <select class="form-select" id="change-profile"></select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="changeProfile()">
+                            <i class="fas fa-check me-2"></i>Change Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Hotspot User Modal -->
+        <div class="modal fade" id="addHotspotUserModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                        <h5 class="modal-title"><i class="fas fa-wifi me-2"></i>Add Hotspot User</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="add-hotspot-username" placeholder="user001">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="text" class="form-control" id="add-hotspot-password" placeholder="password123">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Profile</label>
+                            <select class="form-select" id="add-hotspot-profile"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">MAC Address (Optional)</label>
+                            <input type="text" class="form-control" id="add-hotspot-mac"
+                                placeholder="00:00:00:00:00:00">
+                            <small class="text-muted">Leave empty for any MAC</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Limit Uptime (Optional)</label>
+                            <input type="text" class="form-control" id="add-hotspot-uptime" placeholder="1d 2h 30m">
+                            <small class="text-muted">Example: 1d, 2h, 30m, or leave empty for unlimited</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Comment</label>
+                            <input type="text" class="form-control" id="add-hotspot-comment"
+                                placeholder="Customer name or notes">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-warning" onclick="addHotspotUser()">
+                            <i class="fas fa-plus me-2"></i>Add Hotspot User
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate Voucher Modal -->
+        <div class="modal fade" id="generateVoucherModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: var(--gradient-primary);">
+                        <h5 class="modal-title" style="color: var(--bg-primary);"><i
+                                class="fas fa-magic me-2"></i>Generate Hotspot Vouchers</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="generateVoucherForm">
+                            <div class="mb-3">
+                                <label class="form-label">Profile Hotspot *</label>
+                                <select class="form-select" id="gen-v-profile" required></select>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Jumlah Voucher</label>
+                                    <input type="number" class="form-control" id="gen-v-quantity" value="10" min="1"
+                                        max="500">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Panjang Kode</label>
+                                    <select class="form-select" id="gen-v-length">
+                                        <option value="4">4 Karakter</option>
+                                        <option value="5">5 Karakter</option>
+                                        <option value="6" selected>6 Karakter</option>
+                                        <option value="7">7 Karakter</option>
+                                        <option value="8">8 Karakter</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tipe Karakter</label>
+                                <select class="form-select" id="gen-v-charset">
+                                    <option value="NUMBERS">1. Hanya Angka (23456789)</option>
+                                    <option value="ALPHANUMERIC" selected>2. Angka & Huruf Besar (ABC...234...)</option>
+                                    <option value="MIXED">3. Campuran (Besar, Kecil & Angka)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mode Username & Password</label>
+                                <select class="form-select" id="gen-v-mode">
+                                    <option value="same_as_username">Username = Password</option>
+                                    <option value="same_as_code">Username != Password (Password = Kode)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Prefix (Opsional)</label>
+                                <input type="text" class="form-control" id="gen-v-prefix" placeholder="Misal: ACS-">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-primary" onclick="generateVouchersNow()">
+                            <i class="fas fa-magic me-2"></i>Generate Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Hotspot Profile Modal -->
+        <div class="modal fade" id="addHotspotProfileModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                        <h5 class="modal-title"><i class="fas fa-id-card me-2"></i>Add Hotspot User Profile</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Profile Name *</label>
+                                <input type="text" class="form-control" id="add-hp-name"
+                                    placeholder="e.g., 1-day, 1-week">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Rate Limit</label>
+                                <input type="text" class="form-control" id="add-hp-rate" placeholder="e.g., 10M/10M">
+                                <small class="text-muted">Format: upload/download (e.g., 5M/10M)</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Session Timeout</label>
+                                <input type="text" class="form-control" id="add-hp-session" placeholder="e.g., 1d, 8h">
+                                <small class="text-muted">1d = 1 day, 8h = 8 hours</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Idle Timeout</label>
+                                <input type="text" class="form-control" id="add-hp-idle" placeholder="e.g., 5m">
+                                <small class="text-muted">Disconnect if idle</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Shared Users</label>
+                                <input type="number" class="form-control" id="add-hp-shared" placeholder="1" value="1">
+                                <small class="text-muted">Max concurrent logins</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Keepalive Timeout</label>
+                                <input type="text" class="form-control" id="add-hp-keepalive" placeholder="2m">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Status Autorefresh</label>
+                                <input type="text" class="form-control" id="add-hp-autorefresh" placeholder="1m">
+                            </div>
+                        </div>
+
+                        <!-- Mikhmon Script Generator -->
+                        <hr class="my-4">
+                        <h6 class="mb-3"><i class="fas fa-code me-2"></i>Mikhmon On-Login Script</h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Harga Voucher (Rp)</label>
+                                <input type="number" class="form-control" id="add-hp-price" placeholder="3000"
+                                    oninput="generateOnLoginScript()">
+                                <small class="text-muted">Harga jual voucher</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Durasi</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="add-hp-duration-value" placeholder="1"
+                                        value="1" oninput="generateOnLoginScript()">
+                                    <select class="form-select" id="add-hp-duration-unit"
+                                        onchange="generateOnLoginScript()">
+                                        <option value="h">Jam</option>
+                                        <option value="d" selected>Hari</option>
+                                        <option value="w">Minggu</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">RouterOS Version</label>
+                                <select class="form-select" id="add-hp-ros-version" onchange="generateOnLoginScript()">
+                                    <option value="6" selected>ROS 6.x</option>
+                                    <option value="7">ROS 7.x</option>
+                                </select>
+                                <small class="text-muted">Pilih sesuai versi MikroTik Anda</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="add-hp-auto-script" checked
+                                        onchange="toggleScriptPreview()">
+                                    <label class="form-check-label" for="add-hp-auto-script">
+                                        Auto-generate On-Login Script
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Script Preview -->
+                        <div class="mb-3" id="add-hp-script-preview-container">
+                            <label class="form-label">On-Login Script Preview</label>
+                            <textarea class="form-control font-monospace" id="add-hp-script-preview" rows="8"
+                                style="font-size: 11px;"></textarea>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="copyHotspotScript()">
+                                    <i class="fas fa-copy"></i> Copy Script
+                                </button>
+                                <button type="button" class="btn btn-sm btn-info" onclick="generateOnLoginScript()">
+                                    <i class="fas fa-sync"></i> Regenerate
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Settings (Telegram) -->
+                        <div class="accordion" id="advancedHotspotSettings">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#telegramHotspotSettings">
+                                        <i class="fab fa-telegram me-2"></i> Telegram Notification (Optional)
+                                    </button>
+                                </h2>
+                                <div id="telegramHotspotSettings" class="accordion-collapse collapse"
+                                    data-bs-parent="#advancedHotspotSettings">
+                                    <div class="accordion-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Bot Token</label>
+                                            <input type="text" class="form-control" id="add-hp-telegram-token"
+                                                placeholder="123456:ABC-DEF..." oninput="generateOnLoginScript()">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Chat ID</label>
+                                            <input type="text" class="form-control" id="add-hp-telegram-chat"
+                                                placeholder="567858628" oninput="generateOnLoginScript()">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary"
+                            style="background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none;"
+                            onclick="addHotspotProfile()">
+                            <i class="fas fa-plus me-2"></i>Add Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Hotspot Profile Modal -->
+        <div class="modal fade" id="viewHotspotProfileModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                        <h5 class="modal-title"><i class="fas fa-eye me-2"></i>View Hotspot Profile</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Profile Name</label>
+                                <p id="view-hp-name" class="form-control-plaintext"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Rate Limit</label>
+                                <p id="view-hp-rate" class="form-control-plaintext"></p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Session Timeout</label>
+                                <p id="view-hp-session" class="form-control-plaintext"></p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Idle Timeout</label>
+                                <p id="view-hp-idle" class="form-control-plaintext"></p>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Shared Users</label>
+                                <p id="view-hp-shared" class="form-control-plaintext"></p>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">On-Login Script</label>
+                            <textarea class="form-control font-monospace" id="view-hp-script" rows="10" readonly
+                                style="font-size: 11px; background: #f8f9fa;"></textarea>
+                            <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="copyViewScript()">
+                                <i class="fas fa-copy"></i> Copy Script
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="editFromView()">
+                            <i class="fas fa-edit"></i> Edit Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Hotspot Profile Modal -->
+        <div class="modal fade" id="editHotspotProfileModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                        <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Hotspot Profile</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-hp-original-name">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Profile Name *</label>
+                                <input type="text" class="form-control" id="edit-hp-name" readonly>
+                                <small class="text-muted">Profile name cannot be changed</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Rate Limit</label>
+                                <input type="text" class="form-control" id="edit-hp-rate" placeholder="e.g., 10M/10M">
+                                <small class="text-muted">Format: upload/download (e.g., 5M/10M)</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Session Timeout</label>
+                                <input type="text" class="form-control" id="edit-hp-session" placeholder="e.g., 1d, 8h">
+                                <small class="text-muted">1d = 1 day, 8h = 8 hours</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Idle Timeout</label>
+                                <input type="text" class="form-control" id="edit-hp-idle" placeholder="e.g., 5m">
+                                <small class="text-muted">Disconnect if idle</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Shared Users</label>
+                                <input type="number" class="form-control" id="edit-hp-shared" placeholder="1" value="1">
+                                <small class="text-muted">Max concurrent logins</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Keepalive Timeout</label>
+                                <input type="text" class="form-control" id="edit-hp-keepalive" placeholder="2m">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Status Autorefresh</label>
+                                <input type="text" class="form-control" id="edit-hp-autorefresh" placeholder="1m">
+                            </div>
+                        </div>
+
+                        <!-- Mikhmon Script Generator -->
+                        <hr class="my-4">
+                        <h6 class="mb-3"><i class="fas fa-code me-2"></i>Mikhmon On-Login Script</h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Harga Voucher (Rp)</label>
+                                <input type="number" class="form-control" id="edit-hp-price" placeholder="3000"
+                                    oninput="generateEditOnLoginScript()">
+                                <small class="text-muted">Harga jual voucher</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Durasi</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="edit-hp-duration-value"
+                                        placeholder="1" value="1" oninput="generateEditOnLoginScript()">
+                                    <select class="form-select" id="edit-hp-duration-unit"
+                                        onchange="generateEditOnLoginScript()">
+                                        <option value="h">Jam</option>
+                                        <option value="d" selected>Hari</option>
+                                        <option value="w">Minggu</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">RouterOS Version</label>
+                                <select class="form-select" id="edit-hp-ros-version"
+                                    onchange="generateEditOnLoginScript()">
+                                    <option value="6" selected>ROS 6.x</option>
+                                    <option value="7">ROS 7.x</option>
+                                </select>
+                                <small class="text-muted">Pilih sesuai versi MikroTik Anda</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="edit-hp-auto-script" checked
+                                        onchange="toggleEditScriptPreview()">
+                                    <label class="form-check-label" for="edit-hp-auto-script">
+                                        Auto-generate On-Login Script
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Script Preview -->
+                        <div class="mb-3" id="edit-hp-script-preview-container">
+                            <label class="form-label">On-Login Script</label>
+                            <textarea class="form-control font-monospace" id="edit-hp-script" rows="8"
+                                style="font-size: 11px;"></textarea>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-secondary"
+                                    onclick="copyEditHotspotScript()">
+                                    <i class="fas fa-copy"></i> Copy Script
+                                </button>
+                                <button type="button" class="btn btn-sm btn-info" onclick="generateEditOnLoginScript()">
+                                    <i class="fas fa-sync"></i> Regenerate
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="clearEditScript()">
+                                    <i class="fas fa-times"></i> Clear Script
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Settings (Telegram) -->
+                        <div class="accordion" id="editAdvancedHotspotSettings">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#editTelegramHotspotSettings">
+                                        <i class="fab fa-telegram me-2"></i> Telegram Notification (Optional)
+                                    </button>
+                                </h2>
+                                <div id="editTelegramHotspotSettings" class="accordion-collapse collapse"
+                                    data-bs-parent="#editAdvancedHotspotSettings">
+                                    <div class="accordion-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Bot Token</label>
+                                            <input type="text" class="form-control" id="edit-hp-telegram-token"
+                                                placeholder="123456:ABC-DEF..." oninput="generateEditOnLoginScript()">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Chat ID</label>
+                                            <input type="text" class="form-control" id="edit-hp-telegram-chat"
+                                                placeholder="567858628" oninput="generateEditOnLoginScript()">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary"
+                            style="background: linear-gradient(135deg, #f39c12, #e67e22); border: none;"
+                            onclick="updateHotspotProfile()">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Add Server Profile Modal -->
+        <div class="modal fade" id="addServerProfileModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #16a085, #1abc9c);">
+                        <h5 class="modal-title"><i class="fas fa-server me-2"></i>Add Hotspot Server Profile</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Profile Name *</label>
+                                <input type="text" class="form-control" id="add-sp-name" placeholder="e.g., hsprof1">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">HTML Directory</label>
+                                <input type="text" class="form-control" id="add-sp-html" placeholder="hotspot"
+                                    value="hotspot">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">DNS Name</label>
+                                <input type="text" class="form-control" id="add-sp-dns"
+                                    placeholder="hotspot.example.com">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Login By</label>
+                                <select class="form-select" id="add-sp-login">
+                                    <option value="http-chap">HTTP CHAP</option>
+                                    <option value="http-pap">HTTP PAP</option>
+                                    <option value="https">HTTPS</option>
+                                    <option value="cookie">Cookie</option>
+                                    <option value="mac">MAC Address</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">SMTP Server</label>
+                                <input type="text" class="form-control" id="add-sp-smtp" placeholder="0.0.0.0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Split User Domain</label>
+                                <select class="form-select" id="add-sp-split">
+                                    <option value="no">No</option>
+                                    <option value="yes">Yes</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Rate Limit</label>
+                            <input type="text" class="form-control" id="add-sp-rate" placeholder="e.g., 10M/10M">
+                            <small class="text-muted">Default rate limit for this server profile</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success"
+                            style="background: linear-gradient(135deg, #16a085, #1abc9c); border: none;"
+                            onclick="addServerProfile()">
+                            <i class="fas fa-plus me-2"></i>Add Server Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add PPPoE Profile Modal -->
+        <div class="modal fade" id="addPPPoEProfileModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header info" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                        <h5 class="modal-title"><i class="fas fa-layer-group me-2"></i>Add PPPoE Profile</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Profile Name *</label>
+                                <input type="text" class="form-control" id="add-pppoe-name"
+                                    placeholder="e.g., 10Mbps, 20Mbps">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Rate Limit</label>
+                                <input type="text" class="form-control" id="add-pppoe-rate"
+                                    placeholder="e.g., 10M/10M, 20M/20M">
+                                <small class="text-muted">Format: upload/download</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Local Address</label>
+                                <input type="text" class="form-control" id="add-pppoe-local"
+                                    placeholder="e.g., 10.10.10.1">
+                                <small class="text-muted">Server IP address pool</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Remote Address</label>
+                                <input type="text" class="form-control" id="add-pppoe-remote"
+                                    placeholder="e.g., 10.10.10.2-10.10.10.254">
+                                <small class="text-muted">Client IP address pool</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">DNS Server</label>
+                                <input type="text" class="form-control" id="add-pppoe-dns"
+                                    placeholder="e.g., 8.8.8.8,8.8.4.4">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Session Timeout</label>
+                                <input type="text" class="form-control" id="add-pppoe-timeout"
+                                    placeholder="e.g., 1d, 0 (unlimited)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary"
+                            style="background: linear-gradient(135deg, #3498db, #2980b9); border: none;"
+                            onclick="addPPPoEProfile()">
+                            <i class="fas fa-plus me-2"></i>Add Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
+        }
+
+        function toggleSubmenu(element) {
+            const submenu = element.nextElementSibling;
+            const arrow = element.querySelector('.menu-arrow');
+            submenu.classList.toggle('show');
+            arrow.style.transform = submenu.classList.contains('show') ? 'rotate(90deg)' : 'rotate(0deg)';
+        }
+
+        const MT_API = `http://${window.location.hostname}:8888/api/mikrotik_api.php`;
+        const VC_API = `http://${window.location.hostname}:8888/api/voucher_api.php`;
+
+        let allUsers = [];
+        let allProfiles = [];
+        let allHotspotUsers = [];
+        let allHotspotProfiles = [];
+        let allHotspotServerProfiles = [];
+        let currentFilter = 'all';
+        let currentHotspotFilter = 'all';
+        let addUserModal, changeProfileModal, addHotspotUserModal, addHotspotProfileModal, addServerProfileModal, addPPPoEProfileModal, generateVoucherModal;
+        let refreshInterval;
+        let refreshTimer = 15;
+
+        // Check if user is logged in
+        function checkSession() {
+            const session = sessionStorage.getItem('acs_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session first
+            if (!checkSession()) return;
+
+            addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+            changeProfileModal = new bootstrap.Modal(document.getElementById('changeProfileModal'));
+            addHotspotUserModal = new bootstrap.Modal(document.getElementById('addHotspotUserModal'));
+            addHotspotProfileModal = new bootstrap.Modal(document.getElementById('addHotspotProfileModal'));
+            addServerProfileModal = new bootstrap.Modal(document.getElementById('addServerProfileModal'));
+            addPPPoEProfileModal = new bootstrap.Modal(document.getElementById('addPPPoEProfileModal'));
+            generateVoucherModal = new bootstrap.Modal(document.getElementById('generateVoucherModal'));
+
+            loadConfig();
+            loadData();
+            loadTemplate(); // Load voucher template
+
+            // Auto-refresh every 15 seconds
+            startAutoRefresh();
+        });
+
+        function startAutoRefresh() {
+            refreshTimer = 15;
+            document.getElementById('refresh-timer').textContent = refreshTimer;
+
+            if (refreshInterval) clearInterval(refreshInterval);
+
+            refreshInterval = setInterval(() => {
+                refreshTimer--;
+                document.getElementById('refresh-timer').textContent = refreshTimer;
+
+                if (refreshTimer <= 0) {
+                    loadData();
+                    refreshTimer = 15;
+                }
+            }, 1000);
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${MT_API}?action=config`);
+                const result = await response.json();
+
+                if (result.success && result.config.routers && result.config.routers.length > 0) {
+                    const router = result.config.routers[0];
+                    document.getElementById('cfg-name').value = router.name || '';
+                    document.getElementById('cfg-ip').value = router.ip || '';
+                    document.getElementById('cfg-port').value = router.port || 8728;
+                    document.getElementById('cfg-username').value = router.username || '';
+                    document.getElementById('cfg-password').value = router.password || '';
+                }
+            } catch (e) {
+                console.error('Error loading config:', e);
+            }
+        }
+
+        async function loadData() {
+            await Promise.all([
+                loadRouterInfo(),
+                loadProfiles(),
+                loadUsers(),
+                loadActive(),
+                loadHotspotActive(),
+                loadHotspotUsers(),
+                loadHotspotProfiles(),
+                loadHotspotServerProfiles()
+            ]);
+        }
+
+        async function loadRouterInfo() {
+            try {
+                const response = await fetch(`${MT_API}?action=test`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('router-name').textContent = result.router.identity || result.router.name;
+                    document.getElementById('router-ip').textContent = result.router.ip;
+                    document.getElementById('router-version').innerHTML = `<i class="fas fa-microchip me-1"></i>${result.router.version}`;
+                    // Display uptime in router info section
+                    document.getElementById('router-uptime').textContent = 'Uptime: ' + formatUptime(result.router.uptime);
+                } else {
+                    document.getElementById('router-name').textContent = 'Not Connected';
+                    document.getElementById('router-ip').textContent = result.error || 'Connection failed';
+                }
+            } catch (e) {
+                document.getElementById('router-name').textContent = 'Error';
+                document.getElementById('router-ip').textContent = e.message;
+            }
+        }
+
+        async function loadProfiles() {
+            try {
+                const response = await fetch(`${MT_API}?action=profiles`);
+                const result = await response.json();
+
+                if (result.success) {
+                    allProfiles = result.profiles;
+                    renderProfiles(result.profiles);
+                    updateProfileSelects(result.profiles);
+                }
+            } catch (e) {
+                console.error('Error loading profiles:', e);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${MT_API}?action=secrets`);
+                const result = await response.json();
+
+                if (result.success) {
+                    allUsers = result.secrets;
+                    document.getElementById('stat-total').textContent = result.count;
+
+                    // Count isolir
+                    const isolirCount = result.secrets.filter(u =>
+                        u.profile.toLowerCase().includes('isolir') || u.disabled
+                    ).length;
+                    document.getElementById('stat-isolir').textContent = isolirCount;
+
+                    // Calculate offline users (will be updated after loadActive)
+                    updateOfflineCount();
+
+                    renderUsers(result.secrets);
+                }
+            } catch (e) {
+                console.error('Error loading users:', e);
+            }
+        }
+
+        async function loadActive() {
+            try {
+                const response = await fetch(`${MT_API}?action=active`);
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('stat-active').textContent = result.count;
+                    renderActive(result.active);
+                    // Update offline count after getting active count
+                    updateOfflineCount();
+                }
+            } catch (e) {
+                console.error('Error loading active:', e);
+            }
+        }
+
+        function updateOfflineCount() {
+            const totalUsers = parseInt(document.getElementById('stat-total').textContent) || 0;
+            const activeUsers = parseInt(document.getElementById('stat-active').textContent) || 0;
+            const offlineUsers = totalUsers - activeUsers;
+            document.getElementById('stat-offline').textContent = offlineUsers >= 0 ? offlineUsers : 0;
+        }
+
+
+        function renderProfiles(profiles) {
+            const tbody = document.getElementById('profiles-table');
+
+            if (profiles.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">No profiles found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = profiles.map(p => `
+                <tr>
+                    <td><strong>${p.name}</strong></td>
+                    <td>${p.local_address || '-'}</td>
+                    <td>${p.remote_address || '-'}</td>
+                    <td><code>${p.rate_limit || 'unlimited'}</code></td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-danger btn-sm" onclick="deletePPPoEProfile('${p.name}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('users-table');
+            const searchTerm = document.getElementById('user-search').value.toLowerCase();
+
+            // Filter
+            let filtered = users.filter(u => {
+                const matchSearch = u.name.toLowerCase().includes(searchTerm) ||
+                    (u.comment && u.comment.toLowerCase().includes(searchTerm));
+
+                if (!matchSearch) return false;
+
+                switch (currentFilter) {
+                    case 'active':
+                        return !u.disabled && !u.profile.toLowerCase().includes('isolir');
+                    case 'isolir':
+                        return u.profile.toLowerCase().includes('isolir');
+                    case 'disabled':
+                        return u.disabled;
+                    default:
+                        return true;
+                }
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-users-slash"></i>
+                                <p>No users found</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(u => {
+                const isIsolir = u.profile.toLowerCase().includes('isolir');
+                let statusBadge = '';
+
+                if (u.disabled) {
+                    statusBadge = '<span class="status-badge offline"><i class="fas fa-ban"></i> Disabled</span>';
+                } else if (isIsolir) {
+                    statusBadge = '<span class="status-badge isolir"><i class="fas fa-pause"></i> Isolated</span>';
+                } else {
+                    statusBadge = '<span class="status-badge online"><i class="fas fa-check"></i> Active</span>';
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <strong>${u.name}</strong>
+                            ${u.caller_id ? `<br><small class="text-muted">${u.caller_id}</small>` : ''}
+                        </td>
+                        <td><span class="badge bg-secondary">${u.profile}</span></td>
+                        <td>${statusBadge}</td>
+                        <td><small class="text-muted">${u.last_logged_out || '-'}</small></td>
+                        <td><small>${u.comment || '-'}</small></td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                ${isIsolir ?
+                        `<button class="btn btn-unisolir" onclick="unisolirUser('${u.name}')" title="Un-Isolir">
+                                        <i class="fas fa-play"></i>
+                                    </button>` :
+                        `<button class="btn btn-isolir" onclick="isolirUser('${u.name}')" title="Isolir">
+                                        <i class="fas fa-pause"></i>
+                                    </button>`
+                    }
+                                <button class="btn btn-outline-primary" onclick="openChangeProfileModal('${u.name}')" title="Change Profile">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteUser('${u.name}')" title="Delete User">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderActive(sessions) {
+            const tbody = document.getElementById('active-table');
+
+            if (sessions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class="fas fa-plug"></i>
+                                <p>No active sessions</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = sessions.map(s => `
+                <tr>
+                    <td><strong>${s.name}</strong></td>
+                    <td><code>${s.address || '-'}</code></td>
+                    <td><small class="text-muted">${s.caller_id || '-'}</small></td>
+                    <td><span class="badge bg-success">${s.uptime}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-danger btn-sm" onclick="disconnectUser('${s.name}')">
+                            <i class="fas fa-times me-1"></i>Disconnect
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateProfileSelects(profiles) {
+            const selects = ['add-profile', 'change-profile', 'cfg-isolir-profile', 'cfg-default-profile'];
+
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = profiles.map(p =>
+                        `<option value="${p.name}">${p.name}</option>`
+                    ).join('');
+                    if (currentValue) select.value = currentValue;
+                }
+            });
+        }
+
+        function filterUsers() {
+            renderUsers(allUsers);
+        }
+
+        function setFilter(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderUsers(allUsers);
+        }
+
+        function formatUptime(uptime) {
+            if (!uptime) return '-';
+            // Parse MikroTik uptime format (e.g., "1w2d3h4m5s")
+            return uptime.replace(/(\d+)w/g, '$1w ')
+                .replace(/(\d+)d/g, '$1d ')
+                .replace(/(\d+)h/g, '$1h ')
+                .replace(/(\d+)m/g, '$1m ')
+                .trim();
+        }
+
+        // ========== ACTIONS ==========
+
+        async function isolirUser(username) {
+            if (!confirm(`ISOLIR user "${username}"?\n\nUser akan diubah ke profile isolir dan di-disconnect.`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'isolir', username })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function unisolirUser(username) {
+            if (!confirm(`UN-ISOLIR user "${username}"?\n\nUser akan dikembalikan ke profile normal.`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'unisolir', username })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function disconnectUser(username) {
+            if (!confirm(`Disconnect user "${username}"?`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'disconnect', username })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function deleteUser(username) {
+            if (!confirm(`⚠️ DELETE user "${username}"?\n\nThis action cannot be undone!`)) return;
+            if (!confirm(`FINAL CONFIRMATION: Delete "${username}"?`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_user', username })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        function openAddUserModal() {
+            document.getElementById('add-username').value = '';
+            document.getElementById('add-password').value = '';
+            document.getElementById('add-comment').value = '';
+            addUserModal.show();
+        }
+
+        async function addUser() {
+            const username = document.getElementById('add-username').value.trim();
+            const password = document.getElementById('add-password').value;
+            const profile = document.getElementById('add-profile').value;
+            const comment = document.getElementById('add-comment').value;
+
+            if (!username || !password) {
+                alert('Username and password required');
+                return;
+            }
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'add_user', username, password, profile, comment })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    addUserModal.hide();
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        function openChangeProfileModal(username) {
+            document.getElementById('change-username').value = username;
+            document.getElementById('change-username-display').textContent = username;
+            changeProfileModal.show();
+        }
+
+        async function changeProfile() {
+            const username = document.getElementById('change-username').value;
+            const profile = document.getElementById('change-profile').value;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'change_profile', username, profile })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    changeProfileModal.hide();
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        // ========== HOTSPOT FUNCTIONS ==========
+
+        async function loadHotspotActive() {
+            try {
+                const response = await fetch(`${MT_API}?action=hotspot_active`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const onlineCount = result.count || 0;
+                    // Update both "Online Now" and "Active Hotspot" with same value (online users)
+                    document.getElementById('stat-hotspot-online').textContent = onlineCount;
+                    document.getElementById('stat-hotspot-active').textContent = onlineCount;
+
+                    // Render for dedicated Hotspot Active tab
+                    renderHotspotActiveOnly(result.active || []);
+                } else {
+                    document.getElementById('stat-hotspot-online').textContent = '0';
+                    document.getElementById('stat-hotspot-active').textContent = '0';
+                }
+            } catch (e) {
+                console.error('Error loading hotspot active:', e);
+                document.getElementById('stat-hotspot-online').textContent = '-';
+                document.getElementById('stat-hotspot-active').textContent = '-';
+            }
+        }
+
+        async function loadHotspotUsers() {
+            try {
+                const response = await fetch(`${MT_API}?action=hotspot_users`);
+                const result = await response.json();
+
+                if (result.success) {
+                    allHotspotUsers = result.users || [];
+                    document.getElementById('stat-hotspot-total').textContent = result.count || 0;
+
+                    // Count disabled (blocked)
+                    const disabledCount = allHotspotUsers.filter(u => u.disabled).length;
+                    document.getElementById('stat-hotspot-blocked').textContent = disabledCount;
+
+                    // Note: stat-hotspot-active is updated by loadHotspotActive() 
+                    // because it should show ONLINE users, not just enabled users
+
+                    renderHotspotUsers(allHotspotUsers);
+                } else {
+                    document.getElementById('stat-hotspot-total').textContent = '0';
+                    document.getElementById('stat-hotspot-blocked').textContent = '0';
+                }
+            } catch (e) {
+                console.error('Error loading hotspot users:', e);
+            }
+        }
+
+        async function loadHotspotProfiles() {
+            try {
+                const response = await fetch(`${MT_API}?action=hotspot_profiles`);
+                const result = await response.json();
+
+                if (result.success) {
+                    allHotspotProfiles = result.profiles || [];
+                    updateHotspotProfileSelects(allHotspotProfiles);
+                }
+            } catch (e) {
+                console.error('Error loading hotspot profiles:', e);
+            }
+        }
+
+        function renderHotspotActive(sessions) {
+            const tbody = document.getElementById('hotspot-active-table');
+
+            if (sessions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-wifi"></i>
+                                <p>No active hotspot sessions</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = sessions.map(s => `
+                <tr>
+                    <td><strong>${s.user || s.name || '-'}</strong></td>
+                    <td><code>${s['mac-address'] || s.mac || '-'}</code></td>
+                    <td><code>${s.address || '-'}</code></td>
+                    <td><span class="badge bg-success">${s.uptime || '-'}</span></td>
+                    <td><small class="text-muted">${s['session-time-left'] || '-'}</small></td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-danger btn-sm" onclick="disconnectHotspotUser('${s.user || s.name}')">
+                            <i class="fas fa-times me-1"></i>Disconnect
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderHotspotUsers(users) {
+            const tbody = document.getElementById('hotspot-users-table');
+            const searchTerm = document.getElementById('hotspot-user-search').value.toLowerCase();
+
+            // Filter
+            let filtered = users.filter(u => {
+                const matchSearch = u.name.toLowerCase().includes(searchTerm) ||
+                    (u.comment && u.comment.toLowerCase().includes(searchTerm));
+
+                if (!matchSearch) return false;
+
+                switch (currentHotspotFilter) {
+                    case 'active':
+                        return !u.disabled;
+                    case 'disabled':
+                        return u.disabled;
+                    default:
+                        return true;
+                }
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="fas fa-users-slash"></i>
+                                <p>No hotspot users found</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(u => {
+                const statusBadge = u.disabled
+                    ? '<span class="status-badge offline"><i class="fas fa-ban"></i> Disabled</span>'
+                    : '<span class="status-badge online"><i class="fas fa-check"></i> Active</span>';
+
+                return `
+                    <tr>
+                        <td><strong>${u.name}</strong></td>
+                        <td><span class="badge bg-secondary">${u.profile || 'default'}</span></td>
+                        <td><code>${u['mac-address'] || u.mac || '-'}</code></td>
+                        <td><small class="text-muted">${u['limit-uptime'] || 'Unlimited'}</small></td>
+                        <td>${statusBadge}</td>
+                        <td><small>${u.comment || '-'}</small></td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                ${u.disabled ?
+                        `<button class="btn btn-outline-success" onclick="enableHotspotUser('${u.name}')" title="Enable">
+                                        <i class="fas fa-check"></i>
+                                    </button>` :
+                        `<button class="btn btn-outline-warning" onclick="disableHotspotUser('${u.name}')" title="Disable">
+                                        <i class="fas fa-ban"></i>
+                                    </button>`
+                    }
+                                <button class="btn btn-outline-danger" onclick="deleteHotspotUser('${u.name}')" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateHotspotProfileSelects(profiles) {
+            const select = document.getElementById('add-hotspot-profile');
+            if (select) {
+                select.innerHTML = profiles.map(p =>
+                    `<option value="${p.name}">${p.name}</option>`
+                ).join('');
+            }
+        }
+
+        function filterHotspotUsers() {
+            renderHotspotUsers(allHotspotUsers);
+        }
+
+        function setHotspotFilter(filter, btn) {
+            currentHotspotFilter = filter;
+            document.querySelectorAll('#tab-hotspot .filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderHotspotUsers(allHotspotUsers);
+        }
+
+        function openAddHotspotUserModal() {
+            document.getElementById('add-hotspot-username').value = '';
+            document.getElementById('add-hotspot-password').value = '';
+            document.getElementById('add-hotspot-mac').value = '';
+            document.getElementById('add-hotspot-uptime').value = '';
+            document.getElementById('add-hotspot-comment').value = '';
+            addHotspotUserModal.show();
+        }
+
+        async function addHotspotUser() {
+            const username = document.getElementById('add-hotspot-username').value.trim();
+            const password = document.getElementById('add-hotspot-password').value;
+            const profile = document.getElementById('add-hotspot-profile').value;
+            const mac = document.getElementById('add-hotspot-mac').value.trim();
+            const uptime = document.getElementById('add-hotspot-uptime').value.trim();
+            const comment = document.getElementById('add-hotspot-comment').value;
+
+            if (!username || !password) {
+                alert('Username and password required');
+                return;
+            }
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_hotspot_user',
+                        username,
+                        password,
+                        profile,
+                        mac,
+                        uptime,
+                        comment
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    addHotspotUserModal.hide();
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function disconnectHotspotUser(username) {
+            if (!confirm(`Disconnect hotspot user "${username}"?`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'disconnect_hotspot', username })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function disableHotspotUser(username) {
+            if (!confirm(`Disable hotspot user "${username}"?`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'disable_hotspot_user', username })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function enableHotspotUser(username) {
+            if (!confirm(`Enable hotspot user "${username}"?`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'enable_hotspot_user', username })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function deleteHotspotUser(username) {
+            if (!confirm(`⚠️ DELETE hotspot user "${username}"?\n\nThis action cannot be undone!`)) return;
+            if (!confirm(`FINAL CONFIRMATION: Delete "${username}"?`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_hotspot_user', username })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        // ========== HOTSPOT PROFILE MANAGEMENT ==========
+
+        async function loadHotspotServerProfiles() {
+            try {
+                const response = await fetch(`${MT_API}?action=hotspot_server_profiles`);
+                const result = await response.json();
+
+                if (result.success) {
+                    allHotspotServerProfiles = result.profiles || [];
+                    renderHotspotServerProfiles(allHotspotServerProfiles);
+                }
+            } catch (e) {
+                console.error('Error loading hotspot server profiles:', e);
+            }
+        }
+
+        function renderHotspotServerProfiles(profiles) {
+            const tbody = document.getElementById('hotspot-server-profiles-table');
+
+            if (profiles.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-server"></i>
+                                <p>No hotspot server profiles found</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = profiles.map(p => `
+                <tr>
+                    <td><strong>${p.name}</strong></td>
+                    <td><small>${p['html-directory'] || '-'}</small></td>
+                    <td><small>${p['dns-name'] || '-'}</small></td>
+                    <td><span class="badge bg-info">${p['login-by'] || 'http-chap'}</span></td>
+                    <td><small>${p['smtp-server'] || '-'}</small></td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteServerProfile('${p.name}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderHotspotProfilesTable(profiles) {
+            const tbody = document.getElementById('hotspot-profiles-table');
+
+            if (profiles.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-id-card"></i>
+                                <p>No hotspot user profiles found</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = profiles.map(p => `
+                <tr>
+                    <td><strong>${p.name}</strong></td>
+                    <td><code>${p['rate-limit'] || 'unlimited'}</code></td>
+                    <td><small>${p['session-timeout'] || 'none'}</small></td>
+                    <td><small>${p['idle-timeout'] || 'none'}</small></td>
+                    <td><span class="badge bg-secondary">${p['shared-users'] || '1'}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-info btn-sm me-1" onclick="viewHotspotProfile('${p.name}')" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm me-1" onclick="editHotspotProfile('${p.name}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteHotspotProfile('${p.name}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Update loadHotspotProfiles to also render the table
+        async function loadHotspotProfiles() {
+            try {
+                const response = await fetch(`${MT_API}?action=hotspot_profiles`);
+                const result = await response.json();
+
+                if (result.success) {
+                    allHotspotProfiles = result.profiles || [];
+                    updateHotspotProfileSelects(allHotspotProfiles);
+                    renderHotspotProfilesTable(allHotspotProfiles);
+                }
+            } catch (e) {
+                console.error('Error loading hotspot profiles:', e);
+            }
+        }
+
+        function openAddHotspotProfileModal() {
+            document.getElementById('add-hp-name').value = '';
+            document.getElementById('add-hp-rate').value = '';
+            document.getElementById('add-hp-session').value = '';
+            document.getElementById('add-hp-idle').value = '';
+            document.getElementById('add-hp-shared').value = '1';
+            document.getElementById('add-hp-keepalive').value = '';
+            document.getElementById('add-hp-autorefresh').value = '';
+            addHotspotProfileModal.show();
+        }
+
+        async function addHotspotProfile() {
+            const name = document.getElementById('add-hp-name').value.trim();
+            const rateLimit = document.getElementById('add-hp-rate').value.trim();
+            const sessionTimeout = document.getElementById('add-hp-session').value.trim();
+            const idleTimeout = document.getElementById('add-hp-idle').value.trim();
+            const sharedUsers = document.getElementById('add-hp-shared').value;
+            const keepaliveTimeout = document.getElementById('add-hp-keepalive').value.trim();
+            const statusAutorefresh = document.getElementById('add-hp-autorefresh').value.trim();
+
+            // Get on-login script if auto-generate is enabled
+            const autoScript = document.getElementById('add-hp-auto-script').checked;
+            const onLoginScript = autoScript ? document.getElementById('add-hp-script-preview').value : '';
+
+            if (!name) {
+                alert('Profile name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_hotspot_profile',
+                        name,
+                        rate_limit: rateLimit,
+                        session_timeout: sessionTimeout,
+                        idle_timeout: idleTimeout,
+                        shared_users: sharedUsers,
+                        keepalive_timeout: keepaliveTimeout,
+                        status_autorefresh: statusAutorefresh,
+                        on_login: onLoginScript  // Include on-login script
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    addHotspotProfileModal.hide();
+                    loadData();
+
+                    // Reset form
+                    document.getElementById('add-hp-name').value = '';
+                    document.getElementById('add-hp-price').value = '';
+                    document.getElementById('add-hp-script-preview').value = '';
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        // View Hotspot Profile Details
+        let viewHotspotProfileModal;
+        let currentViewingProfile = null;
+
+        async function viewHotspotProfile(name) {
+            try {
+                // Find profile in allHotspotProfiles
+                const profile = allHotspotProfiles.find(p => p.name === name);
+
+                if (!profile) {
+                    alert('Profile not found');
+                    return;
+                }
+
+                currentViewingProfile = profile;
+
+                // Populate modal
+                document.getElementById('view-hp-name').textContent = profile.name;
+                document.getElementById('view-hp-rate').textContent = profile['rate-limit'] || 'unlimited';
+                document.getElementById('view-hp-session').textContent = profile['session-timeout'] || 'none';
+                document.getElementById('view-hp-idle').textContent = profile['idle-timeout'] || 'none';
+                document.getElementById('view-hp-shared').textContent = profile['shared-users'] || '1';
+                document.getElementById('view-hp-script').value = profile['on-login'] || '(No on-login script)';
+
+                // Show modal
+                if (!viewHotspotProfileModal) {
+                    viewHotspotProfileModal = new bootstrap.Modal(document.getElementById('viewHotspotProfileModal'));
+                }
+                viewHotspotProfileModal.show();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        // Edit Hotspot Profile
+        let editHotspotProfileModal;
+
+        function editHotspotProfile(name) {
+            // Find profile in allHotspotProfiles
+            const profile = allHotspotProfiles.find(p => p.name === name);
+
+            if (!profile) {
+                alert('Profile not found');
+                return;
+            }
+
+            // Populate edit form - Basic fields
+            document.getElementById('edit-hp-original-name').value = profile.name;
+            document.getElementById('edit-hp-name').value = profile.name;
+            document.getElementById('edit-hp-rate').value = profile['rate-limit'] || '';
+            document.getElementById('edit-hp-session').value = profile['session-timeout'] || '';
+            document.getElementById('edit-hp-idle').value = profile['idle-timeout'] || '';
+            document.getElementById('edit-hp-shared').value = profile['shared-users'] || '1';
+            document.getElementById('edit-hp-keepalive').value = profile['keepalive-timeout'] || '';
+            document.getElementById('edit-hp-autorefresh').value = profile['status-autorefresh'] || '';
+            document.getElementById('edit-hp-script').value = profile['on-login'] || '';
+
+            // Reset Script Generator fields
+            document.getElementById('edit-hp-auto-script').checked = false;
+            document.getElementById('edit-hp-price').value = '';
+            document.getElementById('edit-hp-duration-value').value = '1';
+            document.getElementById('edit-hp-duration-unit').value = 'd';
+            document.getElementById('edit-hp-ros-version').value = '6';
+            document.getElementById('edit-hp-telegram-token').value = '';
+            document.getElementById('edit-hp-telegram-chat').value = '';
+
+            // Show modal
+            if (!editHotspotProfileModal) {
+                editHotspotProfileModal = new bootstrap.Modal(document.getElementById('editHotspotProfileModal'));
+            }
+            editHotspotProfileModal.show();
+        }
+
+        // Update Hotspot Profile
+        async function updateHotspotProfile() {
+            const name = document.getElementById('edit-hp-original-name').value;
+            const rateLimit = document.getElementById('edit-hp-rate').value.trim();
+            const sessionTimeout = document.getElementById('edit-hp-session').value.trim();
+            const idleTimeout = document.getElementById('edit-hp-idle').value.trim();
+            const sharedUsers = document.getElementById('edit-hp-shared').value;
+            const keepaliveTimeout = document.getElementById('edit-hp-keepalive').value.trim();
+            const statusAutorefresh = document.getElementById('edit-hp-autorefresh').value.trim();
+            const onLoginScript = document.getElementById('edit-hp-script').value.trim();
+
+            if (!name) {
+                alert('Profile name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'update_hotspot_profile',
+                        name,
+                        rate_limit: rateLimit,
+                        session_timeout: sessionTimeout,
+                        idle_timeout: idleTimeout,
+                        shared_users: sharedUsers,
+                        keepalive_timeout: keepaliveTimeout,
+                        status_autorefresh: statusAutorefresh,
+                        on_login: onLoginScript
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    editHotspotProfileModal.hide();
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        // Copy script from edit modal
+        function copyEditScript() {
+            const script = document.getElementById('edit-hp-script');
+            script.select();
+            document.execCommand('copy');
+            alert('✅ Script copied to clipboard!');
+        }
+
+        // Clear script in edit modal
+        function clearEditScript() {
+            if (confirm('Clear on-login script?')) {
+                document.getElementById('edit-hp-script').value = '';
+            }
+        }
+
+        // Edit from View modal
+        function editFromView() {
+            if (currentViewingProfile) {
+                viewHotspotProfileModal.hide();
+                editHotspotProfile(currentViewingProfile.name);
+            }
+        }
+
+        // Copy script from view modal
+        function copyViewScript() {
+            const script = document.getElementById('view-hp-script');
+            script.select();
+            document.execCommand('copy');
+            alert('✅ Script copied to clipboard!');
+        }
+
+        async function deleteHotspotProfile(name) {
+            if (!confirm(`⚠️ DELETE hotspot profile "${name}"?\n\nThis action cannot be undone!`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_hotspot_profile', name })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        function openAddServerProfileModal() {
+            document.getElementById('add-sp-name').value = '';
+            document.getElementById('add-sp-html').value = 'hotspot';
+            document.getElementById('add-sp-dns').value = '';
+            document.getElementById('add-sp-login').value = 'http-chap';
+            document.getElementById('add-sp-smtp').value = '0.0.0.0';
+            document.getElementById('add-sp-split').value = 'no';
+            document.getElementById('add-sp-rate').value = '';
+            addServerProfileModal.show();
+        }
+
+        async function addServerProfile() {
+            const name = document.getElementById('add-sp-name').value.trim();
+            const htmlDir = document.getElementById('add-sp-html').value.trim();
+            const dnsName = document.getElementById('add-sp-dns').value.trim();
+            const loginBy = document.getElementById('add-sp-login').value;
+            const smtpServer = document.getElementById('add-sp-smtp').value.trim();
+            const splitUserDomain = document.getElementById('add-sp-split').value;
+            const rateLimit = document.getElementById('add-sp-rate').value.trim();
+
+            if (!name) {
+                alert('Profile name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_server_profile',
+                        name,
+                        html_directory: htmlDir,
+                        dns_name: dnsName,
+                        login_by: loginBy,
+                        smtp_server: smtpServer,
+                        split_user_domain: splitUserDomain,
+                        rate_limit: rateLimit
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    addServerProfileModal.hide();
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function deleteServerProfile(name) {
+            if (!confirm(`⚠️ DELETE server profile "${name}"?\n\nThis action cannot be undone!`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_server_profile', name })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        // ========== HOTSPOT ACTIVE TAB ==========
+
+        function renderHotspotActiveOnly(active) {
+            const tbody = document.getElementById('hotspot-active-only-table');
+
+            if (active.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="fas fa-signal"></i>
+                                <p>No active hotspot sessions</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = active.map(a => `
+                <tr>
+                    <td><strong>${a.user || a.name}</strong></td>
+                    <td><code>${a['mac-address'] || a.mac || '-'}</code></td>
+                    <td><code>${a.address || '-'}</code></td>
+                    <td><small>${formatUptime(a.uptime)}</small></td>
+                    <td><small>${a['session-time-left'] || '-'}</small></td>
+                    <td><small>${formatBytes(a['bytes-in'] || 0)}</small></td>
+                    <td><small>${formatBytes(a['bytes-out'] || 0)}</small></td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-danger btn-sm" onclick="disconnectHotspot('${a.user || a.name}')" title="Disconnect">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes == 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // ========== PPPOE PROFILE CRUD ==========
+
+        function openAddPPPoEProfileModal() {
+            document.getElementById('add-pppoe-name').value = '';
+            document.getElementById('add-pppoe-rate').value = '';
+            document.getElementById('add-pppoe-local').value = '';
+            document.getElementById('add-pppoe-remote').value = '';
+            document.getElementById('add-pppoe-dns').value = '';
+            document.getElementById('add-pppoe-timeout').value = '';
+            addPPPoEProfileModal.show();
+        }
+
+        async function addPPPoEProfile() {
+            const name = document.getElementById('add-pppoe-name').value.trim();
+            const rateLimit = document.getElementById('add-pppoe-rate').value.trim();
+            const localAddress = document.getElementById('add-pppoe-local').value.trim();
+            const remoteAddress = document.getElementById('add-pppoe-remote').value.trim();
+            const dnsServer = document.getElementById('add-pppoe-dns').value.trim();
+            const sessionTimeout = document.getElementById('add-pppoe-timeout').value.trim();
+
+            if (!name) {
+                alert('Profile name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_pppoe_profile',
+                        name,
+                        rate_limit: rateLimit,
+                        local_address: localAddress,
+                        remote_address: remoteAddress,
+                        dns_server: dnsServer,
+                        session_timeout: sessionTimeout
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    addPPPoEProfileModal.hide();
+                    loadData();
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function deletePPPoEProfile(name) {
+            if (!confirm(`⚠️ DELETE PPPoE profile "${name}"?\n\nThis action cannot be undone!`)) return;
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_pppoe_profile', name })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadData();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function saveConfig() {
+            const router = {
+                id: 'router1',
+                name: document.getElementById('cfg-name').value,
+                ip: document.getElementById('cfg-ip').value,
+                port: parseInt(document.getElementById('cfg-port').value) || 8728,
+                username: document.getElementById('cfg-username').value,
+                password: document.getElementById('cfg-password').value,
+                isolir_profile: document.getElementById('cfg-isolir-profile').value,
+                default_profile: document.getElementById('cfg-default-profile').value
+            };
+
+            if (!router.ip || !router.username) {
+                alert('IP Address and Username are required');
+                return;
+            }
+
+            try {
+                const response = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'save_config', routers: [router] })
+                });
+
+                const result = await response.json();
+                alert(result.success ? '✅ Configuration saved!' : `❌ ${result.error}`);
+
+                if (result.success) {
+                    loadData();
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function testConnection() {
+            try {
+                const response = await fetch(`${MT_API}?action=test`);
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Connected to ${result.router.identity}\n\nVersion: ${result.router.version}\nUptime: ${result.router.uptime}`);
+                } else {
+                    alert(`❌ Connection failed: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        // ========== VOUCHER GENERATION & PRINTING ==========
+
+        function openGenerateVoucherModal() {
+            // Populate profiles dropdown
+            const select = document.getElementById('gen-v-profile');
+            select.innerHTML = allHotspotProfiles.map(p =>
+                `<option value="${p.name}">${p.name}</option>`
+            ).join('');
+
+            generateVoucherModal.show();
+        }
+
+        async function generateVouchersNow() {
+            const data = {
+                profile: document.getElementById('gen-v-profile').value,
+                quantity: parseInt(document.getElementById('gen-v-quantity').value),
+                code_length: parseInt(document.getElementById('gen-v-length').value),
+                charset: document.getElementById('gen-v-charset').value,
+                password_option: document.getElementById('gen-v-mode').value,
+                prefix: document.getElementById('gen-v-prefix').value
+            };
+
+            if (!data.profile) {
+                alert('Pilih profile hotspot!');
+                return;
+            }
+
+            const btn = event.target;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(VC_API + '?action=generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    generateVoucherModal.hide();
+                    displayGeneratedVouchers(result.vouchers);
+                    alert(`✅ ${result.message}`);
+                    loadData(); // Refresh Tables
+                } else {
+                    alert(`❌ Error: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+
+        let currentGeneratedVouchers = [];
+        function displayGeneratedVouchers(vouchers) {
+            currentGeneratedVouchers = vouchers;
+            const container = document.getElementById('generated-result');
+            const tbody = document.getElementById('generated-table-body');
+
+            tbody.innerHTML = vouchers.map(v => `
+                <tr>
+                    <td><strong>${v.username}</strong></td>
+                    <td>${v.password}</td>
+                    <td><span class="badge bg-secondary">${v.profile}</span></td>
+                    <td>Rp ${formatPrice(v.price || 0)}</td>
+                    <td class="text-end">
+                        <button class="btn btn-outline-primary btn-sm" onclick="printSingleVoucher('${v.username}', '${v.password}', '${v.profile}', ${v.price || 0})" title="Print Normal">
+                            <i class="fas fa-print"></i>
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm ms-1" onclick="printSingleVoucherThermal58('${v.username}', '${v.password}', '${v.profile}', ${v.price || 0}, '${v.duration || ''}')" title="Print Thermal 58mm">
+                            <i class="fas fa-receipt"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            container.style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function formatPrice(n) {
+            return parseInt(n).toLocaleString('id-ID');
+        }
+
+        function printVouchers() {
+            if (currentGeneratedVouchers.length === 0) return;
+            openPrintWindow(currentGeneratedVouchers);
+        }
+
+        function printSingleVoucher(username, password, profile, price) {
+            openPrintWindow([{ username, password, profile, price }]);
+        }
+
+        function openPrintWindow(vouchers) {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(generatePrintHTML(vouchers));
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+
+        function generatePrintHTML(vouchers) {
+            // Fungsi untuk mendapatkan warna berdasarkan harga
+            function getColorByPrice(price) {
+                const priceMap = {
+                    1000: '#FF1493',
+                    2000: '#8B008B',
+                    3000: '#666',
+                    5000: '#FF4500',
+                    10000: '#E65100',
+                    15000: '#228B22',
+                    20000: '#008000',
+                    30000: '#FF00FF',
+                    60000: '#E60C00',
+                    70000: '#FF0000'
+                };
+                return priceMap[price] || '#BA68C8';
+            }
+
+            // Fungsi format durasi
+            function formatDuration(duration) {
+                if (!duration) return '';
+                const value = parseInt(duration);
+                const unit = duration.slice(-1);
+
+                if (unit === 'd') return `Durasi: ${value} HARI`;
+                if (unit === 'h') return `Durasi: ${value} Jam`;
+                if (unit === 'w') return `Durasi: ${value * 7} HARI`;
+                return `Durasi: ${duration}`;
+            }
+
+            const cards = vouchers.map(v => {
+                const color = getColorByPrice(v.price || 0);
+                const duration = formatDuration(v.duration);
+                const priceFormatted = formatPrice(v.price || 0);
+
+                return `
+                <table style="display: inline-block;border-collapse: collapse;border: 1px solid #666;margin: 2.5px;width: 190px;overflow:hidden;position:relative;padding: 0px;border: 1px solid #000000;">
+                <tbody>
+                <tr>
+                <td style="color:#666;" valign="top">
+                <table style="width:100%;">
+                <tbody>
+                <tr>
+                <td style="width:75px">
+                <div style="position:relative;z-index:-1;padding: 0px;float:left;">
+                <div style="position:absolute;top:0;display:inline;margin-top:-100px;width: 0; height: 0; border-top: 230px solid transparent;border-left: 50px solid transparent;border-right:140px solid rgba(0,0,0,0.1); "></div>
+                </div>
+                <div style="margin:5px 0 0 5px;font-weight:bold;font-size:14px;color:#333;">${voucherTemplate.header}</div>
+                </td>	
+                <td style="width:115px">
+                <div style="text-align:right;font-weight:bold;font-family:Tahoma;font-size:20px;padding-right:5px;color:${color}">
+                <small style="font-size:10px;position:absolute;margin-left:-35px;margin-top:2px;">Rp</small>${priceFormatted}
+                </div>	
+                </td>		
+                </tr>
+                </tbody>
+                </table>
+                </td>
+                </tr>
+                <tr>
+                <td style="color:#666;border-collapse: collapse;" valign="top">
+                <table style="width:100%;border-collapse: collapse;">
+                <tbody>
+                <tr>
+                <td style="width:95px" valign="top">
+                <div style="clear:both;color:#555;margin-top:2px;margin-bottom:2.5px;">
+                <div style="padding:0px;border-bottom:1px solid ${color};text-align:center;font-weight:bold;font-size:10px;">VOUCHER</div>
+                <div style="padding:0px;border-bottom:1px solid ${color};text-align:center;font-weight:bold;font-size:14px;color:#000000;">${v.username}</div>
+                </div>
+                <div style="text-align:center;color:#111;font-size:7px;font-weight:bold;margin:0px;padding:2.5px;">
+                ${voucherTemplate.instructions.replace(/\n/g, '<br>')}
+                </div>
+                </td>	
+                <td style="width:100px;text-align:right;">
+                <div style="clear:both;padding:0 2.5px;font-size:7px;font-weight:bold;color:#000000">
+                PROFILE: ${v.profile}<br>
+                ${duration}<br>
+                PASSWORD: ${v.password}
+                </div>
+                </td>		
+                </tr>
+                <tr>
+                <td style="background:${color};color:#666;padding:0px;" valign="top" colspan="2">
+                <div style="text-align:center;color:#fff;font-size:9px;font-weight:bold;margin:0px;padding:2.5px;">
+                ${voucherTemplate.footer}
+                </div>
+                </td>
+                </tr>
+                </tbody>
+                </table>
+                </td>
+                </tr>
+                </tbody>
+                </table>
+                `;
+            }).join('');
+
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Print Vouchers</title>
+                    <style>
+                        body { 
+                            font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif; 
+                            background: #fff; 
+                            margin: 0; 
+                            padding: 20px; 
+                        }
+                        @media print {
+                            body { padding: 0; }
+                            table { margin: 2px; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+                        ${cards}
+                    </div>
+                </body>
+                </html>
+            `;
+        }
+
+        // ========== THERMAL PRINTER 58mm FUNCTIONS ==========
+        function printVouchersThermal58() {
+            if (currentGeneratedVouchers.length === 0) return;
+            openThermal58Window(currentGeneratedVouchers);
+        }
+
+        function printSingleVoucherThermal58(username, password, profile, price, duration) {
+            openThermal58Window([{ username, password, profile, price, duration }]);
+        }
+
+        function openThermal58Window(vouchers) {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(generateThermal58HTML(vouchers));
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+
+        function generateThermal58HTML(vouchers) {
+            // Format durasi
+            function formatDuration(duration) {
+                if (!duration) return '-';
+                const value = parseInt(duration);
+                const unit = duration.slice(-1);
+                if (unit === 'd') return `${value} HARI`;
+                if (unit === 'h') return `${value} JAM`;
+                if (unit === 'w') return `${value * 7} HARI`;
+                return duration;
+            }
+
+            const receipts = vouchers.map(v => {
+                const priceFormatted = formatPrice(v.price || 0);
+                const duration = formatDuration(v.duration);
+
+                return `
+                <div class="receipt">
+                    <div class="receipt-header">
+                        <div class="brand">${voucherTemplate.header}</div>
+                        <div class="tagline">WiFi Voucher</div>
+                    </div>
+                    <div class="divider">================================</div>
+                    <div class="info-row">
+                        <span class="label">Profile:</span>
+                        <span class="value">${v.profile}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Durasi:</span>
+                        <span class="value">${duration}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Harga:</span>
+                        <span class="value price">Rp ${priceFormatted}</span>
+                    </div>
+                    <div class="divider">--------------------------------</div>
+                    <div class="credential-box">
+                        <div class="cred-label">USERNAME</div>
+                        <div class="cred-value">${v.username}</div>
+                    </div>
+                    <div class="credential-box">
+                        <div class="cred-label">PASSWORD</div>
+                        <div class="cred-value">${v.password}</div>
+                    </div>
+                    <div class="divider">--------------------------------</div>
+                    <div class="instructions">
+                        ${voucherTemplate.instructions.replace(/\n/g, '<br>')}
+                    </div>
+                    <div class="divider">================================</div>
+                    <div class="footer">${voucherTemplate.footer}</div>
+                    <div class="cut-line">- - - ✂ - - -</div>
+                </div>
+                `;
+            }).join('');
+
+            return `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Print Thermal 58mm</title>
+                    <style>
+                        @page {
+                            size: 58mm auto;
+                            margin: 0;
+                        }
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                        }
+                        body {
+                            font-family: 'Courier New', monospace;
+                            font-size: 12px;
+                            width: 58mm;
+                            background: #fff;
+                            color: #000;
+                        }
+                        .receipt {
+                            width: 58mm;
+                            padding: 5px 3px;
+                            page-break-after: always;
+                        }
+                        .receipt:last-child {
+                            page-break-after: auto;
+                        }
+                        .receipt-header {
+                            text-align: center;
+                            margin-bottom: 5px;
+                        }
+                        .brand {
+                            font-size: 16px;
+                            font-weight: bold;
+                        }
+                        .tagline {
+                            font-size: 11px;
+                            color: #555;
+                        }
+                        .divider {
+                            text-align: center;
+                            font-size: 10px;
+                            color: #888;
+                            margin: 3px 0;
+                            overflow: hidden;
+                        }
+                        .info-row {
+                            display: flex;
+                            justify-content: space-between;
+                            font-size: 11px;
+                            padding: 2px 0;
+                        }
+                        .info-row .label {
+                            color: #555;
+                        }
+                        .info-row .value {
+                            font-weight: bold;
+                        }
+                        .info-row .price {
+                            color: #000;
+                            font-size: 13px;
+                        }
+                        .credential-box {
+                            background: #f5f5f5;
+                            border: 1px dashed #999;
+                            text-align: center;
+                            padding: 5px 3px;
+                            margin: 3px 0;
+                        }
+                        .cred-label {
+                            font-size: 9px;
+                            color: #666;
+                            letter-spacing: 1px;
+                        }
+                        .cred-value {
+                            font-size: 16px;
+                            font-weight: bold;
+                            letter-spacing: 2px;
+                            margin-top: 2px;
+                        }
+                        .instructions {
+                            font-size: 9px;
+                            text-align: center;
+                            color: #555;
+                            line-height: 1.4;
+                            padding: 3px 0;
+                        }
+                        .footer {
+                            text-align: center;
+                            font-size: 10px;
+                            font-weight: bold;
+                            margin: 3px 0;
+                        }
+                        .cut-line {
+                            text-align: center;
+                            font-size: 12px;
+                            color: #999;
+                            margin-top: 8px;
+                            padding-top: 5px;
+                        }
+                        @media print {
+                            body {
+                                width: 58mm;
+                            }
+                            .receipt {
+                                page-break-inside: avoid;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${receipts}
+                </body>
+                </html>
+            `;
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // ========== VOUCHER TEMPLATE EDITOR ==========
+
+        // Voucher Template Settings
+        let voucherTemplate = {
+            header: 'WIFI VOUCHER',
+            footer: 'Powered by ACS-Lite',
+            instructions: 'Hubungkan ke wifi hotspot\nBuka browser ketik: 192.168.8.1/login',
+            colors: {
+                1000: '#FF1493',
+                2000: '#8B008B',
+                3000: '#666666',
+                5000: '#FF4500',
+                10000: '#E65100',
+                15000: '#228B22',
+                20000: '#008000',
+                25000: '#FF00FF',
+                30000: '#9C27B0',
+                50000: '#E60C00'
+            }
+        };
+
+        // Load template dari localStorage
+        function loadTemplate() {
+            const saved = localStorage.getItem('voucher_template');
+            if (saved) {
+                try {
+                    voucherTemplate = JSON.parse(saved);
+
+                    // Populate form
+                    document.getElementById('tmpl-header').value = voucherTemplate.header;
+                    document.getElementById('tmpl-footer').value = voucherTemplate.footer;
+                    document.getElementById('tmpl-instructions').value = voucherTemplate.instructions;
+
+                    // Populate colors
+                    for (let price in voucherTemplate.colors) {
+                        const el = document.getElementById(`color-${price}`);
+                        if (el) el.value = voucherTemplate.colors[price];
+                    }
+                } catch (e) {
+                    console.error('Error loading template:', e);
+                }
+            }
+
+            updatePreview();
+        }
+
+        // Save template ke localStorage
+        function saveTemplate() {
+            voucherTemplate.header = document.getElementById('tmpl-header').value;
+            voucherTemplate.footer = document.getElementById('tmpl-footer').value;
+            voucherTemplate.instructions = document.getElementById('tmpl-instructions').value;
+
+            // Save colors
+            for (let price in voucherTemplate.colors) {
+                const el = document.getElementById(`color-${price}`);
+                if (el) voucherTemplate.colors[price] = el.value;
+            }
+
+            localStorage.setItem('voucher_template', JSON.stringify(voucherTemplate));
+            alert('✅ Template berhasil disimpan!');
+            updatePreview();
+        }
+
+        // Reset ke default
+        function resetTemplate() {
+            if (confirm('Reset template ke default?')) {
+                localStorage.removeItem('voucher_template');
+                location.reload();
+            }
+        }
+
+        // Update preview
+        function updatePreview() {
+            const preview = document.getElementById('voucher-preview');
+            if (!preview) return;
+
+            const sampleVoucher = {
+                username: 'DEMO123',
+                password: 'DEMO123',
+                profile: '3k',
+                price: 3000,
+                duration: '1d'
+            };
+
+            const color = voucherTemplate.colors[sampleVoucher.price] || '#666';
+            const instructions = voucherTemplate.instructions.replace(/\n/g, '<br>');
+
+            preview.innerHTML = `
+                <table style="display: inline-block;border-collapse: collapse;border: 1px solid #666;margin: 2.5px;width: 190px;overflow:hidden;position:relative;padding: 0px;border: 1px solid #000000;">
+                <tbody>
+                <tr>
+                <td style="color:#666;" valign="top">
+                <table style="width:100%;">
+                <tbody>
+                <tr>
+                <td style="width:75px">
+                <div style="position:relative;z-index:-1;padding: 0px;float:left;">
+                <div style="position:absolute;top:0;display:inline;margin-top:-100px;width: 0; height: 0; border-top: 230px solid transparent;border-left: 50px solid transparent;border-right:140px solid rgba(0,0,0,0.1); "></div>
+                </div>
+                <div style="margin:5px 0 0 5px;font-weight:bold;font-size:14px;color:#333;">${voucherTemplate.header}</div>
+                </td>	
+                <td style="width:115px">
+                <div style="text-align:right;font-weight:bold;font-family:Tahoma;font-size:20px;padding-right:5px;color:${color}">
+                <small style="font-size:10px;position:absolute;margin-left:-35px;margin-top:2px;">Rp</small>${formatPrice(sampleVoucher.price)}
+                </div>	
+                </td>		
+                </tr>
+                </tbody>
+                </table>
+                </td>
+                </tr>
+                <tr>
+                <td style="color:#666;border-collapse: collapse;" valign="top">
+                <table style="width:100%;border-collapse: collapse;">
+                <tbody>
+                <tr>
+                <td style="width:95px" valign="top">
+                <div style="clear:both;color:#555;margin-top:2px;margin-bottom:2.5px;">
+                <div style="padding:0px;border-bottom:1px solid ${color};text-align:center;font-weight:bold;font-size:10px;">VOUCHER</div>
+                <div style="padding:0px;border-bottom:1px solid ${color};text-align:center;font-weight:bold;font-size:14px;color:#000000;">${sampleVoucher.username}</div>
+                </div>
+                <div style="text-align:center;color:#111;font-size:7px;font-weight:bold;margin:0px;padding:2.5px;">
+                ${instructions}
+                </div>
+                </td>	
+                <td style="width:100px;text-align:right;">
+                <div style="clear:both;padding:0 2.5px;font-size:7px;font-weight:bold;color:#000000">
+                PROFILE: ${sampleVoucher.profile}<br>
+                Durasi: 1 HARI<br>
+                PASSWORD: ${sampleVoucher.password}
+                </div>
+                </td>		
+                </tr>
+                <tr>
+                <td style="background:${color};color:#666;padding:0px;" valign="top" colspan="2">
+                <div style="text-align:center;color:#fff;font-size:9px;font-weight:bold;margin:0px;padding:2.5px;">
+                ${voucherTemplate.footer}
+                </div>
+                </td>
+                </tr>
+                </tbody>
+                </table>
+                </td>
+                </tr>
+                </tbody>
+                </table>
+            `;
+        }
+
+        // Update getColorByPrice untuk pakai template
+        function getColorByPrice(price) {
+            return voucherTemplate.colors[price] || '#BA68C8';
+        }
+
+        // ========== ON-LOGIN SCRIPT GENERATOR ==========
+
+        // Toggle script preview visibility - Add form
+        function toggleScriptPreview() {
+            const autoGen = document.getElementById('add-hp-auto-script').checked;
+            const container = document.getElementById('add-hp-script-preview-container');
+
+            if (autoGen) {
+                container.style.display = 'block';
+                generateOnLoginScript();
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // Toggle script preview visibility - Edit form
+        function toggleEditScriptPreview() {
+            const autoGen = document.getElementById('edit-hp-auto-script').checked;
+            const scriptArea = document.getElementById('edit-hp-script');
+
+            if (autoGen) {
+                generateEditOnLoginScript();
+            }
+        }
+
+        // Generate On-Login Script for Edit form
+        function generateEditOnLoginScript() {
+            const autoGen = document.getElementById('edit-hp-auto-script');
+            if (!autoGen || !autoGen.checked) return;
+
+            const price = parseInt(document.getElementById('edit-hp-price').value) || 0;
+            const durationValue = parseInt(document.getElementById('edit-hp-duration-value').value) || 1;
+            const durationUnit = document.getElementById('edit-hp-duration-unit').value;
+            const rosVersion = document.getElementById('edit-hp-ros-version').value;
+            const telegramToken = document.getElementById('edit-hp-telegram-token').value;
+            const telegramChat = document.getElementById('edit-hp-telegram-chat').value;
+
+            const duration = durationValue + durationUnit;
+            const priceDisplay = Math.floor(price * 0.7);
+
+            let script = '';
+
+            if (rosVersion === '6') {
+                script = generateROS6Script(priceDisplay, duration, price, telegramToken, telegramChat);
+            } else {
+                script = generateROS7Script(priceDisplay, duration, price, telegramToken, telegramChat);
+            }
+
+            document.getElementById('edit-hp-script').value = script;
+        }
+
+        // Copy script from edit hotspot modal
+        function copyEditHotspotScript() {
+            const script = document.getElementById('edit-hp-script');
+            script.select();
+            document.execCommand('copy');
+            alert('✅ Script copied to clipboard!');
+        }
+
+        // Copy script from Add hotspot modal
+        function copyHotspotScript() {
+            const script = document.getElementById('add-hp-script-preview');
+            script.select();
+            document.execCommand('copy');
+            alert('✅ Script copied to clipboard!');
+        }
+
+        // Generate On-Login Script
+        // Toggle Script Generator visibility in Edit Modal
+        function toggleEditScriptGen() {
+            const checkbox = document.getElementById('edit-hp-auto-script');
+            const tools = document.getElementById('edit-hp-gen-tools');
+            const scriptArea = document.getElementById('edit-hp-script');
+
+            if (checkbox.checked) {
+                tools.style.display = 'block';
+                scriptArea.setAttribute('readonly', true); // Lock manual edit when generator is on
+                generateOnLoginScript('edit-hp'); // Regenerate immediately
+            } else {
+                tools.style.display = 'none';
+                scriptArea.removeAttribute('readonly'); // Unlock manual edit
+            }
+        }
+
+        function generateOnLoginScript(prefix = 'add-hp') {
+            const autoGen = document.getElementById(`${prefix}-auto-script`);
+            if (!autoGen || !autoGen.checked) return;
+
+            const price = parseInt(document.getElementById(`${prefix}-price`).value) || 0;
+            const durationValue = parseInt(document.getElementById(`${prefix}-duration-value`).value) || 1;
+            const durationUnit = document.getElementById(`${prefix}-duration-unit`).value;
+            const rosVersion = document.getElementById(`${prefix}-ros-version`).value;
+            const telegramToken = document.getElementById(`${prefix}-telegram-token`).value;
+            const telegramChat = document.getElementById(`${prefix}-telegram-chat`).value;
+
+            const duration = durationValue + durationUnit;
+            const priceDisplay = Math.floor(price * 0.7); // Harga modal (70% dari harga jual)
+
+            let script = '';
+
+            if (rosVersion === '6') {
+                script = generateROS6Script(priceDisplay, duration, price, telegramToken, telegramChat);
+            } else {
+                script = generateROS7Script(priceDisplay, duration, price, telegramToken, telegramChat);
+            }
+
+            // Output to the correct preview/script area
+            const outputId = prefix === 'add-hp' ? 'add-hp-script-preview' : 'edit-hp-script';
+            const outputEl = document.getElementById(outputId);
+            if (outputEl) outputEl.value = script;
+        }
+
+        // Generate ROS6 Script
+        function generateROS6Script(priceDisplay, duration, priceActual, telegramToken, telegramChat) {
+            let script = `:put (",rem,${priceDisplay},${duration},${priceActual},,Disable,");
+{
+:local date [ /system clock get date ];
+:local year [ :pick \\$date 7 11 ];
+:local month [ :pick \\$date 0 3 ];
+:local comment [ /ip hotspot user get [/ip hotspot user find where name="\\$user"] comment];
+:local ucode [:pick \\$comment 0 2];
+:if (\\$ucode = "vc" or \\$ucode = "up" or \\$comment = "") do={
+  /sys sch add name="\\$user" disable=no start-date=\\$date interval="${duration}";
+  :delay 2s;
+  :local exp [ /sys sch get [ /sys sch find where name="\\$user" ] next-run];
+  :local getxp [len \\$exp];
+  :if (\\$getxp = 15) do={
+    :local d [:pick \\$exp 0 6];
+    :local t [:pick \\$exp 7 16];
+    :local s ("/");
+    :local exp ("\\$d\\$s\\$year \\$t");
+    /ip hotspot user set comment=\\$exp [find where name="\\$user"];
+  };
+  :if (\\$getxp = 8) do={
+    /ip hotspot user set comment="\\$date \\$exp" [find where name="\\$user"];
+  };
+  :if (\\$getxp > 15) do={
+    /ip hotspot user set comment=\\$exp [find where name="\\$user"];
+  };
+  /sys sch remove [find where name="\\$user"];
+}`;
+
+            // Add Telegram notification if configured
+            if (telegramToken && telegramChat) {
+                script += `
+:local mac \\$"mac-address";
+:local profile [/ip hotspot user get [find name="\\$user"] profile];
+:local exp [/ip hotspot user get [find name="\\$user"] comment];
+/tool fetch url="https://api.telegram.org/bot${telegramToken}/sendMessage?chat_id=${telegramChat}&text=Voucher Login:%0AUser: \\$user%0AProfile: \\$profile%0AMAC: \\$mac%0AExpiry: \\$exp" mode=http keep-result=no;`;
+            }
+
+            script += '\n}';
+
+            return script;
+        }
+
+        // Generate ROS7 Script
+        function generateROS7Script(priceDisplay, duration, priceActual, telegramToken, telegramChat) {
+            const durationSeconds = convertDurationToSeconds(duration);
+
+            let script = `:put (",rem,${priceDisplay},${duration},${priceActual},,Disable,");
+{
+:local date [/system/clock/get date];
+:local time [/system/clock/get time];
+:local comment [/ip/hotspot/user/get [find where name="\\$user"] comment];
+:local ucode [:pick \\$comment 0 2];
+:if (\\$ucode = "vc" or \\$ucode = "up" or \\$comment = "") do={
+  :local expDate (\\$date + ${durationSeconds}s);
+  :local expTime \\$time;
+  :local expiry ("\\$expDate \\$expTime");
+  /ip/hotspot/user/set [find where name="\\$user"] comment=\\$expiry;
+}`;
+
+            // Add Telegram notification if configured
+            if (telegramToken && telegramChat) {
+                script += `
+:local mac \\$"mac-address";
+:local profile [/ip/hotspot/user/get [find where name="\\$user"] profile];
+:local exp [/ip/hotspot/user/get [find where name="\\$user"] comment];
+/tool/fetch url="https://api.telegram.org/bot${telegramToken}/sendMessage?chat_id=${telegramChat}&text=Voucher Login:%0AUser: \\$user%0AProfile: \\$profile%0AMAC: \\$mac%0AExpiry: \\$exp" mode=http keep-result=no;`;
+            }
+
+            script += '\n}';
+
+            return script;
+        }
+
+        // Convert duration to seconds
+        function convertDurationToSeconds(duration) {
+            const value = parseInt(duration);
+            const unit = duration.slice(-1);
+
+            switch (unit) {
+                case 'h': return value * 3600;
+                case 'd': return value * 86400;
+                case 'w': return value * 604800;
+                default: return value * 86400;
+            }
+        }
+
+        // Copy script to clipboard
+        function copyHotspotScript() {
+            const script = document.getElementById('add-hp-script-preview');
+            script.select();
+            document.execCommand('copy');
+            alert('✅ Script copied to clipboard!');
+        }
+    </script>
+
+
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav-admin">
+        <div class="nav-item-admin" id="nav-admin-dashboard" onclick="navigateToPage('dashboard', 'dashboard.html')">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-customers" onclick="navigateToPage('customers', 'customers.html')">
+            <i class="fas fa-users"></i>
+            <span>Pelanggan</span>
+        </div>
+        <div class="nav-item-admin active" id="nav-admin-network" onclick="navigateToPage('network', 'mikrotik.html')">
+            <i class="fas fa-network-wired"></i>
+            <span>Jaringan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-reports" onclick="navigateToPage('reports', 'reports.html')">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-settings" onclick="navigateToPage('settings', 'settings.html')">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+    </nav>
+
+    <!-- Bottom Nav Script -->
+    <script src="bottom-nav.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>

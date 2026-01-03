@@ -1,0 +1,2092 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard Pelanggan - ACSLite</title>
+
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com 'unsafe-inline'; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data: https://*.openstreetmap.org https://*.tile.openstreetmap.org; connect-src 'self' http://*:8888 https://*.openstreetmap.org;">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#00c9ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        :root {
+            --primary: #00c9ff;
+            --primary-dark: #0099cc;
+            --secondary: #92fe9d;
+            --gradient-primary: linear-gradient(135deg, #00c9ff 0%, #92fe9d 100%);
+            --gradient-header: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            --bg-light: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --shadow-soft: 0 2px 15px rgba(0, 0, 0, 0.08);
+            --shadow-medium: 0 4px 25px rgba(0, 0, 0, 0.12);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+            --nav-height: 70px;
+            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-light);
+            min-height: 100vh;
+            padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom) + 20px);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Header */
+        .app-header {
+            background: var(--gradient-header);
+            color: white;
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 201, 255, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .app-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(146, 254, 157, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .user-greeting {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .user-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        /* Status Card in Header */
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .status-indicator {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .status-indicator.online {
+            background: linear-gradient(135deg, #00f260 0%, #0575e6 100%);
+            animation: pulseOnline 2s infinite;
+        }
+
+        .status-indicator.offline {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+
+        @keyframes pulseOnline {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 242, 96, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 20px 10px rgba(0, 242, 96, 0.1);
+            }
+        }
+
+        .status-text {
+            flex: 1;
+        }
+
+        .status-text .label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .status-text .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 20px;
+            padding-top: 0;
+            margin-top: -10px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Info Cards */
+        .info-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 0;
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-row .label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .info-row .label i {
+            width: 20px;
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .info-row .value {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            text-align: right;
+            max-width: 55%;
+            word-break: break-word;
+        }
+
+        /* Signal Strength */
+        .signal-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .signal-bars {
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+        }
+
+        .signal-bar {
+            width: 6px;
+            background: #ddd;
+            border-radius: 2px;
+        }
+
+        .signal-bar:nth-child(1) {
+            height: 8px;
+        }
+
+        .signal-bar:nth-child(2) {
+            height: 12px;
+        }
+
+        .signal-bar:nth-child(3) {
+            height: 16px;
+        }
+
+        .signal-bar:nth-child(4) {
+            height: 20px;
+        }
+
+        .signal-excellent .signal-bar {
+            background: #00c853;
+        }
+
+        .signal-good .signal-bar:nth-child(-n+3) {
+            background: #00c853;
+        }
+
+        .signal-fair .signal-bar:nth-child(-n+2) {
+            background: #ffc107;
+        }
+
+        .signal-poor .signal-bar:nth-child(1) {
+            background: #ff5252;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .action-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--shadow-soft);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 2px solid transparent;
+        }
+
+        .action-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-medium);
+            border-color: var(--primary);
+        }
+
+        .action-card:active {
+            transform: translateY(-1px);
+        }
+
+        .action-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 1.3rem;
+        }
+
+        .action-card.wifi .icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .action-card.refresh .icon {
+            background: linear-gradient(135deg, #00c9ff 0%, #92fe9d 100%);
+            color: white;
+        }
+
+        .action-card.map .icon {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .action-card.billing .icon {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .action-card.support .icon {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .action-card .title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        /* Billing Container */
+        .billing-section {
+            margin-bottom: 20px;
+        }
+
+        .billing-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-soft);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .billing-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: var(--gradient-primary);
+        }
+
+        .billing-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 10px 0;
+        }
+
+        .billing-status {
+            display: inline-block;
+            padding: 6px 16px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .billing-status.unpaid {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        /* WiFi Settings Modal */
+        .modal-content {
+            border: none;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 20px;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 201, 255, 0.15);
+        }
+
+        .btn-primary-custom {
+            background: var(--gradient-primary);
+            border: none;
+            padding: 14px 24px;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 201, 255, 0.4);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--nav-height);
+            padding-bottom: var(--safe-area-bottom);
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 0;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 3px;
+            background: var(--gradient-primary);
+            border-radius: 0 0 3px 3px;
+        }
+
+        .nav-item i {
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+            transition: transform 0.3s;
+        }
+
+        .nav-item.active i {
+            transform: scale(1.1);
+        }
+
+        .nav-item span {
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        /* Page containers */
+        .page-container {
+            display: none;
+        }
+
+        .page-container.active {
+            display: block;
+        }
+
+        /* Loading Spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+        }
+
+        .toast {
+            background: white;
+            border-radius: var(--radius-sm);
+            padding: 16px 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: toastSlide 0.3s ease-out;
+            min-width: 280px;
+        }
+
+        @keyframes toastSlide {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        .toast.success i {
+            color: #00c853;
+        }
+
+        .toast.error i {
+            color: #ff5252;
+        }
+
+        .toast.info i {
+            color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .main-content {
+                max-width: 600px;
+                margin: 0 auto;
+            }
+
+            .quick-actions {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            #customer-map {
+                height: 300px;
+            }
+        }
+
+        /* Settings Page */
+        .settings-item {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-soft);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .settings-item:hover {
+            transform: translateX(5px);
+        }
+
+        .settings-item .left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .settings-item .icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .settings-item .icon.wifi {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .settings-item .icon.refresh {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .settings-item .icon.location {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        .settings-item .icon.billing {
+            background: #e0f2f1;
+            color: #00695c;
+        }
+
+        .settings-item .icon.logout {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .settings-item .title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .settings-item .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .settings-item .arrow {
+            color: var(--text-muted);
+        }
+
+        /* Help Page */
+        .help-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 16px;
+        }
+
+        .help-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .help-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .contact-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #25D366;
+            color: white;
+            text-decoration: none;
+            padding: 16px 24px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 16px;
+        }
+
+        .contact-button:hover {
+            background: #128C7E;
+            color: white;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Memuat data...</div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-top">
+                <div>
+                    <div class="user-greeting">Selamat datang,</div>
+                    <div class="user-name" id="user-name">-</div>
+                </div>
+                <button class="btn-logout" onclick="handleLogout()">
+                    <i class="fas fa-sign-out-alt me-1"></i> Keluar
+                </button>
+            </div>
+            <div class="status-card">
+                <div class="status-indicator" id="status-indicator">
+                    <i class="fas fa-wifi"></i>
+                </div>
+                <div class="status-text">
+                    <div class="label">Status Perangkat</div>
+                    <div class="value" id="device-status">Memeriksa...</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Home Page -->
+        <div class="page-container active" id="page-home">
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="action-card wifi" onclick="showWiFiModal()">
+                    <div class="icon"><i class="fas fa-wifi"></i></div>
+                    <div class="title">Ubah WiFi</div>
+                </div>
+                <div class="action-card refresh" onclick="refreshData()">
+                    <div class="icon"><i class="fas fa-sync-alt"></i></div>
+                    <div class="title">Refresh</div>
+                </div>
+                <div class="action-card billing" onclick="showPage('billing')">
+                    <div class="icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div class="title">Tagihan</div>
+                </div>
+                <div class="action-card support" onclick="showPage('help')">
+                    <div class="icon"><i class="fas fa-headset"></i></div>
+                    <div class="title">Bantuan</div>
+                </div>
+            </div>
+
+            <!-- Device Info -->
+            <div class="info-section">
+                <h2 class="section-title">
+                    <i class="fas fa-router"></i>
+                    Informasi Perangkat
+                </h2>
+                <div class="info-card">
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-barcode"></i>
+                            Serial Number
+                        </div>
+                        <div class="value" id="info-serial">-</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-cube"></i>
+                            Model
+                        </div>
+                        <div class="value" id="info-model">-</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-industry"></i>
+                            Manufacturer
+                        </div>
+                        <div class="value" id="info-manufacturer">-</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-network-wired"></i>
+                            IP Address
+                        </div>
+                        <div class="value" id="info-ip">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Info -->
+            <div class="info-section">
+                <h2 class="section-title">
+                    <i class="fas fa-signal"></i>
+                    Informasi Jaringan
+                </h2>
+                <div class="info-card">
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-user"></i>
+                            PPPoE User
+                        </div>
+                        <div class="value" id="info-pppoe">-</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-wifi"></i>
+                            WiFi SSID
+                        </div>
+                        <div class="value" id="info-ssid">-</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-broadcast-tower"></i>
+                            Rx Power
+                        </div>
+                        <div class="value">
+                            <div class="signal-container">
+                                <span id="info-signal">-</span>
+                                <div class="signal-bars" id="signal-bars">
+                                    <div class="signal-bar"></div>
+                                    <div class="signal-bar"></div>
+                                    <div class="signal-bar"></div>
+                                    <div class="signal-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-thermometer-half"></i>
+                            Temperature
+                        </div>
+                        <div class="value" id="info-temp">-</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-laptop"></i>
+                            Connected Devices
+                        </div>
+                        <div class="value" id="info-devices">-</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="label">
+                            <i class="fas fa-clock"></i>
+                            Last Seen
+                        </div>
+                        <div class="value" id="info-lastseen">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Billing Page -->
+        <div class="page-container" id="page-billing">
+            <div class="info-section">
+                <h2 class="section-title">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    Informasi Tagihan
+                </h2>
+
+                <div class="billing-card">
+                    <p class="text-secondary mb-0">Total Tagihan Belum Dibayar</p>
+                    <div class="billing-amount" id="billing-total">Rp 0</div>
+                    <div class="billing-status" id="billing-status">Lunas</div>
+
+                    <button class="btn-primary-custom w-100 mb-3" id="btn-pay" style="display: none;">
+                        <i class="fas fa-wallet me-2"></i>Bayar Sekarang
+                    </button>
+
+                    <p class="small text-muted">
+                        *Pembayaran akan diverifikasi otomatis oleh sistem
+                    </p>
+                </div>
+
+                <h3 class="section-title mt-4" style="font-size: 1rem;">
+                    <i class="fas fa-history"></i> Riwayat Pembayaran
+                </h3>
+                <div class="info-card px-4" id="payment-history">
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Memuat data...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div class="page-container" id="page-settings">
+            <div class="info-section">
+                <h2 class="section-title">
+                    <i class="fas fa-cog"></i>
+                    Pengaturan
+                </h2>
+
+                <div class="settings-item" onclick="showWiFiModal()">
+                    <div class="left">
+                        <div class="icon wifi"><i class="fas fa-wifi"></i></div>
+                        <div>
+                            <div class="title">Ubah Pengaturan WiFi</div>
+                            <div class="subtitle">SSID dan Password</div>
+                        </div>
+                    </div>
+                    <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+                </div>
+
+                <div class="settings-item" onclick="refreshData()">
+                    <div class="left">
+                        <div class="icon refresh"><i class="fas fa-sync-alt"></i></div>
+                        <div>
+                            <div class="title">Refresh Data</div>
+                            <div class="subtitle">Perbarui informasi perangkat</div>
+                        </div>
+                    </div>
+                    <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+                </div>
+
+                <div class="settings-item" onclick="showPage('billing')">
+                    <div class="left">
+                        <div class="icon billing"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div>
+                            <div class="title">Info Tagihan</div>
+                            <div class="subtitle">Cek tagihan & riwayat</div>
+                        </div>
+                    </div>
+                    <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+                </div>
+
+                <div class="settings-item" onclick="showChangePasswordModal()">
+                    <div class="left">
+                        <div class="icon password"><i class="fas fa-key"></i></div>
+                        <div>
+                            <div class="title">Ubah Password Login</div>
+                            <div class="subtitle">Ganti password akun Anda</div>
+                        </div>
+                    </div>
+                    <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+                </div>
+
+                <div class="settings-item" onclick="handleLogout()">
+                    <div class="left">
+                        <div class="icon logout"><i class="fas fa-sign-out-alt"></i></div>
+                        <div>
+                            <div class="title">Keluar</div>
+                            <div class="subtitle">Logout dari akun</div>
+                        </div>
+                    </div>
+                    <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Page -->
+        <div class="page-container" id="page-help">
+            <div class="info-section">
+                <h2 class="section-title">
+                    <i class="fas fa-question-circle"></i>
+                    Bantuan
+                </h2>
+
+                <div class="help-card">
+                    <h3><i class="fas fa-wifi me-2"></i>Cara Mengubah WiFi</h3>
+                    <p>
+                        1. Klik tombol "Ubah WiFi" di halaman utama<br>
+                        2. Masukkan nama WiFi (SSID) baru<br>
+                        3. Masukkan password baru (minimal 8 karakter)<br>
+                        4. Klik "Simpan Perubahan"<br>
+                        5. Tunggu beberapa saat hingga perubahan diterapkan
+                    </p>
+                </div>
+
+                <div class="help-card">
+                    <h3><i class="fas fa-signal me-2"></i>Sinyal Lemah</h3>
+                    <p>
+                        Jika sinyal (Rx Power) di bawah -25 dBm, kualitas koneksi mungkin kurang optimal.
+                        Hubungi tim teknis kami untuk pengecekan.
+                    </p>
+                </div>
+
+                <div class="help-card">
+                    <h3><i class="fas fa-headset me-2"></i>Butuh Bantuan?</h3>
+                    <p>
+                        Tim support kami siap membantu Anda 24/7. Hubungi kami melalui WhatsApp untuk
+                        respon lebih cepat.
+                    </p>
+                    <a href="https://wa.me/6281234567890" class="contact-button" target="_blank">
+                        <i class="fab fa-whatsapp"></i>
+                        Hubungi via WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="showPage('home')" id="nav-home">
+            <i class="fas fa-home"></i>
+            <span>Beranda</span>
+        </div>
+        <div class="nav-item" onclick="showPage('billing')" id="nav-billing">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <span>Tagihan</span>
+        </div>
+        <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+        <div class="nav-item" onclick="showPage('help')" id="nav-help">
+            <i class="fas fa-question-circle"></i>
+            <span>Bantuan</span>
+        </div>
+    </nav>
+
+    <!-- WiFi Settings Modal -->
+    <div class="modal fade" id="wifiModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #00c9ff, #92fe9d); color: white;">
+                    <h5 class="modal-title">
+                        <i class="fas fa-wifi me-2"></i>Pengaturan WiFi
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- SSID Section -->
+                    <div class="card mb-3" style="border: 2px solid #00c9ff;">
+                        <div class="card-body">
+                            <label class="form-label fw-bold mb-2" style="color: #00c9ff;">
+                                <i class="fas fa-broadcast-tower me-2"></i>Nama WiFi (SSID)
+                            </label>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text"><i class="fas fa-wifi"></i></span>
+                                <input type="text" class="form-control" id="wifi-ssid" placeholder="Masukkan nama WiFi">
+                            </div>
+                            <button type="button" class="btn w-100"
+                                style="background: linear-gradient(135deg, #00c9ff, #0095d9); color: white;"
+                                onclick="saveSSIDOnly()">
+                                <i class="fas fa-save me-2"></i>Simpan Nama WiFi
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Password Section -->
+                    <div class="card" style="border: 2px solid #92fe9d;">
+                        <div class="card-body">
+                            <label class="form-label fw-bold mb-2" style="color: #28a745;">
+                                <i class="fas fa-lock me-2"></i>Password WiFi
+                            </label>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                <input type="password" class="form-control" id="wifi-password"
+                                    placeholder="Masukkan password baru">
+                            </div>
+                            <div class="form-text mb-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Minimal 8 karakter. Kosongkan jika tidak ingin mengubah.
+                            </div>
+                            <button type="button" class="btn w-100"
+                                style="background: linear-gradient(135deg, #92fe9d, #28a745); color: white;"
+                                onclick="savePasswordOnly()">
+                                <i class="fas fa-key me-2"></i>Simpan Password
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>Ubah Password Login
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="password-alert"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-lock-open me-2"></i>Password Lama
+                        </label>
+                        <input type="password" class="form-control" id="old-password"
+                            placeholder="Masukkan password lama" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-lock me-2"></i>Password Baru
+                        </label>
+                        <input type="password" class="form-control" id="new-password" placeholder="Minimal 6 karakter"
+                            required>
+                        <div class="form-text">Gunakan kombinasi huruf, angka, dan simbol untuk keamanan maksimal.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-check-circle me-2"></i>Konfirmasi Password Baru
+                        </label>
+                        <input type="password" class="form-control" id="confirm-password"
+                            placeholder="Ketik ulang password baru" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewPassword()">
+                        <i class="fas fa-save me-2"></i>Simpan Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Configuration
+        const API_BASE = '/api'; // Main ACS API
+        const phpApiPort = '8888';
+        const CUSTOMER_API_BASE = 'http://' + window.location.hostname + ':' + phpApiPort + '/api/customer_api.php';
+        const BILLING_API = 'http://' + window.location.hostname + ':' + phpApiPort + '/api/billing_api.php';
+        const LOGIN_URL = 'customer_login.html';
+
+        let currentSession = null;
+        let deviceData = null;
+        let locationData = null;
+        let map = null;
+        let wifiModal = null;
+        let changePasswordModal = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session
+            if (!checkSession()) {
+                window.location.href = LOGIN_URL;
+                return;
+            }
+
+            // Initialize modal
+            wifiModal = new bootstrap.Modal(document.getElementById('wifiModal'));
+            changePasswordModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+
+            // Set user name
+            document.getElementById('user-name').textContent = currentSession.username;
+
+            // Load device data
+            loadDeviceData();
+
+            // Note: WiFi form now uses separate buttons (saveSSIDOnly, savePasswordOnly)
+        });
+
+        function showPage(pageName) {
+            console.log('Showing page:', pageName);
+
+            // Hide all pages
+            document.querySelectorAll('.page-container').forEach(page => {
+                page.style.display = 'none';
+            });
+
+            // Show selected page
+            const pageEl = document.getElementById('page-' + pageName);
+            if (pageEl) {
+                pageEl.style.display = 'block';
+            }
+
+            // Update nav active state
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+            const navEl = document.getElementById('nav-' + pageName);
+            if (navEl) {
+                navEl.classList.add('active');
+            }
+
+            // Load billing data when billing page is opened
+            if (pageName === 'billing') {
+                console.log('Loading billing data...');
+                loadBillingData();
+            }
+        }
+
+        function checkSession() {
+            const savedSession = sessionStorage.getItem('customer_session');
+            if (!savedSession) return false;
+
+            try {
+                const session = JSON.parse(savedSession);
+                if (session.expiry < Date.now()) {
+                    sessionStorage.removeItem('customer_session');
+                    return false;
+                }
+                currentSession = session;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function showLoading(show = true) {
+            const overlay = document.getElementById('loading-overlay');
+            if (show) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                info: 'fa-info-circle'
+            };
+
+            container.innerHTML = `
+                <div class="toast ${type}">
+                    <i class="fas ${icons[type]}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 3000);
+        }
+
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page-container').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Remove active from all nav items
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+
+            // Show selected page
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            document.getElementById(`nav-${pageId}`).classList.add('active');
+
+            // Initialize map if needed
+            // if (pageId === 'map' && !map) {
+            //     setTimeout(() => initMap(), 100);
+            // }
+
+            if (pageId === 'billing') {
+                loadBillingData();
+            }
+        }
+
+        async function loadDeviceData() {
+            showLoading(true);
+
+            try {
+                console.log('=== Loading Device Data ===');
+                console.log('Session:', currentSession);
+                console.log('Serial Number:', currentSession.serialNumber);
+                console.log('Customer Data:', currentSession.customerData);
+
+                // PRIMARY: Use session customerData first (should have full device info from login)
+                if (currentSession.customerData && Object.keys(currentSession.customerData).length > 0) {
+                    console.log('Using session customerData as primary source');
+
+                    deviceData = {
+                        serial_number: currentSession.serialNumber,
+                        ...currentSession.customerData
+                    };
+
+                    // Check for location data in session
+                    if (currentSession.customerData.latitude && currentSession.customerData.longitude) {
+                        locationData = {
+                            name: currentSession.customerData.name || currentSession.username,
+                            latitude: currentSession.customerData.latitude,
+                            longitude: currentSession.customerData.longitude
+                        };
+                    }
+
+                    // Also check localStorage for location
+                    const onuLocations = localStorage.getItem('onu_locations');
+                    if (onuLocations && !locationData) {
+                        const locations = JSON.parse(onuLocations);
+                        const loc = locations[currentSession.serialNumber];
+                        if (loc) {
+                            locationData = {
+                                name: loc.name,
+                                latitude: loc.lat,
+                                longitude: loc.lng
+                            };
+                        }
+                    }
+
+                    console.log('deviceData set to:', deviceData);
+                    console.log('About to call updateDeviceInfo...');
+                    updateDeviceInfo();
+                    console.log('updateDeviceInfo completed');
+                    updateStatus();
+                    console.log('updateStatus completed');
+                    showToast('Data perangkat berhasil dimuat', 'success');
+                    showLoading(false);
+                    return;
+                }
+
+                // FALLBACK 1: Try localStorage cache
+                console.log('Session data incomplete, trying localStorage...');
+                const cachedDevices = localStorage.getItem('acs_devices');
+                if (cachedDevices) {
+                    try {
+                        const devices = JSON.parse(cachedDevices);
+                        console.log(`Found ${devices.length} devices in cache`);
+                        const device = devices.find(d => d.serial_number === currentSession.serialNumber);
+                        if (device) {
+                            console.log('Device found in cache:', device);
+                            deviceData = device;
+                            updateDeviceInfo();
+                            updateStatus();
+                            showToast('Data dimuat dari cache', 'success');
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse cached devices:', e);
+                    }
+                }
+
+                // FALLBACK 2: Try API (likely will fail with 401 for customer)
+                console.log('Trying API as last resort...');
+                try {
+                    const response = await fetch(`${API_BASE}/devices?per_page=1000`);
+                    if (response.ok) {
+                        const result = await response.json();
+                        const devices = Array.isArray(result) ? result : (result.data || []);
+                        console.log(`Loaded ${devices.length} devices from API`);
+
+                        // Cache for future use
+                        localStorage.setItem('acs_devices', JSON.stringify(devices));
+
+                        const device = devices.find(d => d.serial_number === currentSession.serialNumber);
+                        if (device) {
+                            deviceData = device;
+                            updateDeviceInfo();
+                            updateStatus();
+                            showToast('Data dimuat dari API', 'success');
+                            return;
+                        }
+                    } else {
+                        console.log('API returned:', response.status);
+                    }
+                } catch (apiError) {
+                    console.log('API error:', apiError.message);
+                }
+
+                // Last resort: Show minimal data from session
+                if (currentSession.serialNumber) {
+                    deviceData = {
+                        serial_number: currentSession.serialNumber,
+                        product_class: 'Unknown',
+                        manufacturer: 'Unknown',
+                        last_inform_time: null,
+                        parameters: {}
+                    };
+                    updateDeviceInfo();
+                    updateStatus();
+                    showToast('Hanya serial number tersedia. Login ulang dari halaman admin untuk data lengkap.', 'warning');
+                } else {
+                    showToast('Tidak ada data perangkat tersedia', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error loading device data:', error);
+                showToast('Gagal memuat data: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function updateDeviceInfo() {
+            if (!deviceData) {
+                console.log('updateDeviceInfo: deviceData is null/undefined');
+                return;
+            }
+
+            console.log('updateDeviceInfo: deviceData keys:', Object.keys(deviceData));
+            console.log('updateDeviceInfo: full data:', JSON.stringify(deviceData, null, 2));
+
+            // Device Info
+            const serialEl = document.getElementById('info-serial');
+            const modelEl = document.getElementById('info-model');
+            const mfgEl = document.getElementById('info-manufacturer');
+            const ipEl = document.getElementById('info-ip');
+
+            console.log('Elements found:', {
+                serial: !!serialEl,
+                model: !!modelEl,
+                manufacturer: !!mfgEl,
+                ip: !!ipEl
+            });
+
+            if (serialEl) serialEl.textContent = deviceData.serial_number || '-';
+            if (modelEl) modelEl.textContent = deviceData.product_class || deviceData.model || '-';
+            if (mfgEl) mfgEl.textContent = deviceData.manufacturer || '-';
+            if (ipEl) ipEl.textContent = deviceData.ip_address || '-';
+
+            // Network Info
+            document.getElementById('info-pppoe').textContent = getPPPoEUsername(deviceData);
+            document.getElementById('info-ssid').textContent = getWiFiSSID(deviceData);
+
+            // Signal
+            const rxPower = deviceData.rx_power;
+            if (rxPower) {
+                document.getElementById('info-signal').textContent = `${rxPower} dBm`;
+                updateSignalBars(parseFloat(rxPower));
+            } else {
+                document.getElementById('info-signal').textContent = '-';
+            }
+
+            // Temperature
+            document.getElementById('info-temp').textContent = deviceData.temperature
+                ? `${deviceData.temperature}°C`
+                : '-';
+
+            // Connected Devices
+            document.getElementById('info-devices').textContent = deviceData.connected_devices || '-';
+
+            // Last Seen
+            document.getElementById('info-lastseen').textContent = formatLastSeen(deviceData.last_inform_time);
+
+            // Update WiFi form
+            document.getElementById('wifi-ssid').value = getWiFiSSID(deviceData);
+        }
+
+        function updateStatus() {
+            const isOnline = checkIfOnline(deviceData);
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('device-status');
+
+            if (isOnline) {
+                statusIndicator.classList.add('online');
+                statusIndicator.classList.remove('offline');
+                statusIndicator.innerHTML = '<i class="fas fa-wifi"></i>';
+                statusText.textContent = 'Online';
+            } else {
+                statusIndicator.classList.add('offline');
+                statusIndicator.classList.remove('online');
+                statusIndicator.innerHTML = '<i class="fas fa-wifi-slash"></i>';
+                statusText.textContent = 'Offline';
+            }
+        }
+
+        function updateSignalBars(signal) {
+            const signalBars = document.getElementById('signal-bars');
+            let signalClass = 'signal-poor';
+
+            if (signal >= -20) {
+                signalClass = 'signal-excellent';
+            } else if (signal >= -23) {
+                signalClass = 'signal-good';
+            } else if (signal >= -25) {
+                signalClass = 'signal-fair';
+            }
+
+            signalBars.className = `signal-bars ${signalClass}`;
+        }
+
+        function getPPPoEUsername(device) {
+            // Method 1: Check wan_services (like index.html)
+            if (device.wan_services) {
+                for (const key in device.wan_services) {
+                    const wan = device.wan_services[key];
+                    if (wan.username_path && device.parameters && device.parameters[wan.username_path]) {
+                        return device.parameters[wan.username_path];
+                    }
+                }
+            }
+
+            // Method 2: Check parameters directly
+            if (device.parameters) {
+                const paths = [
+                    'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username',
+                    'Device.PPP.Interface.1.Username'
+                ];
+                for (const path of paths) {
+                    if (device.parameters[path]) {
+                        return device.parameters[path];
+                    }
+                }
+            }
+            return device.pppoe_user || '-';
+        }
+
+        function getWiFiSSID(device) {
+            // Method 1: Check wifi_services (like index.html)
+            if (device.wifi_services) {
+                for (const key in device.wifi_services) {
+                    const wifi = device.wifi_services[key];
+                    if (wifi.ssid_path && device.parameters && device.parameters[wifi.ssid_path]) {
+                        return device.parameters[wifi.ssid_path];
+                    }
+                }
+            }
+
+            // Method 2: Check parameters directly
+            if (device.parameters) {
+                const paths = [
+                    'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID',
+                    'Device.WiFi.SSID.1.SSID'
+                ];
+                for (const path of paths) {
+                    if (device.parameters[path]) {
+                        return device.parameters[path];
+                    }
+                }
+            }
+            return device.ssid || '-';
+        }
+
+        function checkIfOnline(device) {
+            if (!device || !device.last_inform_time) return false;
+            const lastSeen = new Date(device.last_inform_time).getTime();
+            const now = Date.now();
+            return (now - lastSeen) < (30 * 60 * 1000); // 30 minutes
+        }
+
+        function formatLastSeen(timestamp) {
+            if (!timestamp) return 'Unknown';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+
+            if (minutes < 1) return 'Baru saja';
+            if (minutes < 60) return `${minutes} menit lalu`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours} jam lalu`;
+            const days = Math.floor(hours / 24);
+            return `${days} hari lalu`;
+        }
+
+        async function loadBillingData() {
+            if (!currentSession) return;
+
+            // Optimization: If we have the Database ID, use it directly
+            if (currentSession.customerData && currentSession.customerData.dbId) {
+                console.log('Fetching billing data by ID:', currentSession.customerData.dbId);
+                try {
+                    const detailResp = await fetch(`${BILLING_API}?action=customer&id=${currentSession.customerData.dbId}`);
+                    const detailResult = await detailResp.json();
+                    console.log('Billing API Response:', detailResult);
+                    if (detailResult.success) {
+                        console.log('Customer data:', detailResult.customer);
+                        updateBillingUI(detailResult.customer);
+                        return; // Exit early
+                    } else {
+                        console.error('Billing API returned success=false:', detailResult);
+                    }
+                } catch (e) { console.error('Error fetching billing by ID:', e); }
+            }
+
+            // Try to find customer by username or PPPoE
+            // Priority: PPPoE User (most accurate for billing) -> Username -> Name
+            let searchKey = currentSession.username;
+            if (deviceData) {
+                const pppoe = getPPPoEUsername(deviceData);
+                if (pppoe && pppoe !== '-') searchKey = pppoe;
+            }
+
+            console.log('Fetching billing data for:', searchKey);
+
+            try {
+                // 1. Search for customer to get ID
+                const searchResp = await fetch(`${BILLING_API}?action=customers&search=${encodeURIComponent(searchKey)}`);
+                const searchResult = await searchResp.json();
+
+                if (searchResult.success && searchResult.customers.length > 0) {
+                    // Find exact match if possible, or take the first one
+                    const customer = searchResult.customers[0];
+                    console.log('Customer found:', customer);
+
+                    // 2. Get full details including invoices/payments
+                    const detailResp = await fetch(`${BILLING_API}?action=customer&id=${customer.id}`);
+                    const detailResult = await detailResp.json();
+
+                    if (detailResult.success) {
+                        updateBillingUI(detailResult.customer);
+                    }
+                } else {
+                    console.log('Customer billing data not found');
+                    // Keep default "Rp 0" or show "Data tagihan tidak ditemukan"
+                }
+            } catch (error) {
+                console.error('Error loading billing data:', error);
+            }
+        }
+
+        function updateBillingUI(customer) {
+            // Calculate unpaid invoices
+            let totalUnpaid = 0;
+            if (customer.invoices) {
+                customer.invoices.forEach(inv => {
+                    if (inv.status === 'sent' || inv.status === 'overdue' || inv.status === 'partial') {
+                        totalUnpaid += (parseFloat(inv.total) - parseFloat(inv.paid_amount || 0));
+                    }
+                });
+            }
+
+            // Update Amount
+            document.querySelector('.billing-amount').textContent = formatRupiah(totalUnpaid);
+
+            // Update Status Badge
+            const statusEl = document.querySelector('.billing-status');
+            if (totalUnpaid > 0) {
+                statusEl.textContent = 'Belum Lunas';
+                statusEl.className = 'billing-status unpaid';
+            } else {
+                statusEl.textContent = 'Lunas';
+                statusEl.className = 'billing-status';
+            }
+
+            // Update History
+            const historyContainer = document.querySelector('.info-card.px-4'); // Target specific card
+            if (customer.payments && customer.payments.length > 0) {
+                let html = '';
+                customer.payments.slice(0, 5).forEach(pay => {
+                    html += `
+                        <div class="history-item">
+                            <div>
+                                <div class="fw-bold">Pembayaran #${pay.payment_no.split('-').pop()}</div>
+                                <small class="text-muted">${formatDate(pay.payment_date)}</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-success">Berhasil</div>
+                                <small class="text-muted">${formatRupiah(pay.amount)}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                historyContainer.innerHTML = html;
+            } else {
+                historyContainer.innerHTML = '<div class="text-center py-3 text-muted">Belum ada riwayat pembayaran</div>';
+            }
+        }
+
+        function formatRupiah(amount) {
+            return 'Rp ' + parseInt(amount || 0).toLocaleString('id-ID');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+
+        function initMap() {
+            // Map functionality removed
+            console.log('Map feature is disabled');
+        }
+
+        function showWiFiModal() {
+            wifiModal.show();
+        }
+
+        // Get WiFi paths from device data or use fallbacks
+        function getWiFiPaths() {
+            let ssidPath = null;
+            let passPath = null;
+
+            if (deviceData && deviceData.wifi_services) {
+                for (const key in deviceData.wifi_services) {
+                    const wifi = deviceData.wifi_services[key];
+                    if (wifi.ssid_path) {
+                        ssidPath = wifi.ssid_path;
+                        passPath = wifi.password_path || null;
+                        break;
+                    }
+                }
+            }
+
+            // Fallback paths for common ONU models
+            if (!ssidPath) {
+                ssidPath = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID';
+                passPath = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase';
+            }
+
+            return { ssidPath, passPath };
+        }
+
+        async function saveSSIDOnly() {
+            const ssid = document.getElementById('wifi-ssid').value.trim();
+
+            if (!ssid) {
+                showToast('Nama WiFi tidak boleh kosong', 'error');
+                return;
+            }
+
+            if (ssid.length < 1 || ssid.length > 32) {
+                showToast('Nama WiFi harus 1-32 karakter', 'error');
+                return;
+            }
+
+            showLoading(true);
+            wifiModal.hide();
+
+            try {
+                const { ssidPath } = getWiFiPaths();
+                console.log('Saving SSID to path:', ssidPath);
+
+                const parameters = {};
+                parameters[ssidPath] = ssid;
+
+                const payload = {
+                    name: "SetParameterValues",
+                    payload: { parameters: parameters }
+                };
+
+                const response = await fetch(`${API_BASE}/tasks?sn=${encodeURIComponent(currentSession.serialNumber)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'secret'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    showToast('✅ Nama WiFi berhasil diubah! Akan diterapkan dalam beberapa menit.', 'success');
+
+                    // Update local display optimistically
+                    document.getElementById('info-ssid').textContent = ssid;
+
+                    // Refresh data after delay
+                    setTimeout(() => loadDeviceData(), 5000);
+                } else {
+                    const text = await response.text();
+                    console.error('SSID update failed:', text);
+                    showToast('Gagal mengubah nama WiFi: ' + text, 'error');
+                }
+            } catch (error) {
+                console.error('SSID update error:', error);
+                showToast('Terjadi kesalahan. Coba lagi nanti.', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function savePasswordOnly() {
+            const password = document.getElementById('wifi-password').value;
+
+            if (!password) {
+                showToast('Password tidak boleh kosong', 'error');
+                return;
+            }
+
+            if (password.length < 8) {
+                showToast('Password minimal 8 karakter', 'error');
+                return;
+            }
+
+            showLoading(true);
+            wifiModal.hide();
+
+            try {
+                const { passPath } = getWiFiPaths();
+
+                if (!passPath) {
+                    showToast('Path password tidak ditemukan untuk perangkat ini', 'error');
+                    showLoading(false);
+                    return;
+                }
+
+                console.log('Saving Password to path:', passPath);
+
+                const parameters = {};
+                parameters[passPath] = password;
+
+                const payload = {
+                    name: "SetParameterValues",
+                    payload: { parameters: parameters }
+                };
+
+                const response = await fetch(`${API_BASE}/tasks?sn=${encodeURIComponent(currentSession.serialNumber)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'secret'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    showToast('✅ Password WiFi berhasil diubah! Akan diterapkan dalam beberapa menit.', 'success');
+                    document.getElementById('wifi-password').value = '';
+
+                    // Refresh data after delay
+                    setTimeout(() => loadDeviceData(), 5000);
+                } else {
+                    const text = await response.text();
+                    console.error('Password update failed:', text);
+                    showToast('Gagal mengubah password: ' + text, 'error');
+                }
+            } catch (error) {
+                console.error('Password update error:', error);
+                showToast('Terjadi kesalahan. Coba lagi nanti.', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function updateBillingUI(customerData) {
+            console.log('Updating billing UI with:', customerData);
+            console.log('Invoices:', customerData.invoices);
+            console.log('Payments:', customerData.payments);
+
+            // Calculate unpaid invoices
+            let totalUnpaid = 0;
+            const unpaidInvoices = [];
+            if (customerData.invoices && customerData.invoices.length > 0) {
+                console.log('Processing invoices, count:', customerData.invoices.length);
+                customerData.invoices.forEach((inv, index) => {
+                    console.log(`Invoice ${index}:`, inv);
+                    const invoiceAmount = parseFloat(inv.amount || inv.total || 0);
+                    console.log(`  Status: ${inv.status}, Amount: ${inv.amount}, Total: ${inv.total}, Using: ${invoiceAmount}`);
+                    if (inv.status !== 'paid') {
+                        totalUnpaid += invoiceAmount;
+                        unpaidInvoices.push(inv);
+                        console.log(`  → Added to unpaid (total now: ${totalUnpaid})`);
+                    }
+                });
+            }
+
+            console.log('Final totalUnpaid:', totalUnpaid);
+            console.log('Final unpaidInvoices count:', unpaidInvoices.length);
+
+            // Update total billing
+            const totalEl = document.getElementById('billing-total');
+            const statusEl = document.getElementById('billing-status');
+            const payBtn = document.getElementById('btn-pay');
+
+            if (totalEl) {
+                totalEl.textContent = `Rp ${totalUnpaid.toLocaleString('id-ID')}`;
+            }
+
+            // Update status
+            if (statusEl) {
+                if (totalUnpaid > 0) {
+                    statusEl.textContent = `${unpaidInvoices.length} Tagihan Belum Dibayar`;
+                    statusEl.className = 'billing-status text-danger';
+                    if (payBtn) payBtn.style.display = 'block';
+                } else {
+                    statusEl.textContent = 'Lunas';
+                    statusEl.className = 'billing-status text-success';
+                    if (payBtn) payBtn.style.display = 'none';
+                }
+            }
+
+            // Update payment history
+            const historyEl = document.getElementById('payment-history');
+            if (historyEl) {
+                if (!customerData.payments || customerData.payments.length === 0) {
+                    historyEl.innerHTML = `
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-inbox me-2"></i>Belum ada riwayat pembayaran
+                        </div>
+                    `;
+                } else {
+                    let historyHTML = '';
+                    customerData.payments.slice(0, 10).forEach(payment => {
+                        const date = new Date(payment.payment_date);
+                        const dateStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+                        historyHTML += `
+                            <div class="history-item">
+                                <div>
+                                    <div class="fw-bold">${payment.invoice_no || 'Pembayaran'}</div>
+                                    <small class="text-muted">${dateStr}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-success">Lunas</div>
+                                    <small class="text-muted">Rp ${parseFloat(payment.amount || payment.total || 0).toLocaleString('id-ID')}</small>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    historyEl.innerHTML = historyHTML;
+                }
+            }
+        }
+
+        async function refreshData() {
+            showToast('Memperbarui data...', 'info');
+            await loadDeviceData();
+            showToast('Data berhasil diperbarui', 'success');
+        }
+
+        function showChangePasswordModal() {
+            document.getElementById('old-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+            document.getElementById('password-alert').innerHTML = '';
+            changePasswordModal.show();
+        }
+
+        async function saveNewPassword() {
+            const oldPassword = document.getElementById('old-password').value.trim();
+            const newPassword = document.getElementById('new-password').value.trim();
+            const confirmPassword = document.getElementById('confirm-password').value.trim();
+            const alertDiv = document.getElementById('password-alert');
+
+            alertDiv.innerHTML = '';
+
+            // Validasi
+            if (!oldPassword || !newPassword || !confirmPassword) {
+                alertDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Semua field harus diisi!</div>';
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                alertDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Password baru minimal 6 karakter!</div>';
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alertDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Password baru dan konfirmasi tidak cocok!</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://${window.location.hostname}:${phpApiPort}/api/billing_api.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'change_password',
+                        customer_id: currentSession.customerData.dbId,
+                        old_password: oldPassword,
+                        new_password: newPassword
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alertDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Password berhasil diubah! Silakan login kembali dengan password baru.</div>';
+                    setTimeout(() => {
+                        changePasswordModal.hide();
+                        handleLogout();
+                    }, 2000);
+                } else {
+                    alertDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>${result.error || 'Gagal mengubah password'}</div>`;
+                }
+            } catch (error) {
+                console.error('Change password error:', error);
+                alertDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Terjadi kesalahan saat mengubah password</div>';
+            }
+        }
+
+        function handleLogout() {
+            if (confirm('Apakah Anda yakin ingin keluar?')) {
+                sessionStorage.removeItem('customer_session');
+                window.location.href = LOGIN_URL;
+            }
+        }
+    </script>
+</body>
+
+</html>

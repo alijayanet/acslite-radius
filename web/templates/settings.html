@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - ACSLite</title>
+
+    <!-- Bootstrap 5 & Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="gembok_theme.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-content {
+            padding: 25px;
+            flex: 1;
+        }
+
+        .settings-main {
+            width: 100%;
+        }
+
+        .settings-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: var(--shadow-card);
+            padding: 35px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+
+        .section-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .section-header h4 {
+            color: var(--text-primary);
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            margin: 5px 0 0 0;
+            font-size: 0.9rem;
+        }
+
+        .setting-group {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .form-control,
+        .form-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 10px;
+            padding: 12px 15px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--neon-green);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.1);
+        }
+
+        .btn-save {
+            background: var(--gradient-primary);
+            border: none;
+            color: var(--bg-primary);
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.3);
+            background: var(--gradient-primary);
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .info-card:hover {
+            border-color: var(--neon-blue);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .service-status {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu">
+                <a href="packages.html" class="submenu-item">
+                    <i class="fas fa-cube"></i><span>Paket</span>
+                </a>
+                <a href="customers.html" class="submenu-item">
+                    <i class="fas fa-users"></i><span>Pelanggan</span>
+                </a>
+                <a href="invoices.html" class="submenu-item">
+                    <i class="fas fa-file-invoice"></i><span>Invoice</span>
+                </a>
+                <a href="payments.html" class="submenu-item">
+                    <i class="fas fa-money-bill-wave"></i><span>Pembayaran</span>
+                </a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Data & Laporan</div>
+            <a href="reports.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 active">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="handleLogout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle btn btn-link text-white p-0 border-0" onclick="toggleSidebar()">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+                <h5 class="mb-0 fw-bold text-white">System Settings</h5>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-primary d-none d-md-block" onclick="loadAllSettings()">
+                    <i class="fas fa-sync-alt me-1"></i> Reload
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="handleLogout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <div class="settings-main">
+                <!-- General Settings -->
+                <div class="settings-section active" id="section-general">
+                    <div class="settings-card">
+                        <div class="section-header">
+                            <h4><i class="fas fa-sliders-h me-2"></i>General Settings</h4>
+                            <p>Basic application configuration</p>
+                        </div>
+
+                        <form id="form-general">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Site Name</label>
+                                    <input type="text" class="form-control" id="general-site_name"
+                                        value="ACS-Lite ISP Manager">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Company Name</label>
+                                    <input type="text" class="form-control" id="general-company_name" value="My ISP">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Timezone</label>
+                                    <select class="form-select" id="general-timezone">
+                                        <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
+                                        <option value="Asia/Makassar">Asia/Makassar (WITA)</option>
+                                        <option value="Asia/Jayapura">Asia/Jayapura (WIT)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Currency</label>
+                                    <select class="form-select" id="general-currency">
+                                        <option value="IDR">IDR (Rupiah)</option>
+                                        <option value="USD">USD (Dollar)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Date Format</label>
+                                    <select class="form-select" id="general-date_format">
+                                        <option value="d/m/Y">DD/MM/YYYY</option>
+                                        <option value="Y-m-d">YYYY-MM-DD</option>
+                                        <option value="m/d/Y">MM/DD/YYYY</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+                            <h6 class="mb-3"><i class="fas fa-building me-2"></i>Company Information (untuk Invoice)
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Address</label>
+                                    <input type="text" class="form-control" id="general-address"
+                                        placeholder="Jl. Contoh No. 123, Kota, Provinsi">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Phone</label>
+                                    <input type="text" class="form-control" id="general-phone"
+                                        placeholder="0812-3456-7890">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="general-email"
+                                        placeholder="admin@isp-anda.com">
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-save" onclick="saveGeneral()">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ACS Settings -->
+                <div class="settings-section" id="section-acs">
+                    <div class="settings-card">
+                        <div class="section-header">
+                            <h4><i class="fas fa-server me-2"></i>ACS Server Settings</h4>
+                            <p>TR-069 Auto Configuration Server settings</p>
+                        </div>
+
+                        <form id="form-acs">
+                            <div class="setting-group">
+                                <div class="setting-group-title">
+                                    <i class="fas fa-link"></i> API Configuration
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-8 mb-3">
+                                        <label class="form-label">API URL</label>
+                                        <input type="text" class="form-control" id="acs-api_url"
+                                            value="http://localhost:7547">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">API Key</label>
+                                        <input type="text" class="form-control" id="acs-api_key" value="secret">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <div class="setting-group-title">
+                                    <i class="fas fa-clock"></i> Refresh Settings
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">ONU Periodic Inform Interval (seconds)</label>
+                                        <input type="number" class="form-control" id="acs-periodic_inform_interval"
+                                            value="300">
+                                        <div class="form-text">How often ONUs send data to ACS (300 = 5 minutes)
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">UI Auto-Refresh Interval (seconds)</label>
+                                        <input type="number" class="form-control" id="acs-auto_refresh_interval"
+                                            value="15">
+                                        <div class="form-text">How often the dashboard refreshes</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-save" onclick="saveACS()">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- MikroTik Settings -->
+                <div class="settings-section" id="section-mikrotik">
+                    <div class="settings-card">
+                        <div class="section-header">
+                            <h4><i class="fas fa-network-wired me-2"></i>MikroTik Router Settings</h4>
+                            <p>RouterOS API configuration for PPPoE management</p>
+                        </div>
+
+                        <div id="routers-container">
+                            <!-- Router cards will be rendered here -->
+                        </div>
+
+                        <button type="button" class="btn btn-outline-primary" onclick="addRouter()">
+                            <i class="fas fa-plus me-2"></i>Add Router
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RADIUS Settings -->
+                <div class="settings-section" id="section-radius">
+                    <div class="settings-card">
+                        <div class="section-header">
+                            <h4><i class="fas fa-shield-alt me-2"></i>RADIUS Settings</h4>
+                            <p>Configure hotspot backend and RADIUS database connection</p>
+                        </div>
+
+                        <form id="form-radius">
+                            <div class="setting-group">
+                                <div class="setting-group-title">
+                                    <i class="fas fa-wifi"></i> Hotspot Backend
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Backend</label>
+                                        <select class="form-select" id="hotspot-backend">
+                                            <option value="mikrotik">MikroTik</option>
+                                            <option value="radius">RADIUS</option>
+                                        </select>
+                                        <div class="form-text">Default: MikroTik. Set to RADIUS to use FreeRADIUS for hotspot auth.</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Enable RADIUS</label>
+                                        <select class="form-select" id="radius-enabled">
+                                            <option value="false">false</option>
+                                            <option value="true">true</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Target Router</label>
+                                        <select class="form-select" id="radius-router">
+                                            <option value="router1">router1</option>
+                                        </select>
+                                        <div class="form-text">Router yang akan di-apply konfigurasi RADIUS (Hotspot/PPPoE).</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">RADIUS Server IP (dilihat MikroTik)</label>
+                                        <input type="text" class="form-control" id="radius-server-ip" placeholder="contoh: 192.168.88.2">
+                                        <div class="form-text">Kosongkan untuk auto-detect dari server (tidak selalu akurat jika NAT).</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <div class="setting-group-title">
+                                    <i class="fas fa-database"></i> RADIUS Database
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">DB Host</label>
+                                        <input type="text" class="form-control" id="radius-db_host" placeholder="127.0.0.1">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">DB Port</label>
+                                        <input type="number" class="form-control" id="radius-db_port" placeholder="3306">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">DB Name</label>
+                                        <input type="text" class="form-control" id="radius-db_name" placeholder="radius">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">DB User</label>
+                                        <input type="text" class="form-control" id="radius-db_user" placeholder="radius">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">DB Pass</label>
+                                        <input type="password" class="form-control" id="radius-db_pass" placeholder="">
+                                        <div class="form-text">Password will be saved to server settings.json. Keep server access restricted.</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">NAS Clients</label>
+                                        <div class="alert alert-info mb-0 py-2" style="font-size: 0.85rem;">
+                                            Kelola NAS client (IP/secret) di <a href="radius.html"><strong>RADIUS Manager</strong></a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-save" onclick="saveRadiusSettings()">
+                                    <i class="fas fa-save me-2"></i>Save Settings
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="testRadiusDb()">
+                                    <i class="fas fa-plug me-2"></i>Test DB
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="applyRadiusToMikrotik()">
+                                    <i class="fas fa-sync-alt me-2"></i>Apply RADIUS to MikroTik
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="applyPppoeRadiusToMikrotik()">
+                                    <i class="fas fa-sitemap me-2"></i>Apply PPPoE RADIUS to MikroTik
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Telegram Settings -->
+                <div class="settings-section" id="section-telegram">
+                    <div class="settings-card">
+                        <div class="section-header">
+                            <h4><i class="fab fa-telegram me-2"></i>Telegram Notification</h4>
+                            <p>Configure Telegram bot for notifications</p>
+                        </div>
+
+                        <form id="form-telegram">
+                            <div class="setting-group">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="setting-group-title mb-0">
+                                        <i class="fab fa-telegram"></i> Bot Configuration
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="telegram-enabled">
+                                        <label class="form-check-label" for="telegram-enabled">Enable</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-8 mb-3">
+                                        <label class="form-label">Bot Token</label>
+                                        <input type="text" class="form-control" id="telegram-bot_token"
+                                            placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Chat ID</label>
+                                        <input type="text" class="form-control" id="telegram-chat_id"
+                                            placeholder="-1001234567890">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-9 mb-3">
+                                        <label class="form-label">Webhook URL (IP Publik / Domain)</label>
+                                        <input type="text" class="form-control" id="telegram-webhook_url"
+                                            placeholder="https://103.xxx.xxx.xxx:8443 atau https://yourdomain.com">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Port</label>
+                                        <select class="form-select" id="telegram-webhook_port">
+                                            <option value="">Default (dari URL)</option>
+                                            <option value="443">443 (HTTPS default)</option>
+                                            <option value="8443">8443</option>
+                                            <option value="80">80</option>
+                                            <option value="88">88</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info py-2 mb-3" style="font-size: 0.85rem;">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Telegram Webhook Requirements:</strong><br>
+                                    • Harus HTTPS dengan SSL valid (Let's Encrypt, Cloudflare, dll)<br>
+                                    • Port yang diizinkan: <strong>443, 8443, 80, 88</strong><br>
+                                    • Alternatif: Gunakan <a
+                                        href="https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/"
+                                        target="_blank">Cloudflare Tunnel</a> (gratis)
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <div class="setting-group-title">
+                                    <i class="fas fa-bell"></i> Notification Options
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="telegram-notify_isolir"
+                                                checked>
+                                            <label class="form-check-label" for="telegram-notify_isolir">Isolir
+                                                notifications</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="telegram-notify_payment"
+                                                checked>
+                                            <label class="form-check-label" for="telegram-notify_payment">Payment
+                                                notifications</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox"
+                                                id="telegram-notify_new_device" checked>
+                                            <label class="form-check-label" for="telegram-notify_new_device">New
+                                                device
+                                                notifications</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-save" onclick="saveTelegram()">
+                                    <i class="fas fa-save me-2"></i>Save Settings
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="testTelegram()">
+                                    <i class="fas fa-paper-plane me-2"></i>Test Notification
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setWebhook()">
+                                    <i class="fas fa-link me-2"></i>Set Webhook
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="deleteWebhook()">
+                                    <i class="fas fa-unlink me-2"></i>Delete Webhook
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="getWebhookInfo()">
+                                    <i class="fas fa-info-circle me-2"></i>Webhook Info
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Billing Settings -->
+                <div class="settings-section" id="section-billing">
+                    <div class="settings-card">
+                        <div class="section-header">
+                            <h4><i class="fas fa-file-invoice-dollar me-2"></i>Billing Settings</h4>
+                            <p>Configure automatic billing and isolation</p>
+                        </div>
+
+                        <form id="form-billing">
+                            <div class="setting-group">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="setting-group-title mb-0">
+                                        <i class="fas fa-calendar-alt"></i> Billing Cycle
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="billing-enabled">
+                                        <label class="form-check-label" for="billing-enabled">Enable Billing</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Due Day of Month</label>
+                                        <select class="form-select" id="billing-due_day">
+                                            <option value="1">1st</option>
+                                            <option value="5">5th</option>
+                                            <option value="10">10th</option>
+                                            <option value="15">15th</option>
+                                            <option value="20">20th</option>
+                                            <option value="25">25th</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Grace Period (days)</label>
+                                        <input type="number" class="form-control" id="billing-grace_period" value="7">
+                                        <div class="form-text">Days after due date before isolation</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <div class="setting-group-title">
+                                    <i class="fas fa-ban"></i> Auto-Isolation
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="billing-auto_isolir"
+                                                checked>
+                                            <label class="form-check-label" for="billing-auto_isolir">Enable
+                                                auto-isolation</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="alert alert-info mb-0 py-2" style="font-size: 0.85rem;">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Profile isolir dikonfigurasi per paket di <a
+                                                href="packages.html"><strong>Paket Internet</strong></a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-save" onclick="saveBilling()">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Admin Account -->
+                <div class="settings-section" id="section-admin">
+                    <div class="settings-card">
+                        <div class="section-header">
+                            <h4><i class="fas fa-user-shield me-2"></i>Admin Account</h4>
+                            <p>Change admin login credentials</p>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="setting-group">
+                                    <div class="setting-group-title">
+                                        <i class="fas fa-key"></i> Change Password
+                                    </div>
+                                    <form id="form-password">
+                                        <div class="mb-3">
+                                            <label class="form-label">Current Password</label>
+                                            <input type="password" class="form-control" id="admin-current_password">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">New Password</label>
+                                            <input type="password" class="form-control" id="admin-new_password">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Confirm Password</label>
+                                            <input type="password" class="form-control" id="admin-confirm_password">
+                                        </div>
+                                        <button type="button" class="btn btn-save" onclick="changePassword()">
+                                            <i class="fas fa-key me-2"></i>Change Password
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="setting-group">
+                                    <div class="setting-group-title">
+                                        <i class="fas fa-user"></i> Current Admin
+                                    </div>
+                                    <p class="mb-3">Username: <strong id="admin-username-display">admin</strong></p>
+                                    <form id="form-username">
+                                        <div class="mb-3">
+                                            <label class="form-label">New Username</label>
+                                            <input type="text" class="form-control" id="admin-new_username">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Password (to confirm)</label>
+                                            <input type="password" class="form-control" id="admin-password_confirm">
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary"
+                                            onclick="changeUsername()">
+                                            <i class="fas fa-user-edit me-2"></i>Change Username
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Info -->
+                <div class="settings-section" id="section-system">
+                    <div class="settings-card">
+                        <div class="section-header">
+                            <h4><i class="fas fa-info-circle me-2"></i>System Information</h4>
+                            <p>Server status and system details</p>
+                        </div>
+
+                        <div class="setting-group">
+                            <div class="setting-group-title">
+                                <i class="fas fa-server"></i> Server Details
+                            </div>
+                            <div class="system-info" id="system-info">
+                                <!-- Will be rendered dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <div class="setting-group-title">
+                                <i class="fas fa-cogs"></i> Services
+                            </div>
+                            <div id="services-container">
+                                <!-- Will be rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
+        }
+
+        function toggleSubmenu(element) {
+            const submenu = element.nextElementSibling;
+            const arrow = element.querySelector('.menu-arrow');
+            submenu.classList.toggle('show');
+            arrow.style.transform = submenu.classList.contains('show') ? 'rotate(90deg)' : 'rotate(0deg)';
+        }
+
+        const SETTINGS_API = `http://${window.location.hostname}:8888/api/settings_api.php`;
+        const RADIUS_API = `http://${window.location.hostname}:8888/api/radius_api.php`;
+
+        let settings = {};
+        let mikrotikConfig = {};
+
+        // Check if user is logged in
+        function checkSession() {
+            const session = sessionStorage.getItem('acs_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session first
+            if (!checkSession()) return;
+
+            loadAllSettings();
+        });
+
+        async function loadAllSettings() {
+            try {
+                const response = await fetch(`${SETTINGS_API}?action=get`);
+                const result = await response.json();
+
+                if (result.success) {
+                    settings = result.settings;
+                    mikrotikConfig = result.mikrotik;
+
+                    // Populate forms
+                    populateForm('general', result.settings.general || {});
+                    populateForm('acs', result.settings.acs || {});
+                    populateForm('telegram', result.settings.telegram || {});
+                    populateForm('billing', result.settings.billing || {});
+                    populateRadiusSettings(result.settings.hotspot || {});
+
+                    // Admin
+                    document.getElementById('admin-username-display').textContent = result.admin.username || 'admin';
+
+                    // MikroTik routers
+                    renderRouters(result.mikrotik.routers || []);
+
+                    // System info
+                    renderSystemInfo(result.system);
+                }
+            } catch (e) {
+                console.error('Error loading settings:', e);
+            }
+        }
+
+        function populateRadiusSettings(hotspot) {
+            const backend = hotspot.backend || 'mikrotik';
+            const radius = hotspot.radius || {};
+
+            const elBackend = document.getElementById('hotspot-backend');
+            if (elBackend) elBackend.value = backend;
+
+            const elEnabled = document.getElementById('radius-enabled');
+            if (elEnabled) elEnabled.value = String(radius.enabled === true || radius.enabled === 'true');
+
+            const elRouter = document.getElementById('radius-router');
+            if (elRouter && mikrotikConfig && mikrotikConfig.routers && mikrotikConfig.routers.length) {
+                const routers = mikrotikConfig.routers;
+                const current = hotspot.selected_router_id || routers[0].id || 'router1';
+                elRouter.innerHTML = routers.map(r => `<option value="${r.id}">${r.id} - ${r.name || r.ip || ''}</option>`).join('');
+                elRouter.value = current;
+            }
+
+            const elRadiusIp = document.getElementById('radius-server-ip');
+            if (elRadiusIp) elRadiusIp.value = hotspot.radius_server_ip || '';
+
+            const setVal = (id, v) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.value = (v === undefined || v === null) ? '' : v;
+            };
+
+            setVal('radius-db_host', radius.db_host || '127.0.0.1');
+            setVal('radius-db_port', radius.db_port || 3306);
+            setVal('radius-db_name', radius.db_name || 'radius');
+            setVal('radius-db_user', radius.db_user || 'radius');
+            setVal('radius-db_pass', radius.db_pass || '');
+        }
+
+        function populateForm(prefix, data) {
+            for (const [key, value] of Object.entries(data)) {
+                const element = document.getElementById(`${prefix}-${key}`);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = value === true || value === 'true';
+                    } else {
+                        element.value = value;
+                    }
+                }
+            }
+        }
+
+        function collectFormData(prefix, fields) {
+            const data = {};
+            fields.forEach(field => {
+                const element = document.getElementById(`${prefix}-${field}`);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        data[field] = element.checked;
+                    } else if (element.type === 'number') {
+                        data[field] = parseInt(element.value) || 0;
+                    } else {
+                        data[field] = element.value;
+                    }
+                }
+            });
+            return data;
+        }
+
+        function renderRouters(routers) {
+            const container = document.getElementById('routers-container');
+
+            if (routers.length === 0) {
+                container.innerHTML = '<p class="text-muted">No routers configured. Click "Add Router" to add one.</p>';
+                return;
+            }
+
+            container.innerHTML = routers.map((r, idx) => `
+                <div class="router-card" id="router-${r.id}">
+                    <div class="router-header">
+                        <h6 class="mb-0"><i class="fas fa-router me-2"></i>${r.name || 'Router ' + (idx + 1)}</h6>
+                        <div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteRouter('${r.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control form-control-sm" id="router-${r.id}-name" value="${r.name || ''}">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">IP Address</label>
+                            <input type="text" class="form-control form-control-sm" id="router-${r.id}-ip" value="${r.ip || ''}">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">API Port</label>
+                            <input type="number" class="form-control form-control-sm" id="router-${r.id}-port" value="${r.port || 8728}">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control form-control-sm" id="router-${r.id}-username" value="${r.username || ''}">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control form-control-sm" id="router-${r.id}-password" value="${r.password || ''}">
+                        </div>
+                        <!-- Profile isolir sekarang dikonfigurasi per Paket di halaman Paket Internet -->
+                    </div>
+                    <button class="btn btn-sm btn-primary mt-2" onclick="saveRouter('${r.id}')">
+                        <i class="fas fa-save me-1"></i>Save
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="testRouter('${r.id}')">
+                        <i class="fas fa-plug me-1"></i>Test Connection
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderSystemInfo(system) {
+            const container = document.getElementById('system-info');
+
+            container.innerHTML = `
+                <div class="info-card">
+                    <i class="fas fa-server"></i>
+                    <div class="value">${system.hostname}</div>
+                    <div class="label">Hostname</div>
+                </div>
+                <div class="info-card">
+                    <i class="fab fa-php"></i>
+                    <div class="value">${system.php_version}</div>
+                    <div class="label">PHP Version</div>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-clock"></i>
+                    <div class="value">${system.server_time}</div>
+                    <div class="label">Server Time</div>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-memory"></i>
+                    <div class="value">${system.memory_usage}</div>
+                    <div class="label">Memory Usage</div>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-hdd"></i>
+                    <div class="value">${system.disk_free}</div>
+                    <div class="label">Disk Free</div>
+                </div>
+            `;
+
+            const servicesContainer = document.getElementById('services-container');
+            servicesContainer.innerHTML = Object.entries(system.services || {}).map(([name, status]) => `
+                <div class="service-status">
+                    <span class="dot ${status === 'active' ? 'active' : 'inactive'}"></span>
+                    <span class="name">${name}</span>
+                    <span class="status-badge ${status === 'active' ? 'active' : 'inactive'}">${status}</span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="restartService('${name}')">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // ========== SAVE FUNCTIONS ==========
+
+        async function saveGeneral() {
+            const data = collectFormData('general', ['site_name', 'company_name', 'timezone', 'currency', 'date_format', 'address', 'phone', 'email']);
+            await saveSection('save_general', { general: data });
+        }
+
+        async function saveACS() {
+            const data = collectFormData('acs', ['api_url', 'api_key', 'periodic_inform_interval', 'auto_refresh_interval']);
+            await saveSection('save_acs', { acs: data });
+        }
+
+        async function saveTelegram() {
+            const data = collectFormData('telegram', ['enabled', 'bot_token', 'chat_id', 'notify_isolir', 'notify_payment', 'notify_new_device']);
+            await saveSection('save_telegram', { telegram: data });
+        }
+
+        async function saveBilling() {
+            const data = collectFormData('billing', ['enabled', 'due_day', 'grace_period', 'auto_isolir']);
+            await saveSection('save_billing', { billing: data });
+        }
+
+        async function saveRouter(routerId) {
+            const router = {
+                id: routerId,
+                name: document.getElementById(`router-${routerId}-name`).value,
+                ip: document.getElementById(`router-${routerId}-ip`).value,
+                port: parseInt(document.getElementById(`router-${routerId}-port`).value) || 8728,
+                username: document.getElementById(`router-${routerId}-username`).value,
+                password: document.getElementById(`router-${routerId}-password`).value
+                // Profile isolir sekarang dikonfigurasi per Paket
+            };
+
+            await saveSection('save_mikrotik', { routers: [router] });
+        }
+
+        async function saveRadiusSettings() {
+            const backendEl = document.getElementById('hotspot-backend');
+            const enabledEl = document.getElementById('radius-enabled');
+            const routerEl = document.getElementById('radius-router');
+            const radiusIpEl = document.getElementById('radius-server-ip');
+
+            const backend = backendEl ? backendEl.value : 'mikrotik';
+            const enabled = enabledEl ? (enabledEl.value === 'true') : false;
+
+            const payload = {
+                hotspot: {
+                    backend,
+                    selected_router_id: routerEl ? routerEl.value : 'router1',
+                    radius_server_ip: radiusIpEl ? radiusIpEl.value.trim() : '',
+                    radius: {
+                        enabled,
+                        db_host: (document.getElementById('radius-db_host') || {}).value || '127.0.0.1',
+                        db_port: parseInt((document.getElementById('radius-db_port') || {}).value) || 3306,
+                        db_name: (document.getElementById('radius-db_name') || {}).value || 'radius',
+                        db_user: (document.getElementById('radius-db_user') || {}).value || 'radius',
+                        db_pass: (document.getElementById('radius-db_pass') || {}).value || ''
+                    }
+                }
+            };
+
+            await saveSection('save_hotspot', payload);
+        }
+
+        async function testRadiusDb() {
+            try {
+                const response = await fetch(`${RADIUS_API}?action=test_db`);
+                const result = await response.json();
+                alert(result.success ? '✅ ' + (result.message || 'RADIUS DB OK') : '❌ ' + (result.error || 'RADIUS DB FAIL'));
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function applyRadiusToMikrotik() {
+            const MT_API = `http://${window.location.hostname}:8888/api/mikrotik_api.php`;
+            const radiusEnabled = (document.getElementById('radius-enabled') || {}).value === 'true';
+            if (!radiusEnabled) {
+                if (!confirm('RADIUS masih disabled. Tetap apply konfigurasi RADIUS ke MikroTik?')) return;
+            }
+
+            const routerId = (document.getElementById('radius-router') || {}).value || null;
+            const radiusIp = ((document.getElementById('radius-server-ip') || {}).value || '').trim();
+
+            try {
+                const res = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'apply_radius_hotspot',
+                        router: (routerId || '').trim() || null,
+                        radius_ip: radiusIp || undefined
+                    })
+                });
+
+                const result = await res.json();
+                alert(result.success ? ('✅ ' + (result.message || 'Applied')) : ('❌ ' + (result.error || 'Failed')));
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function applyPppoeRadiusToMikrotik() {
+            const MT_API = `http://${window.location.hostname}:8888/api/mikrotik_api.php`;
+
+            const routerId = (document.getElementById('radius-router') || {}).value || null;
+            const radiusIp = ((document.getElementById('radius-server-ip') || {}).value || '').trim();
+            const enableAccounting = confirm('Enable PPPoE accounting? (disarankan: OK)');
+
+            try {
+                const res = await fetch(MT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'apply_radius_pppoe',
+                        router: (routerId || '').trim() || null,
+                        radius_ip: radiusIp || undefined,
+                        enable_accounting: enableAccounting
+                    })
+                });
+
+                const result = await res.json();
+                alert(result.success ? ('✅ ' + (result.message || 'Applied')) : ('❌ ' + (result.error || 'Failed')));
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function saveSection(action, data) {
+            try {
+                const response = await fetch(SETTINGS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, ...data })
+                });
+
+                const result = await response.json();
+                alert(result.success ? '✅ ' + result.message : '❌ ' + result.error);
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function addRouter() {
+            try {
+                const response = await fetch(SETTINGS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_router',
+                        name: 'New Router',
+                        ip: '192.168.88.1',
+                        port: 8728,
+                        username: 'admin',
+                        password: ''
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    loadAllSettings();
+                } else {
+                    alert('❌ ' + result.error);
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function deleteRouter(routerId) {
+            if (!confirm('Delete this router?')) return;
+
+            try {
+                const response = await fetch(SETTINGS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_router', router_id: routerId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    loadAllSettings();
+                } else {
+                    alert('❌ ' + result.error);
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function testRouter(routerId) {
+            const ip = document.getElementById(`router-${routerId}-ip`).value;
+            const MT_API = `http://${window.location.hostname}:8888/api/mikrotik_api.php`;
+
+            try {
+                const response = await fetch(`${MT_API}?action=test&router=${routerId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Connected!\n\nIdentity: ${result.router.identity}\nVersion: ${result.router.version}\nUptime: ${result.router.uptime}`);
+                } else {
+                    alert(`❌ Connection failed: ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function testTelegram() {
+            const token = document.getElementById('telegram-bot_token').value;
+            const chatId = document.getElementById('telegram-chat_id').value;
+
+            if (!token || !chatId) {
+                alert('Please enter Bot Token and Chat ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(SETTINGS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'test_telegram', bot_token: token, chat_id: chatId })
+                });
+
+                const result = await response.json();
+                alert(result.success ? '✅ ' + result.message : '❌ ' + result.error);
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function setWebhook() {
+            const token = document.getElementById('telegram-bot_token').value;
+            const customUrl = document.getElementById('telegram-webhook_url').value.trim();
+            const customPort = document.getElementById('telegram-webhook_port').value;
+
+            if (!token || token.includes('...')) {
+                alert('⚠️ Please enter the full Bot Token first');
+                return;
+            }
+
+            // Use custom URL if provided, otherwise use current domain
+            let baseUrl = customUrl || window.location.origin;
+
+            // Remove trailing slash
+            baseUrl = baseUrl.replace(/\/$/, '');
+
+            // Parse URL to handle port
+            let webhookUrl;
+            try {
+                const urlObj = new URL(baseUrl);
+
+                // Apply custom port if selected
+                if (customPort) {
+                    urlObj.port = customPort;
+                }
+
+                // Warn if not HTTPS
+                if (urlObj.protocol !== 'https:') {
+                    if (!confirm('⚠️ Telegram requires HTTPS!\n\nURL saat ini: ' + urlObj.protocol + '\n\nTetap lanjutkan? (kemungkinan akan gagal)')) {
+                        return;
+                    }
+                }
+
+                webhookUrl = urlObj.origin + '/api/telegram_webhook.php';
+            } catch (e) {
+                // Fallback for invalid URL
+                webhookUrl = baseUrl + '/api/telegram_webhook.php';
+            }
+
+            if (!confirm(`Set webhook to:\n${webhookUrl}\n\n⚠️ Pastikan:\n• URL dapat diakses dari internet\n• SSL certificate valid\n\nContinue?`)) {
+                return;
+            }
+
+            try {
+                const url = `https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.ok) {
+                    alert('✅ Webhook set successfully!\n\n' + result.description);
+                } else {
+                    let errorMsg = result.description || 'Unknown error';
+                    if (errorMsg.includes('HTTPS')) {
+                        errorMsg += '\n\n💡 Tips:\n• Gunakan domain dengan SSL (Let\'s Encrypt)\n• Atau gunakan Cloudflare Tunnel';
+                    }
+                    alert('❌ Failed to set webhook:\n' + errorMsg);
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function deleteWebhook() {
+            const token = document.getElementById('telegram-bot_token').value;
+
+            if (!token || token.includes('...')) {
+                alert('⚠️ Please enter the full Bot Token first');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete the webhook?')) {
+                return;
+            }
+
+            try {
+                const url = `https://api.telegram.org/bot${token}/deleteWebhook`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.ok) {
+                    alert('✅ Webhook deleted successfully!');
+                } else {
+                    alert('❌ Failed to delete webhook:\n' + result.description);
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function getWebhookInfo() {
+            const token = document.getElementById('telegram-bot_token').value;
+
+            if (!token || token.includes('...')) {
+                alert('⚠️ Please enter the full Bot Token first');
+                return;
+            }
+
+            try {
+                const url = `https://api.telegram.org/bot${token}/getWebhookInfo`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.ok) {
+                    const info = result.result;
+                    let message = '📡 Webhook Info\n\n';
+                    message += `URL: ${info.url || '(not set)'}\n`;
+                    message += `Pending Updates: ${info.pending_update_count || 0}\n`;
+                    message += `Last Error: ${info.last_error_message || 'None'}\n`;
+                    if (info.last_error_date) {
+                        message += `Last Error Time: ${new Date(info.last_error_date * 1000).toLocaleString()}\n`;
+                    }
+                    message += `Max Connections: ${info.max_connections || 40}\n`;
+                    message += `IP Address: ${info.ip_address || 'N/A'}`;
+                    alert(message);
+                } else {
+                    alert('❌ Failed to get webhook info:\n' + result.description);
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function changePassword() {
+            const currentPassword = document.getElementById('admin-current_password').value;
+            const newPassword = document.getElementById('admin-new_password').value;
+            const confirmPassword = document.getElementById('admin-confirm_password').value;
+
+            if (!newPassword) {
+                alert('Please enter new password');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            try {
+                const response = await fetch(SETTINGS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'change_password',
+                        current_password: currentPassword,
+                        new_password: newPassword,
+                        confirm_password: confirmPassword
+                    })
+                });
+
+                const result = await response.json();
+                alert(result.success ? '✅ ' + result.message : '❌ ' + result.error);
+
+                if (result.success) {
+                    document.getElementById('admin-current_password').value = '';
+                    document.getElementById('admin-new_password').value = '';
+                    document.getElementById('admin-confirm_password').value = '';
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function changeUsername() {
+            const newUsername = document.getElementById('admin-new_username').value;
+            const password = document.getElementById('admin-password_confirm').value;
+
+            if (!newUsername) {
+                alert('Please enter new username');
+                return;
+            }
+
+            try {
+                const response = await fetch(SETTINGS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'change_username',
+                        new_username: newUsername,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+                alert(result.success ? '✅ ' + result.message : '❌ ' + result.error);
+
+                if (result.success) {
+                    document.getElementById('admin-username-display').textContent = newUsername;
+                    document.getElementById('admin-new_username').value = '';
+                    document.getElementById('admin-password_confirm').value = '';
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function restartService(serviceName) {
+            if (!confirm(`Restart service "${serviceName}"?`)) return;
+
+            try {
+                const response = await fetch(SETTINGS_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'restart_service', service: serviceName })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ Service ${serviceName} restarted (${result.status})` : '❌ ' + result.error);
+
+                if (result.success) {
+                    loadAllSettings();
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav-admin">
+        <div class="nav-item-admin" id="nav-admin-dashboard" onclick="navigateToPage('dashboard', 'dashboard.html')">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-customers" onclick="navigateToPage('customers', 'customers.html')">
+            <i class="fas fa-users"></i>
+            <span>Pelanggan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-network" onclick="navigateToPage('network', 'acs.html')">
+            <i class="fas fa-network-wired"></i>
+            <span>Jaringan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-reports" onclick="navigateToPage('reports', 'reports.html')">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+        </div>
+        <div class="nav-item-admin active" id="nav-admin-settings"
+            onclick="navigateToPage('settings', 'settings.html')">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+    </nav>
+
+    <!-- Bottom Nav Script -->
+    <script src="bottom-nav.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>

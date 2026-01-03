@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Customer API - ACSLite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+
+        .success {
+            color: #28a745;
+        }
+
+        .error {
+            color: #dc3545;
+        }
+
+        .warning {
+            color: #ffc107;
+        }
+
+        .status-badge {
+            font-size: 1.2rem;
+        }
+
+        .test-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="text-center mb-4">
+            <h1><i class="fas fa-flask me-2"></i>Test Customer API</h1>
+            <p class="text-white-50">ACSLite Customer Portal Testing Tool</p>
+        </div>
+
+        <!-- API Connection Test -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-plug me-2"></i>Test 1: API Connection</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-1"><strong>Customer API Endpoint:</strong></p>
+                        <code id="apiEndpoint">/web/api/customer_api.php</code>
+                    </div>
+                    <button class="btn btn-primary" onclick="testAPIConnection()">
+                        <i class="fas fa-sync me-1"></i> Test Connection
+                    </button>
+                </div>
+                <div id="connectionResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Database Test via API -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-database me-2"></i>Test 2: Get Device Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="test-section">
+                    <p>Test mengambil data device dari API (GET request)</p>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="testSN"
+                                placeholder="Serial Number (contoh: ABCD12345678)" value="">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-info w-100" onclick="testGetDevice()">
+                                <i class="fas fa-search me-1"></i> Get Device
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="deviceResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Save Location Test -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Test 3: Save Customer Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="test-section">
+                    <p>Test menyimpan data pelanggan (username, password, lokasi)</p>
+                    <form id="saveForm" onsubmit="return testSaveLocation(event)">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label small">Serial Number</label>
+                                <input type="text" class="form-control" id="saveSN" placeholder="ABCD12345678" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Username</label>
+                                <input type="text" class="form-control" id="saveUsername" placeholder="pelanggan01"
+                                    required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Password</label>
+                                <input type="password" class="form-control" id="savePassword"
+                                    placeholder="min 6 karakter" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Latitude</label>
+                                <input type="number" step="any" class="form-control" id="saveLat" value="-6.208812"
+                                    required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Longitude</label>
+                                <input type="number" step="any" class="form-control" id="saveLng" value="106.845599"
+                                    required>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-save me-1"></i> Save Location
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div id="saveResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Login Test -->
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>Test 4: Customer Login</h5>
+            </div>
+            <div class="card-body">
+                <div class="test-section">
+                    <p>Test login pelanggan dengan username dan password</p>
+                    <form id="loginForm" onsubmit="return testLogin(event)">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label small">Username</label>
+                                <input type="text" class="form-control" id="loginUsername" placeholder="pelanggan01"
+                                    required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Password</label>
+                                <input type="password" class="form-control" id="loginPassword" placeholder="password"
+                                    required>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="fas fa-sign-in-alt me-1"></i> Test Login
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div id="loginResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-link me-2"></i>Quick Links</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="customer_login.html" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user me-1"></i> Customer Login
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="index.html" class="btn btn-outline-success w-100">
+                            <i class="fas fa-cogs me-1"></i> Admin Panel
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="map.html" class="btn btn-outline-info w-100">
+                            <i class="fas fa-map me-1"></i> Map View
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="login.html" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-lock me-1"></i> Admin Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Cara Menggunakan</h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li><strong>Test Connection</strong> - Cek apakah Customer API bisa diakses</li>
+                    <li><strong>Get Device</strong> - Masukkan Serial Number ONU untuk mengambil data (jika sudah ada di
+                        database)</li>
+                    <li><strong>Save Location</strong> - Simpan data pelanggan baru (SN, username, password, koordinat)
+                    </li>
+                    <li><strong>Test Login</strong> - Test login dengan username dan password yang sudah disimpan</li>
+                </ol>
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Jika API mengembalikan error, pastikan:
+                    <ul class="mb-0 mt-2">
+                        <li>Database MariaDB/MySQL sudah running</li>
+                        <li>Tabel <code>onu_locations</code> sudah dibuat (jalankan <code>./install.sh</code>)</li>
+                        <li>Kredensial database di <code>customer_api.php</code> sudah benar</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // PHP API Configuration - detect correct port
+        const phpApiPort = '8888';
+        const API_BASE = (window.location.port === '7547' || window.location.port === '' || window.location.port === '80')
+            ? `http://${window.location.hostname}:${phpApiPort}/api/customer_api.php`
+            : '/api/customer_api.php';
+
+        function showResult(elementId, status, data, isError = false) {
+            const el = document.getElementById(elementId);
+            const alertClass = isError ? 'alert-danger' : 'alert-success';
+            const icon = isError ? 'times-circle' : 'check-circle';
+
+            el.innerHTML = `
+            <div class="alert ${alertClass}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <i class="fas fa-${icon} me-2"></i>
+                        <strong>HTTP ${status}</strong>
+                    </div>
+                    <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+                </div>
+                <pre class="mt-2 mb-0">${JSON.stringify(data, null, 2)}</pre>
+            </div>
+        `;
+        }
+
+        async function testAPIConnection() {
+            const resultEl = document.getElementById('connectionResult');
+            resultEl.innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div> Testing...</div>';
+
+            try {
+                const response = await fetch(API_BASE + '?sn=test', {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const data = await response.json();
+                showResult('connectionResult', response.status, data, !response.ok);
+            } catch (error) {
+                showResult('connectionResult', 'ERROR', {
+                    error: error.message,
+                    hint: 'API tidak dapat diakses. Pastikan server berjalan dan path benar.'
+                }, true);
+            }
+        }
+
+        async function testGetDevice() {
+            const sn = document.getElementById('testSN').value.trim();
+            if (!sn) {
+                alert('Masukkan Serial Number!');
+                return;
+            }
+
+            const resultEl = document.getElementById('deviceResult');
+            resultEl.innerHTML = '<div class="text-center"><div class="spinner-border text-info"></div> Fetching...</div>';
+
+            try {
+                const response = await fetch(API_BASE + '?sn=' + encodeURIComponent(sn), {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const data = await response.json();
+                showResult('deviceResult', response.status, data, !response.ok);
+            } catch (error) {
+                showResult('deviceResult', 'ERROR', { error: error.message }, true);
+            }
+        }
+
+        async function testSaveLocation(event) {
+            event.preventDefault();
+
+            const sn = document.getElementById('saveSN').value.trim();
+            const username = document.getElementById('saveUsername').value.trim();
+            const password = document.getElementById('savePassword').value;
+            const lat = parseFloat(document.getElementById('saveLat').value);
+            const lng = parseFloat(document.getElementById('saveLng').value);
+
+            if (password.length < 6) {
+                alert('Password minimal 6 karakter!');
+                return false;
+            }
+
+            const resultEl = document.getElementById('saveResult');
+            resultEl.innerHTML = '<div class="text-center"><div class="spinner-border text-success"></div> Saving...</div>';
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        serial_number: sn,
+                        username: username,
+                        password: password,
+                        latitude: lat,
+                        longitude: lng
+                    })
+                });
+
+                const data = await response.json();
+                showResult('saveResult', response.status, data, !response.ok);
+
+                if (response.ok) {
+                    // Auto-fill login form
+                    document.getElementById('loginUsername').value = username;
+                    document.getElementById('loginPassword').value = password;
+                }
+            } catch (error) {
+                showResult('saveResult', 'ERROR', { error: error.message }, true);
+            }
+
+            return false;
+        }
+
+        async function testLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            const resultEl = document.getElementById('loginResult');
+            resultEl.innerHTML = '<div class="text-center"><div class="spinner-border text-warning"></div> Logging in...</div>';
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+                showResult('loginResult', response.status, data, !response.ok);
+            } catch (error) {
+                showResult('loginResult', 'ERROR', { error: error.message }, true);
+            }
+
+            return false;
+        }
+
+        // Auto-test connection on load
+        document.addEventListener('DOMContentLoaded', () => {
+            testAPIConnection();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test MikroTik Connection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-section pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.loading {
+            background: #fbbf24;
+            color: #78350f;
+        }
+
+        .status.success {
+            background: #10b981;
+            color: white;
+        }
+
+        .status.error {
+            background: #ef4444;
+            color: white;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .info-box {
+            background: #e0e7ff;
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔧 Test Koneksi MikroTik API</h1>
+        <p class="subtitle">Diagnostic tool untuk mengecek koneksi ke MikroTik Router</p>
+
+        <div class="info-box">
+            <strong>MikroTik Config:</strong><br>
+            Host: <span id="config-host">Loading...</span><br>
+            Port: <span id="config-port">Loading...</span><br>
+            User: <span id="config-user">Loading...</span>
+        </div>
+
+        <button onclick="runTests()" id="testBtn">
+            🚀 Jalankan Test
+        </button>
+
+        <div id="results" style="margin-top: 30px;"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://' + window.location.hostname + ':8888/api/test_mikrotik_api.php';
+
+        // Load config info
+        async function loadConfig() {
+            try {
+                const response = await fetch(API_URL + '?action=get_config');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('config-host').textContent = data.config.host;
+                    document.getElementById('config-port').textContent = data.config.port;
+                    document.getElementById('config-user').textContent = data.config.user;
+                }
+            } catch (e) {
+                console.error('Failed to load config:', e);
+            }
+        }
+
+        async function runTests() {
+            const btn = document.getElementById('testBtn');
+            const results = document.getElementById('results');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Testing...';
+            results.innerHTML = '';
+
+            // Test 1: Socket Connection
+            await runTest('socket', 'Test 1: Socket Connection',
+                'Mengecek apakah server bisa connect ke MikroTik port 8728');
+
+            // Test 2: MikroTik API Login
+            await runTest('api_login', 'Test 2: MikroTik API Login',
+                'Mencoba login ke MikroTik menggunakan API class');
+
+            // Test 3: Get Identity
+            await runTest('get_identity', 'Test 3: Get Router Identity',
+                'Mengambil identity router dari MikroTik');
+
+            // Test 4: Get Hotspot Profiles
+            await runTest('get_profiles', 'Test 4: Get Hotspot Profiles',
+                'Mengambil daftar hotspot profiles dari MikroTik');
+
+            btn.disabled = false;
+            btn.textContent = '🚀 Jalankan Test';
+        }
+
+        async function runTest(action, title, description) {
+            const results = document.getElementById('results');
+
+            // Create test section
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            section.innerHTML = `
+                <h3>
+                    ${title}
+                    <span class="status loading">Testing...</span>
+                </h3>
+                <p style="color: #666; margin-bottom: 10px; font-size: 13px;">${description}</p>
+                <pre id="result-${action}">Menjalankan test...</pre>
+            `;
+            results.appendChild(section);
+
+            try {
+                const response = await fetch(API_URL + '?action=' + action);
+                const data = await response.json();
+
+                const statusEl = section.querySelector('.status');
+                const preEl = section.querySelector('pre');
+
+                if (data.success) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = '✅ Success';
+                    preEl.textContent = JSON.stringify(data, null, 2);
+                    preEl.style.borderLeft = '4px solid #10b981';
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = '❌ Failed';
+                    preEl.textContent = JSON.stringify(data, null, 2);
+                    preEl.style.borderLeft = '4px solid #ef4444';
+                }
+            } catch (e) {
+                const statusEl = section.querySelector('.status');
+                const preEl = section.querySelector('pre');
+
+                statusEl.className = 'status error';
+                statusEl.textContent = '❌ Error';
+                preEl.textContent = 'Error: ' + e.message;
+                preEl.style.borderLeft = '4px solid #ef4444';
+            }
+        }
+
+        // Load config on page load
+        loadConfig();
+    </script>
+</body>
+
+</html>

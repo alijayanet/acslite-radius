@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Pelanggan - ACSLite</title>
+
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' http://*:8888 https://cdn.jsdelivr.net;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #00c9ff;
+            --primary-dark: #0099cc;
+            --secondary: #92fe9d;
+            --gradient-primary: linear-gradient(135deg, #00c9ff 0%, #92fe9d 100%);
+            --gradient-header: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            --bg-light: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --shadow-soft: 0 2px 15px rgba(0, 0, 0, 0.08);
+            --shadow-medium: 0 4px 25px rgba(0, 0, 0, 0.12);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-light);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Background Decoration */
+        .bg-decoration {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40vh;
+            background: var(--gradient-header);
+            border-bottom-left-radius: 50% 20%;
+            border-bottom-right-radius: 50% 20%;
+            z-index: 0;
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 1;
+            max-width: 420px;
+            width: 100%;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-medium);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            animation: cardSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes cardSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .login-header {
+            background: var(--gradient-header);
+            color: white;
+            padding: 45px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(180deg);
+            }
+        }
+
+        .login-header .icon-wrapper {
+            width: 90px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            backdrop-filter: blur(10px);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+            }
+
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        .login-header i {
+            font-size: 3rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-header h2 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.75rem;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-header p {
+            margin: 10px 0 0;
+            opacity: 0.95;
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        .login-body {
+            padding: 40px 35px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .form-group label i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e8e8e8;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            background: #f8f9fa;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(0, 201, 255, 0.15), 0 4px 20px rgba(0, 201, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .form-control::placeholder {
+            color: #aaa;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 15px rgba(0, 201, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 201, 255, 0.5);
+        }
+
+        .btn-login:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-login .spinner-border {
+            width: 1.2rem;
+            height: 1.2rem;
+            border-width: 0.15em;
+            margin-right: 10px;
+        }
+
+        .alert {
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+            animation: alertSlide 0.3s ease-out;
+        }
+
+        @keyframes alertSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .login-footer {
+            text-align: center;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .login-footer p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .login-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .login-footer a:hover {
+            color: #0099cc;
+        }
+
+        .version-info {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .login-header {
+                padding: 35px 25px;
+            }
+
+            .login-body {
+                padding: 30px 25px;
+            }
+
+            .login-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .login-header .icon-wrapper {
+                width: 75px;
+                height: 75px;
+            }
+
+            .login-header .icon-wrapper i {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <!-- Background Decoration -->
+    <div class="bg-decoration"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Header -->
+            <div class="login-header">
+                <div class="icon-wrapper">
+                    <i class="fas fa-wifi"></i>
+                </div>
+                <h2>Portal Pelanggan</h2>
+                <p>Masuk untuk melihat informasi perangkat Anda</p>
+            </div>
+
+            <!-- Body -->
+            <div class="login-body">
+                <!-- Alert Messages -->
+                <div id="alert-container"></div>
+
+                <!-- Login Form -->
+                <form id="login-form" onsubmit="handleLogin(event)">
+                    <!-- Username -->
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-user"></i>Username
+                        </label>
+                        <input type="text" class="form-control" id="username" placeholder="Masukkan username" required
+                            autocomplete="username">
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="fas fa-lock"></i>Password
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="password" class="form-control" id="password" placeholder="Masukkan password"
+                                required autocomplete="current-password" style="padding-right: 50px;">
+                            <button type="button" class="password-toggle" onclick="togglePassword()">
+                                <i class="fas fa-eye" id="toggle-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Login Button -->
+                    <button type="submit" class="btn-login" id="login-btn">
+                        <span id="login-text">
+                            <i class="fas fa-sign-in-alt me-2"></i>Masuk
+                        </span>
+                        <span id="login-spinner" class="d-none">
+                            <span class="spinner-border"></span>
+                            Memverifikasi...
+                        </span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="login-footer">
+                <p>
+                    <i class="fas fa-shield-alt me-1"></i>
+                    Koneksi aman & terenkripsi
+                </p>
+            </div>
+        </div>
+
+        <!-- Version Info -->
+        <div class="version-info">
+            <i class="fas fa-router me-1"></i>
+            ACSLite Customer Portal v1.0
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Configuration
+        // Try to detect if PHP API is on same port or different port (8888)
+        const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+        const phpApiPort = '8888'; // Default PHP server port
+
+        // If we're on Go server (port 7547), use PHP server port
+        // If we're already on PHP server, use relative path
+        let API_BASE;
+        if (currentPort === '7547' || currentPort === '80' || currentPort === '443') {
+            // Try PHP server on port 8888 first
+            API_BASE = `${window.location.protocol}//${window.location.hostname}:${phpApiPort}/api/customer_api.php`;
+        } else {
+            // We're already on PHP server or other
+            API_BASE = '/api/customer_api.php';
+        }
+
+        const DASHBOARD_URL = 'customer_dashboard.html';
+
+        // Rate limiting
+        let loginAttempts = 0;
+        const MAX_ATTEMPTS = 5;
+        const LOCKOUT_TIME = 300000; // 5 minutes
+        let lockoutUntil = null;
+
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedSession = sessionStorage.getItem('customer_session');
+            if (savedSession) {
+                try {
+                    const session = JSON.parse(savedSession);
+                    if (session.expiry > Date.now()) {
+                        window.location.href = DASHBOARD_URL;
+                        return;
+                    }
+                } catch (e) {
+                    sessionStorage.removeItem('customer_session');
+                }
+            }
+
+            // Check lockout
+            const lockout = localStorage.getItem('customer_lockout');
+            if (lockout) {
+                lockoutUntil = parseInt(lockout);
+                if (lockoutUntil > Date.now()) {
+                    showLockout();
+                } else {
+                    localStorage.removeItem('customer_lockout');
+                    loginAttempts = 0;
+                }
+            }
+        });
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggle-icon');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        function showAlert(message, type = 'danger') {
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    <i class="fas fa-${type === 'danger' ? 'exclamation-circle' : 'check-circle'} me-2"></i>
+                    ${message}
+                </div>
+            `;
+
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        function showLockout() {
+            const remainingTime = Math.ceil((lockoutUntil - Date.now()) / 1000);
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = remainingTime % 60;
+
+            showAlert(`Terlalu banyak percobaan gagal. Coba lagi dalam ${minutes}m ${seconds}s`, 'danger');
+
+            document.getElementById('login-btn').disabled = true;
+
+            const countdown = setInterval(() => {
+                if (Date.now() >= lockoutUntil) {
+                    clearInterval(countdown);
+                    localStorage.removeItem('customer_lockout');
+                    loginAttempts = 0;
+                    lockoutUntil = null;
+                    document.getElementById('login-btn').disabled = false;
+                    document.getElementById('alert-container').innerHTML = '';
+                } else {
+                    const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
+                    const m = Math.floor(remaining / 60);
+                    const s = remaining % 60;
+                    showAlert(`Terlalu banyak percobaan gagal. Coba lagi dalam ${m}m ${s}s`, 'danger');
+                }
+            }, 1000);
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            if (lockoutUntil && Date.now() < lockoutUntil) {
+                showLockout();
+                return;
+            }
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showAlert('Mohon masukkan username dan password', 'danger');
+                return;
+            }
+
+            // Show loading
+            const loginBtn = document.getElementById('login-btn');
+            const loginText = document.getElementById('login-text');
+            const loginSpinner = document.getElementById('login-spinner');
+
+            loginBtn.disabled = true;
+            loginText.classList.add('d-none');
+            loginSpinner.classList.remove('d-none');
+
+            try {
+                // Try API authentication first
+                let loginSuccess = false;
+                let sessionData = null;
+
+                try {
+                    // Login via PHP API
+                    const response = await fetch(API_BASE, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const data = await response.json();
+                    console.log('Login response:', data);
+
+                    if (response.ok && data.success) {
+                        loginSuccess = true;
+                        // Support both old structure (location/device) and new structure (customerData)
+                        const custData = data.customerData || data.location || {};
+                        const deviceData = data.device || {};
+
+                        sessionData = {
+                            username: data.username || custData.username || username, // Prefer API username
+                            serialNumber: data.serialNumber || deviceData.serial_number || data.serial_number,
+                            customerData: {
+                                ...deviceData,
+                                ...custData,
+                                name: data.name || custData.name || username,
+                                dbId: custData.id,
+                                customerId: data.customer_id || custData.customer_id
+                            },
+                            loginTime: Date.now(),
+                            expiry: Date.now() + (8 * 60 * 60 * 1000)
+                        };
+                        console.log('Session data prepared:', sessionData);
+                    }
+                } catch (apiError) {
+                    console.log('API not available, trying localStorage fallback...');
+
+                    // Fallback 1: Check localStorage for saved locations
+                    const onuLocations = localStorage.getItem('onu_locations');
+                    if (onuLocations) {
+                        const locations = JSON.parse(onuLocations);
+                        // Find matching username in saved locations
+                        for (const [serialNumber, location] of Object.entries(locations)) {
+                            if (location.name === username) {
+                                loginSuccess = true;
+                                sessionData = {
+                                    username: username,
+                                    serialNumber: serialNumber,
+                                    customerData: {
+                                        serial_number: serialNumber,
+                                        name: location.name,
+                                        latitude: location.lat,
+                                        longitude: location.lng
+                                    },
+                                    loginTime: Date.now(),
+                                    expiry: Date.now() + (8 * 60 * 60 * 1000)
+                                };
+                                break;
+                            }
+                        }
+                    }
+
+                    // Fallback 2: Try fetching from acs_devices cache
+                    if (!loginSuccess) {
+                        const cachedDevices = localStorage.getItem('acs_devices');
+                        if (cachedDevices) {
+                            const devices = JSON.parse(cachedDevices);
+                            // For demo: find any device (since we don't have username mapping yet)
+                            const device = devices.find(d => d.serial_number.toLowerCase().includes(username.toLowerCase()) ||
+                                username.toLowerCase().includes(d.serial_number.toLowerCase().slice(-6)));
+                            if (device) {
+                                loginSuccess = true;
+                                sessionData = {
+                                    username: username,
+                                    serialNumber: device.serial_number,
+                                    customerData: device,
+                                    loginTime: Date.now(),
+                                    expiry: Date.now() + (8 * 60 * 60 * 1000)
+                                };
+                            }
+                        }
+                    }
+
+                    // Fallback 3: Demo mode - accept any login and try to fetch devices
+                    if (!loginSuccess && password.length >= 4) {
+                        console.log('Demo mode: attempting to fetch devices from API...');
+                        try {
+                            // Get admin session if available, or use default API key
+                            const adminSession = sessionStorage.getItem('acs_session');
+                            let headers = { 'X-API-Key': 'secret' }; // Default API key for demo
+                            if (adminSession) {
+                                const session = JSON.parse(adminSession);
+                                if (session.apiKey) {
+                                    headers['X-API-Key'] = session.apiKey;
+                                }
+                            }
+
+                            const devResponse = await fetch('/api/devices', { headers });
+                            if (devResponse.ok) {
+                                const result = await devResponse.json();
+                                const devices = Array.isArray(result) ? result : (result.data || []);
+
+                                // Save to cache for future use
+                                localStorage.setItem('acs_devices', JSON.stringify(devices));
+                                console.log(`Cached ${devices.length} devices from API`);
+
+                                // For demo, match partial username or just take first device
+                                let device = devices.find(d =>
+                                    d.serial_number.toLowerCase().includes(username.toLowerCase()) ||
+                                    (d.pppoe_user && d.pppoe_user.toLowerCase().includes(username.toLowerCase()))
+                                );
+
+                                if (!device && devices.length > 0) {
+                                    // Just use first device for demo
+                                    device = devices[0];
+                                }
+
+                                if (device) {
+                                    loginSuccess = true;
+                                    sessionData = {
+                                        username: username,
+                                        serialNumber: device.serial_number,
+                                        customerData: device,
+                                        loginTime: Date.now(),
+                                        expiry: Date.now() + (8 * 60 * 60 * 1000)
+                                    };
+                                }
+                            }
+                        } catch (fetchError) {
+                            console.log('Could not fetch devices:', fetchError);
+                        }
+                    }
+                }
+
+                if (loginSuccess && sessionData) {
+                    // Reset attempts
+                    loginAttempts = 0;
+                    localStorage.removeItem('customer_lockout');
+
+                    // Save session
+                    sessionStorage.setItem('customer_session', JSON.stringify(sessionData));
+
+                    // Show success
+                    showAlert('Login berhasil! Mengalihkan...', 'success');
+
+                    // Redirect to customer dashboard
+                    setTimeout(() => {
+                        window.location.href = DASHBOARD_URL;
+                    }, 1000);
+                } else {
+                    // Failed login
+                    loginAttempts++;
+
+                    if (loginAttempts >= MAX_ATTEMPTS) {
+                        lockoutUntil = Date.now() + LOCKOUT_TIME;
+                        localStorage.setItem('customer_lockout', lockoutUntil.toString());
+                        showLockout();
+                    } else {
+                        const remaining = MAX_ATTEMPTS - loginAttempts;
+                        showAlert(`Username atau password salah. ${remaining} percobaan tersisa.`, 'danger');
+                    }
+
+                    loginBtn.disabled = false;
+                    loginText.classList.remove('d-none');
+                    loginSpinner.classList.add('d-none');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert('Terjadi kesalahan. Silakan coba lagi.', 'danger');
+
+                loginBtn.disabled = false;
+                loginText.classList.remove('d-none');
+                loginSpinner.classList.add('d-none');
+            }
+        }
+
+        // Prevent clickjacking
+        if (window.top !== window.self) {
+            window.top.location = window.self.location;
+        }
+    </script>
+</body>
+
+</html>

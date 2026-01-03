@@ -1,0 +1,48 @@
+{
+    "general": {
+        "site_name": "ALIJAYA-NET ISP Manager",
+        "company_name": "alijayanet",
+        "timezone": "Asia\/Jakarta",
+        "currency": "IDR",
+        "date_format": "d\/m\/Y",
+        "language": "id"
+    },
+    "acs": {
+        "api_url": "http:\/\/localhost:7547",
+        "api_key": "secret",
+        "periodic_inform_interval": 300,
+        "auto_refresh_interval": 15
+    },
+    "telegram": {
+        "enabled": true,
+        "bot_token": "1981178828:AAEld2oOK1rkvSOlHuyx7HGd8kYsVzzdZGk",
+        "chat_id": "567858628",
+        "notify_isolir": true,
+        "notify_payment": true,
+        "notify_new_device": true
+    },
+    "billing": {
+        "enabled": false,
+        "due_day": 1,
+        "grace_period": 7,
+        "auto_isolir": true,
+        "isolir_profile": "isolir"
+    },
+    "whatsapp": {
+        "enabled": false,
+        "api_url": "",
+        "api_key": ""
+    },
+    "hotspot": {
+        "backend": "mikrotik",
+        "backup_to_radius": true,
+        "radius": {
+            "enabled": true,
+            "db_host": "127.0.0.1",
+            "db_port": 3306,
+            "db_name": "radius",
+            "db_user": "radius",
+            "db_pass": "radius123"
+        }
+    }
+}

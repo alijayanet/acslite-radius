@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - ACSLite Billing</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="gembok_theme.css" rel="stylesheet">
+    <style>
+        /* Base styles that might not be in the theme file */
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .page-content {
+            padding: 25px;
+        }
+
+        .page-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-mini {
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-mini-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-mini-icon.primary {
+            background: rgba(0, 245, 255, 0.1);
+            color: var(--neon-cyan);
+        }
+
+        .stat-mini-icon.success {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--neon-green);
+        }
+
+        .stat-mini-icon.warning {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--neon-orange);
+        }
+
+        .stat-mini-icon.danger {
+            background: rgba(255, 0, 170, 0.1);
+            color: var(--neon-pink);
+        }
+
+        .stat-mini-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-mini-label {
+            font-size: 0.8rem;
+        }
+
+        .data-table {
+            width: 100%;
+        }
+
+        .data-table th {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            padding: 12px 15px;
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 15px;
+            vertical-align: middle;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .btn-action {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.05);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            background: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            color: var(--bg-primary);
+        }
+
+        .btn-action.primary {
+            background: rgba(14, 165, 233, 0.1);
+            border-color: #0ea5e9;
+            color: #0ea5e9;
+        }
+
+        .btn-action.primary:hover {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .btn-action.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .btn-action.warning:hover {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-action.success {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: #10b981;
+            color: #10b981;
+        }
+
+        .btn-action.success:hover {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-action.danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .btn-action.danger:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .filter-btn.active {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            border: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-header {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            border-bottom: none;
+        }
+
+        .btn-close-white {
+            filter: invert(1);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        /* Menu Item Submenu overrides */
+        .menu-item-parent {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .page-content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 open active"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu active">
+                <a href="packages.html" class="submenu-item">
+                    <i class="fas fa-cube"></i><span>Paket</span>
+                </a>
+                <a href="customers.html" class="submenu-item">
+                    <i class="fas fa-users"></i><span>Pelanggan</span>
+                </a>
+                <a href="invoices.html" class="submenu-item active">
+                    <i class="fas fa-file-invoice"></i><span>Invoice</span>
+                </a>
+                <a href="payments.html" class="submenu-item">
+                    <i class="fas fa-money-bill-wave"></i><span>Pembayaran</span>
+                </a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Data & Laporan</div>
+            <a href="reports.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="logout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <h5 class="mb-0 fw-bold">Invoice</h5>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="fas fa-plus me-1"></i> Buat Invoice
+                </button>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <h2 class="page-title">Manajemen Invoice</h2>
+            <p class="page-subtitle">Kelola tagihan pelanggan ISP</p>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-mini">
+                    <div class="stat-mini-icon primary"><i class="fas fa-file-invoice"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="stat-total">0</div>
+                        <div class="stat-mini-label">Total Invoice</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon success"><i class="fas fa-check-circle"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="stat-paid">0</div>
+                        <div class="stat-mini-label">Lunas</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon warning"><i class="fas fa-clock"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="stat-pending">0</div>
+                        <div class="stat-mini-label">Pending</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon danger"><i class="fas fa-exclamation-circle"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="stat-overdue">0</div>
+                        <div class="stat-mini-label">Jatuh Tempo</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="fas fa-list"></i> Daftar Invoice</h5>
+                    <div class="filter-bar">
+                        <button class="filter-btn active" onclick="filterStatus('', this)">Semua</button>
+                        <button class="filter-btn" onclick="filterStatus('sent', this)">Pending</button>
+                        <button class="filter-btn" onclick="filterStatus('paid', this)">Lunas</button>
+                        <button class="filter-btn" onclick="filterStatus('overdue', this)">Jatuh Tempo</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>No. Invoice</th>
+                                    <th>Pelanggan</th>
+                                    <th>Periode</th>
+                                    <th>Jatuh Tempo</th>
+                                    <th class="text-end">Total</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoices-table">
+                                <tr>
+                                    <td colspan="7" class="text-center py-5"><i
+                                            class="fas fa-spinner fa-spin fa-2x text-muted"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create Invoice Modal -->
+    <div class="modal fade" id="createModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i>Buat Invoice</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Pelanggan</label>
+                        <select class="form-select" id="input-customer" required></select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Periode Mulai</label>
+                            <input type="date" class="form-control" id="input-period-start">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Periode Akhir</label>
+                            <input type="date" class="form-control" id="input-period-end">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Jatuh Tempo</label>
+                        <input type="date" class="form-control" id="input-due-date">
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Subtotal</label>
+                            <input type="number" class="form-control" id="input-subtotal">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Diskon</label>
+                            <input type="number" class="form-control" id="input-discount" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Catatan</label>
+                        <textarea class="form-control" id="input-notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="createInvoice()">
+                        <i class="fas fa-save me-1"></i> Buat Invoice
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-money-bill-wave me-2"></i>Terima Pembayaran</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="pay-invoice-id">
+                    <div class="alert alert-info">
+                        <strong id="pay-invoice-no"></strong><br>
+                        Total: <strong id="pay-total"></strong>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Jumlah Bayar</label>
+                        <input type="number" class="form-control" id="pay-amount">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Metode Pembayaran</label>
+                        <select class="form-select" id="pay-method">
+                            <option value="cash">Cash</option>
+                            <option value="transfer">Transfer Bank</option>
+                            <option value="qris">QRIS</option>
+                            <option value="ewallet">E-Wallet</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">No. Referensi</label>
+                        <input type="text" class="form-control" id="pay-reference" placeholder="Opsional">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-success" onclick="processPayment()">
+                        <i class="fas fa-check me-1"></i> Proses Pembayaran
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API = `http://${window.location.hostname}:8888/api/billing_api.php`;
+        let allInvoices = [];
+        let customers = [];
+        let currentFilter = '';
+        let createModal, paymentModal;
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
+        }
+
+        function toggleSubmenu(el) {
+            const submenu = el.nextElementSibling;
+            el.classList.toggle('open');
+            submenu.classList.toggle('active');
+        }
+
+        function formatRupiah(amount) {
+            return 'Rp ' + parseInt(amount || 0).toLocaleString('id-ID');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        // Check if user is logged in
+        function checkSession() {
+            const session = sessionStorage.getItem('acs_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session first
+            if (!checkSession()) return;
+
+            createModal = new bootstrap.Modal(document.getElementById('createModal'));
+            paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const dueDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+
+            document.getElementById('input-period-start').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('input-period-end').value = lastDay.toISOString().split('T')[0];
+            document.getElementById('input-due-date').value = dueDate.toISOString().split('T')[0];
+
+            loadCustomers();
+            loadInvoices();
+        });
+
+        async function loadCustomers() {
+            try {
+                const response = await fetch(`${API}?action=customers&status=active`);
+                const result = await response.json();
+                if (result.success) {
+                    customers = result.customers;
+                    const select = document.getElementById('input-customer');
+                    select.innerHTML = '<option value="">Pilih Pelanggan</option>' +
+                        customers.map(c => `<option value="${c.id}" data-fee="${c.monthly_fee}">${c.customer_id} - ${c.name}</option>`).join('');
+
+                    select.addEventListener('change', function () {
+                        const selected = this.options[this.selectedIndex];
+                        if (selected.dataset.fee) {
+                            document.getElementById('input-subtotal').value = selected.dataset.fee;
+                        }
+                    });
+                }
+            } catch (e) { console.error('Error:', e); }
+        }
+
+        async function loadInvoices() {
+            try {
+                let url = `${API}?action=invoices`;
+                if (currentFilter) url += `&status=${currentFilter}`;
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    allInvoices = result.invoices || [];
+                    renderInvoices(allInvoices);
+                    updateStats(allInvoices);
+                } else {
+                    document.getElementById('invoices-table').innerHTML =
+                        `<tr><td colspan="7" class="text-center py-5 text-danger">${result.error || 'Error loading data'}</td></tr>`;
+                }
+            } catch (e) {
+                document.getElementById('invoices-table').innerHTML =
+                    `<tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-invoice"></i><p>Belum ada invoice</p></div></td></tr>`;
+            }
+        }
+
+        function renderInvoices(invoices) {
+            const tbody = document.getElementById('invoices-table');
+
+            if (!invoices || invoices.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fas fa-file-invoice"></i><p>Belum ada invoice</p></div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = invoices.map(inv => {
+                const statusClass = inv.status === 'paid' ? 'paid' : (inv.status === 'overdue' ? 'overdue' : 'sent');
+                const statusText = inv.status === 'paid' ? 'Lunas' : (inv.status === 'overdue' ? 'Jatuh Tempo' : 'Pending');
+                const statusIcon = inv.status === 'paid' ? 'check' : (inv.status === 'overdue' ? 'exclamation' : 'clock');
+
+                return `
+                    <tr>
+                        <td><strong>${inv.invoice_no}</strong></td>
+                        <td><div>${inv.customer_name || '-'}</div><small class="text-muted">${inv.customer_code || ''}</small></td>
+                        <td><small>${formatDate(inv.period_start)} - ${formatDate(inv.period_end)}</small></td>
+                        <td>${formatDate(inv.due_date)}</td>
+                        <td class="text-end fw-bold">${formatRupiah(inv.total)}</td>
+                        <td><span class="status-badge ${statusClass}"><i class="fas fa-${statusIcon}"></i> ${statusText}</span></td>
+                        <td class="text-end">
+                            <button class="btn-action primary" onclick="printInvoice(${inv.id})" title="Print A4"><i class="fas fa-print"></i></button>
+                            <button class="btn-action warning" onclick="printInvoiceThermal(${inv.id})" title="Print Thermal 58mm"><i class="fas fa-receipt"></i></button>
+                            ${inv.status !== 'paid' ? `<button class="btn-action success" onclick="openPaymentModal(${inv.id}, '${inv.invoice_no}', ${inv.total})" title="Bayar"><i class="fas fa-money-bill-wave"></i></button>` : ''}
+                            <button class="btn-action danger" onclick="deleteInvoice(${inv.id})" title="Hapus"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStats(invoices) {
+            document.getElementById('stat-total').textContent = invoices.length;
+            document.getElementById('stat-paid').textContent = invoices.filter(i => i.status === 'paid').length;
+            document.getElementById('stat-pending').textContent = invoices.filter(i => i.status === 'sent' || i.status === 'draft').length;
+            document.getElementById('stat-overdue').textContent = invoices.filter(i => i.status === 'overdue').length;
+        }
+
+        function filterStatus(status, btn) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadInvoices();
+        }
+
+        function openCreateModal() { createModal.show(); }
+
+        async function createInvoice() {
+            const customerId = document.getElementById('input-customer').value;
+            if (!customerId) { alert('Pilih pelanggan terlebih dahulu'); return; }
+
+            const data = {
+                action: 'create_invoice',
+                customer_id: customerId,
+                period_start: document.getElementById('input-period-start').value,
+                period_end: document.getElementById('input-period-end').value,
+                due_date: document.getElementById('input-due-date').value,
+                subtotal: document.getElementById('input-subtotal').value || 0,
+                discount: document.getElementById('input-discount').value || 0,
+                notes: document.getElementById('input-notes').value
+            };
+
+            try {
+                const response = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(`✅ Invoice ${result.invoice_no} berhasil dibuat`);
+                    createModal.hide();
+                    loadInvoices();
+                } else {
+                    alert(`❌ ${result.error}`);
+                }
+            } catch (e) { alert(`❌ Error: ${e.message}`); }
+        }
+
+        function openPaymentModal(invoiceId, invoiceNo, total) {
+            document.getElementById('pay-invoice-id').value = invoiceId;
+            document.getElementById('pay-invoice-no').textContent = invoiceNo;
+            document.getElementById('pay-total').textContent = formatRupiah(total);
+            document.getElementById('pay-amount').value = total;
+            paymentModal.show();
+        }
+
+        async function processPayment() {
+            const invoiceId = document.getElementById('pay-invoice-id').value;
+            const amount = document.getElementById('pay-amount').value;
+            if (!amount || amount <= 0) { alert('Masukkan jumlah pembayaran'); return; }
+
+            const data = {
+                action: 'pay_invoice',
+                invoice_id: invoiceId,
+                amount: amount,
+                payment_method: document.getElementById('pay-method').value,
+                reference_no: document.getElementById('pay-reference').value
+            };
+
+            try {
+                const response = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    let msg = `✅ Pembayaran berhasil (${result.payment_no})`;
+
+                    // Tampilkan info auto-unisolir jika ada
+                    if (result.auto_unisolir) {
+                        msg += `\n\n🔓 Customer auto-unisolir (semua tagihan lunas)`;
+                        if (result.mikrotik_status === 'success') {
+                            msg += `\n✅ MikroTik: ${result.mikrotik_message}`;
+                        } else if (result.mikrotik_status === 'failed') {
+                            msg += `\n⚠️ MikroTik: ${result.mikrotik_message}`;
+                        } else if (result.mikrotik_status === 'no_config') {
+                            msg += `\n⚠️ MikroTik belum dikonfigurasi`;
+                        }
+                    }
+
+                    alert(msg);
+                    paymentModal.hide();
+                    loadInvoices();
+                } else {
+                    alert(`❌ ${result.error}`);
+                }
+            } catch (e) { alert(`❌ Error: ${e.message}`); }
+        }
+
+        async function deleteInvoice(id) {
+            if (!confirm('Hapus invoice ini?\n\nData pembayaran terkait juga akan dihapus!')) return;
+            if (!confirm('Konfirmasi sekali lagi: Hapus invoice?')) return;
+
+            try {
+                const response = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_invoice', id })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    loadInvoices();
+                } else {
+                    alert(`❌ ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        // ========== PRINT INVOICE FUNCTIONS ==========
+        const SETTINGS_API = `http://${window.location.hostname}:8888/api/settings_api.php`;
+        let ispSettings = null;
+
+        async function loadIspSettings() {
+            // Always reload to get fresh data
+            try {
+                const response = await fetch(`${SETTINGS_API}?action=get_all`);
+                const result = await response.json();
+                console.log('Settings API response:', result);
+                if (result.success && result.settings) {
+                    ispSettings = {
+                        company_name: result.settings.general?.company_name || 'My ISP',
+                        site_name: result.settings.general?.site_name || 'ACS-Lite',
+                        address: result.settings.general?.address || '',
+                        phone: result.settings.general?.phone || '',
+                        email: result.settings.general?.email || ''
+                    };
+                    console.log('ISP Settings loaded:', ispSettings);
+                } else {
+                    console.error('Failed to load settings:', result);
+                    ispSettings = { company_name: 'My ISP', site_name: 'ACS-Lite' };
+                }
+            } catch (e) {
+                console.error('Error loading ISP settings:', e);
+                ispSettings = { company_name: 'My ISP', site_name: 'ACS-Lite' };
+            }
+            return ispSettings;
+        }
+
+        async function printInvoice(invoiceId) {
+            const invoice = allInvoices.find(inv => inv.id == invoiceId);
+            if (!invoice) {
+                alert('Invoice tidak ditemukan');
+                return;
+            }
+            await loadIspSettings();
+            openInvoicePrintWindow(invoice, 'a4');
+        }
+
+        async function printInvoiceThermal(invoiceId) {
+            const invoice = allInvoices.find(inv => inv.id == invoiceId);
+            if (!invoice) {
+                alert('Invoice tidak ditemukan');
+                return;
+            }
+            await loadIspSettings();
+            openInvoicePrintWindow(invoice, 'thermal');
+        }
+
+        function openInvoicePrintWindow(invoice, format) {
+            const printWindow = window.open('', '_blank');
+            const html = format === 'thermal' ? generateThermalInvoiceHTML(invoice) : generateA4InvoiceHTML(invoice);
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 500);
+        }
+
+        function generateA4InvoiceHTML(inv) {
+            const isp = ispSettings || { company_name: 'My ISP' };
+            const statusText = inv.status === 'paid' ? 'LUNAS' : (inv.status === 'overdue' ? 'JATUH TEMPO' : 'BELUM BAYAR');
+            const statusColor = inv.status === 'paid' ? '#10b981' : (inv.status === 'overdue' ? '#ef4444' : '#f59e0b');
+
+            return `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Invoice ${inv.invoice_no}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 3px solid #0ea5e9; padding-bottom: 20px; }
+        .company-info h1 { font-size: 28px; color: #0ea5e9; margin-bottom: 5px; }
+        .company-info p { font-size: 13px; color: #666; }
+        .invoice-title { text-align: right; }
+        .invoice-title h2 { font-size: 32px; color: #333; letter-spacing: 2px; }
+        .invoice-title .invoice-no { font-size: 16px; color: #666; margin-top: 5px; }
+        .invoice-title .status { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 12px; margin-top: 10px; color: white; background: ${statusColor}; }
+        .details { display: flex; justify-content: space-between; margin-bottom: 30px; }
+        .detail-box { flex: 1; }
+        .detail-box h4 { font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .detail-box p { font-size: 14px; margin-bottom: 3px; }
+        .detail-box .name { font-size: 18px; font-weight: 600; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        thead th { background: #f8fafc; padding: 12px 15px; text-align: left; font-size: 12px; text-transform: uppercase; color: #666; border-bottom: 2px solid #e2e8f0; }
+        tbody td { padding: 15px; border-bottom: 1px solid #e2e8f0; }
+        .text-right { text-align: right; }
+        .total-section { background: #f8fafc; padding: 20px; border-radius: 8px; }
+        .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+        .total-row.grand { font-size: 20px; font-weight: bold; color: #0ea5e9; border-top: 2px solid #e2e8f0; padding-top: 15px; margin-top: 10px; }
+        .footer { margin-top: 40px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+        .notes { background: #fef3c7; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 13px; }
+        .notes strong { color: #b45309; }
+        @media print {
+            body { padding: 20px; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-info">
+            <h1>${isp.company_name}</h1>
+            ${isp.address ? `<p>${isp.address}</p>` : ''}
+            ${isp.phone ? `<p>📞 ${isp.phone}</p>` : ''}
+            ${isp.email ? `<p>✉️ ${isp.email}</p>` : ''}
+        </div>
+        <div class="invoice-title">
+            <h2>INVOICE</h2>
+            <div class="invoice-no">${inv.invoice_no}</div>
+            <div class="status">${statusText}</div>
+        </div>
+    </div>
+
+    <div class="details">
+        <div class="detail-box">
+            <h4>Tagihan Untuk</h4>
+            <p class="name">${inv.customer_name || '-'}</p>
+            <p>${inv.customer_code || ''}</p>
+        </div>
+        <div class="detail-box text-right">
+            <h4>Detail Invoice</h4>
+            <p><strong>Tanggal:</strong> ${formatDate(inv.created_at || inv.period_start)}</p>
+            <p><strong>Periode:</strong> ${formatDate(inv.period_start)} - ${formatDate(inv.period_end)}</p>
+            <p><strong>Jatuh Tempo:</strong> ${formatDate(inv.due_date)}</p>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Deskripsi</th>
+                <th class="text-right">Jumlah</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Biaya Langganan Internet<br><small style="color:#666;">Periode: ${formatDate(inv.period_start)} - ${formatDate(inv.period_end)}</small></td>
+                <td class="text-right">${formatRupiah(inv.subtotal || inv.total)}</td>
+            </tr>
+            ${inv.discount && inv.discount > 0 ? `
+            <tr>
+                <td>Diskon</td>
+                <td class="text-right" style="color:#10b981;">-${formatRupiah(inv.discount)}</td>
+            </tr>
+            ` : ''}
+        </tbody>
+    </table>
+
+    <div class="total-section">
+        <div class="total-row">
+            <span>Subtotal</span>
+            <span>${formatRupiah(inv.subtotal || inv.total)}</span>
+        </div>
+        ${inv.discount && inv.discount > 0 ? `
+        <div class="total-row">
+            <span>Diskon</span>
+            <span style="color:#10b981;">-${formatRupiah(inv.discount)}</span>
+        </div>
+        ` : ''}
+        <div class="total-row grand">
+            <span>TOTAL</span>
+            <span>${formatRupiah(inv.total)}</span>
+        </div>
+    </div>
+
+    ${inv.notes ? `
+    <div class="notes">
+        <strong>Catatan:</strong> ${inv.notes}
+    </div>
+    ` : ''}
+
+    <div class="footer">
+        <p>Terima kasih telah menjadi pelanggan kami.</p>
+        <p>Invoice ini dicetak oleh sistem ${isp.site_name || 'ACS-Lite'}</p>
+    </div>
+</body>
+</html>
+            `;
+        }
+
+        function generateThermalInvoiceHTML(inv) {
+            const isp = ispSettings || { company_name: 'My ISP' };
+            const statusText = inv.status === 'paid' ? 'LUNAS' : (inv.status === 'overdue' ? 'JATUH TEMPO' : 'BELUM BAYAR');
+
+            return `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Invoice ${inv.invoice_no}</title>
+    <style>
+        @page { size: 58mm auto; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; font-size: 12px; width: 58mm; background: #fff; color: #000; padding: 5px; }
+        .receipt { width: 100%; }
+        .header { text-align: center; margin-bottom: 8px; }
+        .brand { font-size: 14px; font-weight: bold; }
+        .tagline { font-size: 10px; color: #555; }
+        .divider { text-align: center; font-size: 10px; color: #888; margin: 5px 0; overflow: hidden; }
+        .invoice-no { text-align: center; font-size: 11px; margin: 5px 0; }
+        .invoice-no strong { font-size: 13px; }
+        .status { text-align: center; padding: 3px 8px; font-size: 11px; font-weight: bold; margin: 5px auto; display: block; width: fit-content; border: 1px dashed #333; }
+        .info-row { display: flex; justify-content: space-between; font-size: 10px; padding: 2px 0; }
+        .info-row .label { color: #555; }
+        .info-row .value { font-weight: bold; text-align: right; max-width: 55%; }
+        .customer-box { text-align: center; padding: 5px; margin: 5px 0; background: #f5f5f5; border: 1px dashed #999; }
+        .customer-name { font-size: 12px; font-weight: bold; }
+        .customer-id { font-size: 10px; color: #666; }
+        .item-row { font-size: 10px; padding: 3px 0; border-bottom: 1px dotted #ccc; }
+        .total-box { background: #f0f0f0; padding: 8px 5px; margin: 8px 0; text-align: center; }
+        .total-label { font-size: 10px; color: #666; }
+        .total-value { font-size: 16px; font-weight: bold; }
+        .footer { text-align: center; font-size: 9px; color: #666; margin-top: 8px; padding-top: 5px; border-top: 1px dashed #ccc; }
+        .cut-line { text-align: center; font-size: 10px; color: #999; margin-top: 10px; }
+        @media print { body { width: 58mm; } }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            <div class="brand">${isp.company_name}</div>
+            <div class="tagline">Invoice Tagihan</div>
+        </div>
+        
+        <div class="divider">================================</div>
+        
+        <div class="invoice-no">
+            No: <strong>${inv.invoice_no}</strong>
+        </div>
+        
+        <div class="status">${statusText}</div>
+        
+        <div class="divider">--------------------------------</div>
+        
+        <div class="customer-box">
+            <div class="customer-name">${inv.customer_name || '-'}</div>
+            <div class="customer-id">${inv.customer_code || ''}</div>
+        </div>
+        
+        <div class="divider">--------------------------------</div>
+        
+        <div class="info-row">
+            <span class="label">Periode:</span>
+            <span class="value">${formatDateShort(inv.period_start)} - ${formatDateShort(inv.period_end)}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Jatuh Tempo:</span>
+            <span class="value">${formatDateShort(inv.due_date)}</span>
+        </div>
+        
+        <div class="divider">--------------------------------</div>
+        
+        <div class="item-row">
+            <div>Biaya Internet</div>
+            <div style="text-align:right;">${formatRupiah(inv.subtotal || inv.total)}</div>
+        </div>
+        ${inv.discount && inv.discount > 0 ? `
+        <div class="item-row">
+            <div>Diskon</div>
+            <div style="text-align:right;">-${formatRupiah(inv.discount)}</div>
+        </div>
+        ` : ''}
+        
+        <div class="total-box">
+            <div class="total-label">TOTAL TAGIHAN</div>
+            <div class="total-value">${formatRupiah(inv.total)}</div>
+        </div>
+        
+        <div class="divider">================================</div>
+        
+        <div class="footer">
+            <p>Terima kasih atas kepercayaan Anda</p>
+            <p>${isp.site_name || 'ACS-Lite'}</p>
+        </div>
+        
+        <div class="cut-line">- - - ✂ - - -</div>
+    </div>
+</body>
+</html>
+            `;
+        }
+
+        function formatDateShort(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav-admin">
+        <div class="nav-item-admin" id="nav-admin-dashboard" onclick="navigateToPage('dashboard', 'dashboard.html')">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item-admin active" id="nav-admin-customers"
+            onclick="navigateToPage('customers', 'customers.html')">
+            <i class="fas fa-users"></i>
+            <span>Pelanggan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-network" onclick="navigateToPage('network', 'acs.html')">
+            <i class="fas fa-network-wired"></i>
+            <span>Jaringan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-reports" onclick="navigateToPage('reports', 'reports.html')">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-settings" onclick="navigateToPage('settings', 'settings.html')">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+    </nav>
+
+    <!-- Bottom Nav Script -->
+    <script src="bottom-nav.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>

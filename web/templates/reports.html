@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Keuangan - ACSLite Billing</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="gembok_theme.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Base styles that might not be in the theme file */
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .page-content {
+            padding: 25px;
+        }
+
+        .page-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-mini {
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-mini:hover {
+            transform: translateY(-5px);
+            border-color: var(--neon-cyan);
+            box-shadow: var(--shadow-neon);
+        }
+
+        .stat-mini-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .stat-mini-icon.primary {
+            background: rgba(0, 245, 255, 0.1);
+            color: var(--neon-cyan);
+        }
+
+        .stat-mini-icon.success {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--neon-green);
+        }
+
+        .stat-mini-icon.warning {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--neon-orange);
+        }
+
+        .stat-mini-icon.danger {
+            background: rgba(255, 0, 170, 0.1);
+            color: var(--neon-pink);
+        }
+
+        .stat-mini-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--text-primary);
+        }
+
+        .stat-mini-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .report-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-card);
+        }
+
+        .report-card h6 {
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .report-card h6 i {
+            color: var(--neon-cyan);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 15px 10px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            width: 300px;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .user-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        /* Menu Item Submenu overrides */
+        .menu-item-parent {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .search-box {
+                display: none;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .page-content {
+                padding: 15px;
+            }
+        }
+
+        #top-packages td {
+            padding: 15px 10px;
+            vertical-align: middle;
+            color: var(--text-primary);
+        }
+
+        #top-packages tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        #top-packages tr:last-child {
+            border-bottom: none;
+        }
+
+        .badge-rank {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .rank-1 {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+        }
+
+        .rank-2 {
+            background: rgba(0, 245, 255, 0.1);
+            color: var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
+        }
+
+        .rank-3 {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu">
+                <a href="packages.html" class="submenu-item">
+                    <i class="fas fa-cube"></i><span>Paket</span>
+                </a>
+                <a href="customers.html" class="submenu-item">
+                    <i class="fas fa-users"></i><span>Pelanggan</span>
+                </a>
+                <a href="invoices.html" class="submenu-item">
+                    <i class="fas fa-file-invoice"></i><span>Invoice</span>
+                </a>
+                <a href="payments.html" class="submenu-item">
+                    <i class="fas fa-money-bill-wave"></i><span>Pembayaran</span>
+                </a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Data & Laporan</div>
+            <a href="reports.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 active">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="logout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Cari laporan, data...">
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="d-flex gap-2 me-3">
+                    <select class="form-select" id="report-period" style="width: 140px; height: 40px;">
+                        <option value="week">7 Hari</option>
+                        <option value="month" selected>Bulan Ini</option>
+                        <option value="quarter">3 Bulan</option>
+                        <option value="year">Tahun Ini</option>
+                    </select>
+                </div>
+                <div class="header-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="user-dropdown">
+                    <div class="user-avatar"><i class="fas fa-user"></i></div>
+                    <div class="user-info d-none d-md-block">
+                        <div class="user-name">Admin</div>
+                        <div class="user-role">Administrator</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <h2 class="page-title">Laporan Keuangan</h2>
+            <p class="page-subtitle">Analisis pendapatan dan performa bisnis ISP</p>
+
+            <!-- Summary Cards -->
+            <div class="stats-row">
+                <div class="stat-mini">
+                    <div class="stat-mini-icon success"><i class="fas fa-chart-line"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="total-revenue">Rp 0</div>
+                        <div class="stat-mini-label">Total Pendapatan</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon primary"><i class="fas fa-users"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="active-customers">0</div>
+                        <div class="stat-mini-label">Pelanggan Aktif</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon warning"><i class="fas fa-file-invoice"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="pending-invoices">0</div>
+                        <div class="stat-mini-label">Invoice Pending</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon danger"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="total-arrears">Rp 0</div>
+                        <div class="stat-mini-label">Total Tunggakan</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Revenue Chart -->
+                <div class="col-lg-8">
+                    <div class="report-card">
+                        <h6><i class="fas fa-chart-area me-2"></i>Grafik Pendapatan</h6>
+                        <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Package Distribution -->
+                <div class="col-lg-4">
+                    <div class="report-card">
+                        <h6><i class="fas fa-chart-pie me-2"></i>Distribusi Paket</h6>
+                        <div class="chart-container"><canvas id="packageChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Payment Methods -->
+                <div class="col-lg-6">
+                    <div class="report-card">
+                        <h6><i class="fas fa-wallet me-2"></i>Metode Pembayaran</h6>
+                        <div class="chart-container" style="height: 250px;"><canvas id="paymentChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Top Packages -->
+                <div class="col-lg-6">
+                    <div class="report-card">
+                        <h6><i class="fas fa-trophy me-2"></i>Paket Terlaris</h6>
+                        <table class="table table-borderless mb-0" id="top-packages">
+                            <tbody>
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-4"><i
+                                            class="fas fa-spinner fa-spin"></i> Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API = `${window.location.protocol}//${window.location.hostname}:8888/api/billing_api.php`;
+        let revenueChart, packageChart, paymentChart;
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
+        }
+
+        function toggleSubmenu(el) {
+            const submenu = el.nextElementSibling;
+            el.classList.toggle('open');
+            submenu.classList.toggle('active');
+        }
+
+        function formatRupiah(amount) {
+            return 'Rp ' + parseInt(amount || 0).toLocaleString('id-ID');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        }
+
+        // Check if user is logged in
+        function checkSession() {
+            const session = sessionStorage.getItem('acs_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session first
+            if (!checkSession()) return;
+
+            initCharts();
+            loadReportData();
+            document.getElementById('report-period').addEventListener('change', loadReportData);
+        });
+
+        function initCharts() {
+            Chart.defaults.color = 'rgba(255, 255, 255, 0.5)';
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
+            // Revenue Chart
+            revenueChart = new Chart(document.getElementById('revenueChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [], datasets: [{
+                        label: 'Pendapatan',
+                        data: [],
+                        borderColor: '#00f5ff',
+                        backgroundColor: 'rgba(0, 245, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#00f5ff',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                callback: (v) => {
+                                    if (v >= 1000000) return 'Rp ' + (v / 1000000).toFixed(1) + 'jt';
+                                    if (v >= 1000) return 'Rp ' + (v / 1000).toFixed(0) + 'rb';
+                                    return 'Rp ' + v;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                        }
+                    }
+                }
+            });
+
+            // Package Chart
+            packageChart = new Chart(document.getElementById('packageChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: ['#00f5ff', '#00ff88', '#ff6b35', '#ff00aa', '#a855f7', '#eab308'],
+                        borderWidth: 0,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                padding: 15,
+                                font: { size: 11 }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Payment Method Chart
+            paymentChart = new Chart(document.getElementById('paymentChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Transaksi',
+                        data: [],
+                        backgroundColor: ['#00f5ff', '#ff6b35', '#ff00aa', '#00ff88', '#a855f7'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadReportData() {
+            const period = document.getElementById('report-period').value;
+
+            try {
+                const response = await fetch(`${API}?action=report_stats&period=${period}`);
+                const result = await response.json();
+
+                console.log('📊 Report Data:', result);
+
+                if (result.success) {
+                    // Log debug info
+                    console.log('📅 Date Range:', result.date_range);
+                    console.log('💰 Summary:', result.summary);
+                    console.log(`📈 Payments in period: ${result.summary.payments_in_period}`);
+                    console.log(`📊 All-time payments: ${result.summary.all_time_payments}`);
+
+                    updateSummaryCards(result.summary);
+                    updateRevenueChart(result.revenue_trend);
+                    updatePackageChart(result.package_distribution);
+                    updatePaymentChart(result.payment_methods);
+                    updateTopPackages(result.top_packages);
+                } else {
+                    console.error('Failed to load report data:', result.error);
+                    showNoData();
+                }
+            } catch (e) {
+                console.error('Error loading report data:', e);
+                showNoData();
+            }
+        }
+
+        function updateSummaryCards(summary) {
+            document.getElementById('total-revenue').textContent = formatRupiah(summary.total_revenue);
+            document.getElementById('active-customers').textContent = summary.active_customers || 0;
+            document.getElementById('pending-invoices').textContent = summary.pending_invoices || 0;
+            document.getElementById('total-arrears').textContent = formatRupiah(summary.total_arrears);
+        }
+
+        function updateRevenueChart(revenueTrend) {
+            if (!revenueTrend || revenueTrend.length === 0) {
+                revenueChart.data.labels = ['Tidak ada data'];
+                revenueChart.data.datasets[0].data = [0];
+            } else {
+                const labels = revenueTrend.map(item => formatDate(item.label));
+                const data = revenueTrend.map(item => parseFloat(item.revenue) || 0);
+
+                revenueChart.data.labels = labels;
+                revenueChart.data.datasets[0].data = data;
+            }
+            revenueChart.update();
+        }
+
+        function updatePackageChart(packageDistribution) {
+            if (!packageDistribution || packageDistribution.length === 0) {
+                packageChart.data.labels = ['Tidak ada data'];
+                packageChart.data.datasets[0].data = [1];
+            } else {
+                const labels = packageDistribution.map(item => item.package_name);
+                const data = packageDistribution.map(item => parseInt(item.customer_count) || 0);
+
+                packageChart.data.labels = labels;
+                packageChart.data.datasets[0].data = data;
+            }
+            packageChart.update();
+        }
+
+        function updatePaymentChart(paymentMethods) {
+            const methodLabels = {
+                'cash': 'Cash',
+                'transfer': 'Transfer',
+                'qris': 'QRIS',
+                'ewallet': 'E-Wallet',
+                'bank_transfer': 'Transfer Bank'
+            };
+
+            if (!paymentMethods || paymentMethods.length === 0) {
+                paymentChart.data.labels = ['Tidak ada data'];
+                paymentChart.data.datasets[0].data = [0];
+            } else {
+                const labels = paymentMethods.map(item => methodLabels[item.method] || item.method);
+                const data = paymentMethods.map(item => parseInt(item.count) || 0);
+
+                paymentChart.data.labels = labels;
+                paymentChart.data.datasets[0].data = data;
+            }
+            paymentChart.update();
+        }
+
+        function updateTopPackages(topPackages) {
+            const tbody = document.querySelector('#top-packages tbody');
+
+            if (!topPackages || topPackages.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox"></i> Belum ada data pembayaran
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const rankClasses = ['rank-1', 'rank-2', 'rank-3'];
+
+            tbody.innerHTML = topPackages.map((pkg, index) => {
+                const rankClass = rankClasses[index] || '';
+                return `
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge-rank ${rankClass}">${index + 1}</span>
+                                <div>
+                                    <strong>${pkg.package_name}</strong>
+                                    <small class="d-block text-muted">${pkg.customer_count} pelanggan</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold">${formatRupiah(pkg.total_revenue)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showNoData() {
+            document.getElementById('total-revenue').textContent = 'Rp 0';
+            document.getElementById('active-customers').textContent = '0';
+            document.getElementById('pending-invoices').textContent = '0';
+            document.getElementById('total-arrears').textContent = 'Rp 0';
+
+            document.querySelector('#top-packages tbody').innerHTML = `
+                <tr>
+                    <td colspan="2" class="text-center text-muted py-4">
+                        <i class="fas fa-exclamation-circle"></i> Gagal memuat data
+                    </td>
+                </tr>
+            `;
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav-admin">
+        <div class="nav-item-admin" id="nav-admin-dashboard" onclick="navigateToPage('dashboard', 'dashboard.html')">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-customers" onclick="navigateToPage('customers', 'customers.html')">
+            <i class="fas fa-users"></i>
+            <span>Pelanggan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-network" onclick="navigateToPage('network', 'acs.html')">
+            <i class="fas fa-network-wired"></i>
+            <span>Jaringan</span>
+        </div>
+        <div class="nav-item-admin active" id="nav-admin-reports" onclick="navigateToPage('reports', 'reports.html')">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-settings" onclick="navigateToPage('settings', 'settings.html')">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+    </nav>
+
+    <!-- Bottom Nav Script -->
+    <script src="bottom-nav.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pelanggan - ACSLite Billing</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="gembok_theme.css" rel="stylesheet">
+    <style>
+        /* Base styles that might not be in the theme file */
+        :root {
+            --sidebar-width: 260px;
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .page-content {
+            padding: 25px;
+        }
+
+        .page-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .filter-btn.active {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            border-color: transparent;
+        }
+
+        .data-table {
+            width: 100%;
+        }
+
+        .data-table th {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            color: var(--text-primary);
+        }
+
+        .data-table tr:hover {
+            background: rgba(0, 245, 255, 0.03);
+        }
+
+        .customer-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .customer-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(0, 245, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--neon-cyan);
+            font-weight: 600;
+        }
+
+        .customer-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .customer-id {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--neon-green);
+        }
+
+        .status-badge.isolir {
+            background: rgba(255, 107, 53, 0.15);
+            color: var(--neon-orange);
+        }
+
+        .status-badge.suspended {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--neon-red);
+        }
+
+        .btn-action {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            background: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            color: var(--bg-primary);
+        }
+
+        .btn-action.danger:hover {
+            background: var(--neon-red);
+            border-color: var(--neon-red);
+        }
+
+        .btn-action.warning:hover {
+            background: var(--neon-orange);
+            border-color: var(--neon-orange);
+        }
+
+        .btn-action.success:hover {
+            background: var(--neon-green);
+            border-color: var(--neon-green);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding: 10px 15px 10px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            width: 300px;
+            font-size: 0.9rem;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.1);
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-mini {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-mini:hover {
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-neon);
+            transform: translateY(-2px);
+        }
+
+        .stat-mini-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-mini-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-mini-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-mini-icon.primary {
+            background: rgba(0, 245, 255, 0.1);
+            color: var(--neon-cyan);
+        }
+
+        .stat-mini-icon.success {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--neon-green);
+        }
+
+        .stat-mini-icon.warning {
+            background: rgba(255, 107, 53, 0.1);
+            color: var(--neon-orange);
+        }
+
+        .stat-mini-icon.danger {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--neon-red);
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-header {
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            border-bottom: none;
+        }
+
+        .btn-close-white {
+            filter: invert(1);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Menu Item Submenu overrides */
+        .menu-item-parent {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .page-content {
+                padding: 15px;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+
+            .filter-bar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="sidebar-brand text-decoration-none">
+                <div class="sidebar-brand-icon d-inline-flex p-2 rounded shadow-sm text-white me-2">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="sidebar-brand-text d-inline-block align-middle fw-bold">
+                    ACS-Lite<small class="d-block fw-normal opacity-75" style="font-size: 0.7rem;">ISP Billing
+                        System</small>
+                </div>
+            </a>
+        </div>
+        <nav class="sidebar-menu p-3">
+            <div class="menu-label mb-2">Menu Utama</div>
+            <a href="dashboard.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">ISP Billing</div>
+            <div class="menu-item-parent d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1 open active"
+                onclick="toggleSubmenu(this)">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+                <i class="fas fa-chevron-right menu-arrow ms-auto" style="font-size: 0.8rem;"></i>
+            </div>
+            <div class="menu-submenu active">
+                <a href="packages.html" class="submenu-item">
+                    <i class="fas fa-cube"></i><span>Paket</span>
+                </a>
+                <a href="customers.html" class="submenu-item active">
+                    <i class="fas fa-users"></i><span>Pelanggan</span>
+                </a>
+                <a href="invoices.html" class="submenu-item">
+                    <i class="fas fa-file-invoice"></i><span>Invoice</span>
+                </a>
+                <a href="payments.html" class="submenu-item">
+                    <i class="fas fa-money-bill-wave"></i><span>Pembayaran</span>
+                </a>
+            </div>
+
+            <div class="menu-label mb-2 mt-3">Manajemen Jaringan</div>
+            <a href="acs.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-microchip"></i><span>ACS / TR-069</span>
+            </a>
+            <a href="mikrotik.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-server"></i><span>MikroTik PPPoE</span>
+            </a>
+            <a href="radius.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-shield-alt"></i><span>RADIUS Server</span>
+            </a>
+            <a href="map.html" class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-map-marker-alt"></i><span>Peta Jaringan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Data & Laporan</div>
+            <a href="reports.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-chart-bar"></i><span>Laporan</span>
+            </a>
+
+            <div class="menu-label mb-2 mt-3">Sistem</div>
+            <a href="settings.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cog"></i><span>Pengaturan</span>
+            </a>
+            <a href="db_admin.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-database"></i><span>Database Admin</span>
+            </a>
+            <a href="updater.html"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-cloud-download-alt"></i><span>Update Sistem</span>
+            </a>
+            <a href="javascript:void(0)" onclick="logout()"
+                class="menu-item d-flex align-items-center gap-2 p-2 rounded text-decoration-none mb-1">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Cari nama, ID, telepon..."
+                        onkeyup="searchCustomers()">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="fas fa-plus me-1"></i> Tambah Pelanggan
+            </button>
+        </header>
+
+        <div class="page-content">
+            <h2 class="page-title">Pelanggan</h2>
+            <p class="page-subtitle">Kelola data pelanggan ISP Anda</p>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-mini">
+                    <div class="stat-mini-icon primary"><i class="fas fa-users"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="stat-total">0</div>
+                        <div class="stat-mini-label">Total</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon success"><i class="fas fa-check-circle"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="stat-active">0</div>
+                        <div class="stat-mini-label">Aktif</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon warning"><i class="fas fa-pause-circle"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="stat-isolir">0</div>
+                        <div class="stat-mini-label">Isolir</div>
+                    </div>
+                </div>
+                <div class="stat-mini">
+                    <div class="stat-mini-icon danger"><i class="fas fa-ban"></i></div>
+                    <div>
+                        <div class="stat-mini-value" id="stat-suspended">0</div>
+                        <div class="stat-mini-label">Suspended</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="fas fa-list"></i> Daftar Pelanggan</h5>
+                    <div class="filter-bar">
+                        <button class="filter-btn active" onclick="filterStatus('', this)">Semua</button>
+                        <button class="filter-btn" onclick="filterStatus('active', this)">Aktif</button>
+                        <button class="filter-btn" onclick="filterStatus('isolir', this)">Isolir</button>
+                        <button class="filter-btn" onclick="filterStatus('suspended', this)">Suspended</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Pelanggan</th>
+                                    <th>Telepon</th>
+                                    <th>Paket</th>
+                                    <th>PPPoE</th>
+                                    <th>Status</th>
+                                    <th>Terdaftar</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table">
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                        <p class="mt-2 text-muted">Loading...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal fade" id="customerModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal-title"><i class="fas fa-user-plus me-2"></i>Tambah Pelanggan</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="customer-form" onsubmit="event.preventDefault(); saveCustomer();">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="input-name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">No. Telepon <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="input-phone" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="input-email">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Paket</label>
+                                <select class="form-select" id="input-package"></select>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Alamat</label>
+                                <textarea class="form-control" id="input-address" rows="2"></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">PPPoE Username</label>
+                                <input type="text" class="form-control" id="input-pppoe-user">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">PPPoE Password</label>
+                                <input type="text" class="form-control" id="input-pppoe-pass">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Tanggal Tagihan</label>
+                                <select class="form-select" id="input-billing-date">
+                                    <option value="1">Tanggal 1</option>
+                                    <option value="5">Tanggal 5</option>
+                                    <option value="10">Tanggal 10</option>
+                                    <option value="15">Tanggal 15</option>
+                                    <option value="20">Tanggal 20</option>
+                                    <option value="25">Tanggal 25</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Biaya Bulanan</label>
+                                <input type="number" class="form-control" id="input-monthly-fee">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Serial ONU</label>
+                                <input type="text" class="form-control" id="input-onu-serial"
+                                    placeholder="ALCLXXXXXXXXXX">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="btn-save-customer">
+                            <i class="fas fa-save me-1"></i> Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Use relative API path for better compatibility
+        const API = `${window.location.protocol}//${window.location.hostname}:8888/api/billing_api.php`;
+
+        let allCustomers = [];
+        let packages = [];
+        let currentFilter = '';
+        let customerModal;
+        let isSaving = false;
+
+        // Check if user is logged in
+        function checkSession() {
+            const session = sessionStorage.getItem('acs_session');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check session first
+            if (!checkSession()) return;
+
+            customerModal = new bootstrap.Modal(document.getElementById('customerModal'));
+
+            // Prevent form submission default behavior
+            document.getElementById('customer-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                saveCustomer();
+            });
+
+            loadPackages();
+            loadCustomers();
+            loadStats();
+        });
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebar-overlay').classList.toggle('show');
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API}?action=dashboard`);
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('stat-total').textContent = result.stats.total_customers;
+                    document.getElementById('stat-active').textContent = result.stats.active_customers;
+                    document.getElementById('stat-isolir').textContent = result.stats.isolir_customers;
+                    document.getElementById('stat-suspended').textContent =
+                        result.stats.total_customers - result.stats.active_customers - result.stats.isolir_customers;
+                }
+            } catch (e) {
+                console.error('Error loading stats:', e);
+            }
+        }
+
+        async function loadPackages() {
+            try {
+                const response = await fetch(`${API}?action=packages`);
+                const result = await response.json();
+                if (result.success) {
+                    packages = result.packages;
+                    const select = document.getElementById('input-package');
+                    select.innerHTML = '<option value="">Pilih Paket</option>' +
+                        packages.map(p => `<option value="${p.id}" data-price="${p.price}">${p.name} - Rp ${parseInt(p.price).toLocaleString('id-ID')}</option>`).join('');
+
+                    select.addEventListener('change', function () {
+                        const selected = this.options[this.selectedIndex];
+                        if (selected.dataset.price) {
+                            document.getElementById('input-monthly-fee').value = selected.dataset.price;
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading packages:', e);
+            }
+        }
+
+        async function loadCustomers() {
+            const tbody = document.getElementById('customers-table');
+
+            try {
+                let url = `${API}?action=customers`;
+                if (currentFilter) url += `&status=${currentFilter}`;
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    allCustomers = result.customers;
+                    renderCustomers(result.customers);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">${result.error}</td></tr>`;
+                }
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">Error loading data</td></tr>`;
+            }
+        }
+
+        function renderCustomers(customers) {
+            const tbody = document.getElementById('customers-table');
+
+            if (customers.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="7">
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <p>Belum ada pelanggan</p>
+                            <button class="btn btn-primary" onclick="openAddModal()">
+                                <i class="fas fa-plus me-1"></i> Tambah Pelanggan
+                            </button>
+                        </div>
+                    </td></tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = customers.map(c => {
+                const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                const statusClass = c.status === 'active' ? 'active' : (c.status === 'isolir' ? 'isolir' : 'suspended');
+                const statusIcon = c.status === 'active' ? 'check' : (c.status === 'isolir' ? 'pause' : 'ban');
+                const statusText = c.status === 'active' ? 'Aktif' : (c.status === 'isolir' ? 'Isolir' : 'Suspended');
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="customer-cell">
+                                <div class="customer-avatar">${initials}</div>
+                                <div>
+                                    <div class="customer-name">${c.name}</div>
+                                    <div class="customer-id">${c.customer_id}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${c.phone}</td>
+                        <td>${c.package_name || '-'}<br><small class="text-muted">${c.package_speed || ''}</small></td>
+                        <td><code>${c.pppoe_username || '-'}</code></td>
+                        <td>
+                            <span class="status-badge ${statusClass}">
+                                <i class="fas fa-${statusIcon}"></i> ${statusText}
+                            </span>
+                        </td>
+                        <td><small>${c.registered_at || '-'}</small></td>
+                        <td class="text-end">
+                            <button class="btn-action" onclick="editCustomer(${c.id})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${c.status === 'active' ?
+                        `<button class="btn-action warning" onclick="isolirCustomer(${c.id}, '${c.name}')" title="Isolir">
+                                    <i class="fas fa-pause"></i>
+                                </button>` :
+                        `<button class="btn-action success" onclick="unisolirCustomer(${c.id}, '${c.name}')" title="Aktifkan">
+                                    <i class="fas fa-play"></i>
+                                </button>`
+                    }
+                            <button class="btn-action" onclick="createInvoice(${c.id})" title="Buat Invoice">
+                                <i class="fas fa-file-invoice"></i>
+                            </button>
+                            <button class="btn-action danger" onclick="deleteCustomer(${c.id}, '${c.name}')" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function searchCustomers() {
+            const term = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allCustomers.filter(c =>
+                c.name.toLowerCase().includes(term) ||
+                c.customer_id.toLowerCase().includes(term) ||
+                c.phone.includes(term) ||
+                (c.pppoe_username && c.pppoe_username.toLowerCase().includes(term))
+            );
+            renderCustomers(filtered);
+        }
+
+        function filterStatus(status, btn) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadCustomers();
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-user-plus me-2"></i>Tambah Pelanggan';
+            document.getElementById('customer-form').reset();
+            document.getElementById('edit-id').value = '';
+            customerModal.show();
+        }
+
+        async function editCustomer(id) {
+            try {
+                const response = await fetch(`${API}?action=customer&id=${id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const c = result.customer;
+                    document.getElementById('modal-title').innerHTML = '<i class="fas fa-user-edit me-2"></i>Edit Pelanggan';
+                    document.getElementById('edit-id').value = c.id;
+                    document.getElementById('input-name').value = c.name;
+                    document.getElementById('input-phone').value = c.phone;
+                    document.getElementById('input-email').value = c.email || '';
+                    document.getElementById('input-address').value = c.address || '';
+                    document.getElementById('input-package').value = c.package_id || '';
+                    document.getElementById('input-pppoe-user').value = c.pppoe_username || '';
+                    document.getElementById('input-pppoe-pass').value = c.pppoe_password || '';
+                    document.getElementById('input-billing-date').value = c.billing_date || 1;
+                    document.getElementById('input-monthly-fee').value = c.monthly_fee || '';
+                    document.getElementById('input-onu-serial').value = c.onu_serial || '';
+                    customerModal.show();
+                }
+            } catch (e) {
+                alert('Error loading customer data');
+            }
+        }
+
+        async function saveCustomer() {
+            // Prevent double submission
+            if (isSaving) return;
+
+            const saveBtn = document.getElementById('btn-save-customer');
+            const id = document.getElementById('edit-id').value;
+            const data = {
+                action: id ? 'update_customer' : 'add_customer',
+                id: id || undefined,
+                name: document.getElementById('input-name').value.trim(),
+                phone: document.getElementById('input-phone').value.trim(),
+                email: document.getElementById('input-email').value.trim(),
+                address: document.getElementById('input-address').value.trim(),
+                package_id: document.getElementById('input-package').value || null,
+                pppoe_username: document.getElementById('input-pppoe-user').value.trim(),
+                pppoe_password: document.getElementById('input-pppoe-pass').value.trim(),
+                billing_date: document.getElementById('input-billing-date').value,
+                monthly_fee: document.getElementById('input-monthly-fee').value,
+                onu_serial: document.getElementById('input-onu-serial').value.trim()
+            };
+
+            if (!data.name || !data.phone) {
+                alert('Nama dan Telepon wajib diisi');
+                return;
+            }
+
+            // Set loading state
+            isSaving = true;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
+
+            try {
+                console.log('Saving customer data:', data);
+                console.log('API URL:', API);
+
+                const response = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                console.log('Response status:', response.status);
+
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('Failed to parse response:', parseError);
+                    alert(`❌ Error: Server response tidak valid. Lihat console untuk detail.`);
+                    return;
+                }
+
+                console.log('Parsed result:', result);
+
+                if (result.success) {
+                    alert(`✅ ${result.message}`);
+                    customerModal.hide();
+                    loadCustomers();
+                    loadStats();
+                } else {
+                    alert(`❌ ${result.error || 'Gagal menyimpan data'}`);
+                }
+            } catch (e) {
+                console.error('Save error:', e);
+                alert(`❌ Error: ${e.message}`);
+            } finally {
+                // Reset loading state
+                isSaving = false;
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan';
+            }
+        }
+
+        async function isolirCustomer(id, name) {
+            if (!confirm(`ISOLIR pelanggan "${name}"?`)) return;
+
+            try {
+                const response = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'isolir', id })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadCustomers();
+                loadStats();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function unisolirCustomer(id, name) {
+            if (!confirm(`AKTIFKAN kembali pelanggan "${name}"?`)) return;
+
+            try {
+                const response = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'unisolir', id })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadCustomers();
+                loadStats();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function deleteCustomer(id, name) {
+            if (!confirm(`HAPUS pelanggan "${name}"?\n\nSemua data invoice dan pembayaran juga akan dihapus!`)) return;
+            if (!confirm(`Konfirmasi sekali lagi: Hapus "${name}"?`)) return;
+
+            try {
+                const response = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_customer', id })
+                });
+
+                const result = await response.json();
+                alert(result.success ? `✅ ${result.message}` : `❌ ${result.error}`);
+                loadCustomers();
+                loadStats();
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        async function createInvoice(customerId) {
+            if (!confirm('Buat invoice bulanan untuk pelanggan ini?')) return;
+
+            try {
+                const response = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'create_invoice',
+                        customer_id: customerId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ ${result.message}\n\nInvoice ID: ${result.invoice_id || 'N/A'}`);
+                    // Redirect to invoices page
+                    if (confirm('Lihat invoice yang baru dibuat?')) {
+                        window.location.href = 'invoices.html';
+                    }
+                } else {
+                    alert(`❌ ${result.error}`);
+                }
+            } catch (e) {
+                alert(`❌ Error: ${e.message}`);
+            }
+        }
+
+        function toggleSubmenu(el) {
+            const submenu = el.nextElementSibling;
+            el.classList.toggle('open');
+            submenu.classList.toggle('active');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('acs_session');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav-admin">
+        <div class="nav-item-admin" id="nav-admin-dashboard" onclick="navigateToPage('dashboard', 'dashboard.html')">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </div>
+        <div class="nav-item-admin active" id="nav-admin-customers"
+            onclick="navigateToPage('customers', 'customers.html')">
+            <i class="fas fa-users"></i>
+            <span>Pelanggan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-network" onclick="navigateToPage('network', 'acs.html')">
+            <i class="fas fa-network-wired"></i>
+            <span>Jaringan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-reports" onclick="navigateToPage('reports', 'reports.html')">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+        </div>
+        <div class="nav-item-admin" id="nav-admin-settings" onclick="navigateToPage('settings', 'settings.html')">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </div>
+    </nav>
+
+    <!-- Bottom Nav Script -->
+    <script src="bottom-nav.js"></script>
+    <!-- Theme Toggle -->
+    <script src="theme-toggle.js"></script>
+</body>
+
+</html>
