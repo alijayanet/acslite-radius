@@ -5,7 +5,7 @@ DB_USER_RADIUS="radius"
 DB_PASS_RADIUS="radius123"
 
 MYSQL_ROOT_USER="root"
-MYSQL_ROOT_PASS=""
+MYSQL_ROOT_PASS="radius123"
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root (sudo ./install_radius.sh)"
@@ -55,17 +55,17 @@ echo "[INFO] Creating database '$DB_NAME_RADIUS' and user '$DB_USER_RADIUS'..."
 # -----------------------------------------------------------------
 # 1. Add NAS entry (router) to radius DB if not present
 # -----------------------------------------------------------------
-NAS_IP="${Mikrotik_IP:-192.168.1.1}"          # can be overridden via env var
+NAS_IP="${Mikrotik_IP:-103.197.92.22}"          # can be overridden via env var
 NAS_SECRET="${Mikrotik_SECRET:-radius}"      # same secret as used on MikroTik
 NAS_NAME="${Mikrotik_NAME:-mikrotik1}"
-${MYSQL_CMD[@]} -e "INSERT INTO nas (nasname, shortname, type, ports, secret, description) SELECT '${NAS_IP}', '${NAS_NAME}', 'other', 0, '${NAS_SECRET}', 'Added by install_radius.sh' WHERE NOT EXISTS (SELECT 1 FROM nas WHERE nasname='${NAS_IP}');"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT INTO nas (nasname, shortname, type, ports, secret, description) SELECT '${NAS_IP}', '${NAS_NAME}', 'other', 0, '${NAS_SECRET}', 'Added by install_radius.sh' WHERE NOT EXISTS (SELECT 1 FROM nas WHERE nasname='${NAS_IP}');"
 
 # -----------------------------------------------------------------
 # 2. Add default RADIUS user for testing (demo)
 # -----------------------------------------------------------------
 RADIUS_USER="${DEFAULT_RADIUS_USER:-demo}"
 RADIUS_PASS="${DEFAULT_RADIUS_PASS:-demo123}"
-${MYSQL_CMD[@]} -e "INSERT INTO radcheck (username, attribute, op, value) SELECT '${RADIUS_USER}', 'Cleartext-Password', ':=', '${RADIUS_PASS}' WHERE NOT EXISTS (SELECT 1 FROM radcheck WHERE username='${RADIUS_USER}');"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT INTO radcheck (username, attribute, op, value) SELECT '${RADIUS_USER}', 'Cleartext-Password', ':=', '${RADIUS_PASS}' WHERE NOT EXISTS (SELECT 1 FROM radcheck WHERE username='${RADIUS_USER}');"
 
 # (Optional) Assign a static IP to the demo user – uncomment if needed
 #${MYSQL_CMD[@]} -e "INSERT INTO radreply (username, attribute, op, value) SELECT '${RADIUS_USER}', 'Framed-IP-Address', '=', '192.168.100.50' WHERE NOT EXISTS (SELECT 1 FROM radreply WHERE username='${RADIUS_USER}');"
@@ -73,7 +73,7 @@ ${MYSQL_CMD[@]} -e "INSERT INTO radcheck (username, attribute, op, value) SELECT
 SETTINGS_JSON="/opt/acs/web/data/settings.json"
 if [ -f "$SETTINGS_JSON" ] && command -v php >/dev/null 2>&1; then
   echo "[INFO] Updating $SETTINGS_JSON with hotspot.radius DB config..."
-  php -r '$p=getenv("SETTINGS_JSON"); $s=json_decode(@file_get_contents($p), true) ?: []; if(!isset($s["hotspot"])) $s["hotspot"]=[]; if(!isset($s["hotspot"]["radius"])) $s["hotspot"]["radius"]=[]; $s["hotspot"]["radius"]["db_host"]="127.0.0.1"; $s["hotspot"]["radius"]["db_port"]=3306; $s["hotspot"]["radius"]["db_name"]=getenv("DB_NAME_RADIUS"); $s["hotspot"]["radius"]["db_user"]=getenv("DB_USER_RADIUS"); $s["hotspot"]["radius"]["db_pass"]=getenv("DB_PASS_RADIUS"); file_put_contents($p, json_encode($s, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));' SETTINGS_JSON="$SETTINGS_JSON" DB_NAME_RADIUS="$DB_NAME_RADIUS" DB_USER_RADIUS="$DB_USER_RADIUS" DB_PASS_RADIUS="$DB_PASS_RADIUS"
+  SETTINGS_JSON="$SETTINGS_JSON" DB_NAME_RADIUS="$DB_NAME_RADIUS" DB_USER_RADIUS="$DB_USER_RADIUS" DB_PASS_RADIUS="$DB_PASS_RADIUS" php -r '$p=getenv("SETTINGS_JSON"); $s=json_decode(@file_get_contents($p), true) ?: []; if(!isset($s["hotspot"])) $s["hotspot"]=[]; if(!isset($s["hotspot"]["radius"])) $s["hotspot"]["radius"]=[]; $s["hotspot"]["radius"]["db_host"]="127.0.0.1"; $s["hotspot"]["radius"]["db_port"]=3306; $s["hotspot"]["radius"]["db_name"]=getenv("DB_NAME_RADIUS"); $s["hotspot"]["radius"]["db_user"]=getenv("DB_USER_RADIUS"); $s["hotspot"]["radius"]["db_pass"]=getenv("DB_PASS_RADIUS"); file_put_contents($p, json_encode($s, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));'
 fi
 
 echo "[INFO] Loading FreeRADIUS SQL schema into '${DB_NAME_RADIUS}'..."
@@ -120,21 +120,21 @@ CREATE TABLE IF NOT EXISTS radreply (
 # Insert dummy data (editable later)
 # -----------------------------------------------------------------
 # Dummy NAS entry (router)
-${MYSQL_CMD[@]} -e "INSERT IGNORE INTO nas (nasname, shortname, type, ports, secret, description) VALUES ('192.168.1.1', 'mikrotik1', 'other', 0, 'radius', 'Dummy NAS entry');"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO nas (nasname, shortname, type, ports, secret, description) VALUES ('192.168.1.1', 'mikrotik1', 'other', 0, 'radius', 'Dummy NAS entry');"
 
 # Dummy PPPoE user (demo)
-${MYSQL_CMD[@]} -e "INSERT IGNORE INTO radcheck (username, attribute, op, value) VALUES ('demo', 'Cleartext-Password', ':=', 'demo123');"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radcheck (username, attribute, op, value) VALUES ('demo', 'Cleartext-Password', ':=', 'demo123');"
 
 # Dummy static IP for demo user
-${MYSQL_CMD[@]} -e "INSERT IGNORE INTO radreply (username, attribute, op, value) VALUES ('demo', 'Framed-IP-Address', '=', '192.168.100.50');"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radreply (username, attribute, op, value) VALUES ('demo', 'Framed-IP-Address', '=', '192.168.100.50');"
 
 # Dummy group and membership
-${MYSQL_CMD[@]} -e "INSERT IGNORE INTO radgroupcheck (groupname, attribute, op, value) VALUES ('demo-group', 'Auth-Type', ':=', 'Accept');"
-${MYSQL_CMD[@]} -e "INSERT IGNORE INTO radgroupreply (groupname, attribute, op, value) VALUES ('demo-group', 'Framed-IP-Address', '=', '192.168.100.51');"
-${MYSQL_CMD[@]} -e "INSERT IGNORE INTO radusergroup (username, groupname, priority) VALUES ('demo', 'demo-group', 1);"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radgroupcheck (groupname, attribute, op, value) VALUES ('demo-group', 'Auth-Type', ':=', 'Accept');"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radgroupreply (groupname, attribute, op, value) VALUES ('demo-group', 'Framed-IP-Address', '=', '192.168.100.51');"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radusergroup (username, groupname, priority) VALUES ('demo', 'demo-group', 1);"
 
 # Dummy post‑auth record (optional)
-${MYSQL_CMD[@]} -e "INSERT IGNORE INTO radpostauth (username, pass, reply, authdate) VALUES ('demo', 'demo123', 'Access-Accept', NOW());"
+${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radpostauth (username, pass, reply, authdate) VALUES ('demo', 'demo123', 'Access-Accept', NOW());"
 
 CREATE TABLE IF NOT EXISTS radacct (
   radacctid BIGINT(21) NOT NULL AUTO_INCREMENT,
@@ -242,12 +242,7 @@ if [ -f "./fix_freeradius_ipv4.sh" ]; then
 else
   echo "[WARNING] fix_freeradius_ipv4.sh not found. Skipping listen fix."
 fi
-  echo "[INFO] Configuring FreeRADIUS to use SQL (authorize + accounting)..."
-  chmod +x ./configure_freeradius_sql.sh
-  ./configure_freeradius_sql.sh
-else
-  echo "[WARNING] configure_freeradius_sql.sh not found. FreeRADIUS may not use SQL until configured."
-fi
+
 
 echo "[INFO] Enabling and starting FreeRADIUS..."
 

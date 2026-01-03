@@ -7,7 +7,7 @@
 # ========================================
 DB_NAME="acs"
 DB_USER="root"
-DB_PASS="secret123"
+DB_PASS="radius123"
 INSTALL_DIR="/opt/acs"
 SERVICE_NAME="acslite"
 DB_DSN="$DB_USER:$DB_PASS@tcp(127.0.0.1:3306)/$DB_NAME?parseTime=true"
