@@ -482,8 +482,8 @@ This project is licensed under the **MIT License** – see the [LICENSE](LICENSE
 **Alijaya-Net** – *Your ISP Automation Partner*
 
 - 📱 Phone / WhatsApp: **0819-4721-5703**
-- 📧 Email: `support@alijaya-net.id`
-- 🌐 Website: [alijaya-net.id](https://alijaya-net.id)
+- 📧 Email: `alijaya@gmail.com`
+- 🌐 Website: [alijaya-net](https://alijaya.net)
 - 🐛 GitHub Issues: [github.com/alijayanet/acslite-radius/issues](https://github.com/alijayanet/acslite-radius/issues)
 
 ### Need Help?
@@ -512,3 +512,4 @@ With a single `bash install.sh && bash install_radius.sh` you now have a **compl
 ---
 
 *Made with ❤️ by **Alijaya-Net** (0819-4721-5703) – Your network, automated.*
+
