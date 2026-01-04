@@ -865,6 +865,29 @@
                     <div class="icon"><i class="fas fa-headset"></i></div>
                     <div class="title">Bantuan</div>
                 </div>
+                <div class="action-card password" onclick="showChangePasswordModal()">
+                    <div class="icon"><i class="fas fa-key"></i></div>
+                    <div class="title">Ganti Password</div>
+                </div>
+            </div>
+
+            <!-- Info Alert for Data Sync -->
+            <div class="alert alert-info" id="sync-alert"
+                style="display: none; border-radius: var(--radius-md); border-left: 4px solid var(--primary);">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-info-circle me-3 mt-1" style="color: var(--primary); font-size: 1.2rem;"></i>
+                    <div>
+                        <h6 class="fw-bold mb-2">📡 Sinkronisasi Data Perangkat</h6>
+                        <p class="mb-2 small">
+                            Untuk mendapatkan data perangkat lengkap dan mengubah pengaturan WiFi,
+                            admin perlu membuka halaman <strong>ACS / TR-069</strong> terlebih dahulu.
+                        </p>
+                        <p class="mb-0 small text-muted">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            Data akan tersinkronisasi otomatis dan tersimpan di browser.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- Device Info -->
@@ -1386,9 +1409,57 @@
                 console.log('Serial Number:', currentSession.serialNumber);
                 console.log('Customer Data:', currentSession.customerData);
 
-                // PRIMARY: Use session customerData first (should have full device info from login)
+                // PRIORITY 1: Try localStorage cache from admin dashboard (most complete data)
+                console.log('Checking localStorage for acs_devices...');
+                const cachedDevices = localStorage.getItem('acs_devices');
+                if (cachedDevices) {
+                    try {
+                        const devices = JSON.parse(cachedDevices);
+                        console.log(`Found ${devices.length} devices in localStorage cache`);
+                        const device = devices.find(d => d.serial_number === currentSession.serialNumber);
+                        if (device) {
+                            console.log('✅ Device found in localStorage cache with full data:', device);
+                            console.log('  - wifi_services:', device.wifi_services);
+                            console.log('  - wan_services:', device.wan_services);
+                            console.log('  - parameters:', device.parameters ? Object.keys(device.parameters).length + ' params' : 'none');
+
+                            deviceData = device;
+
+                            // Check for location data
+                            const onuLocations = localStorage.getItem('onu_locations');
+                            if (onuLocations) {
+                                try {
+                                    const locations = JSON.parse(onuLocations);
+                                    const loc = locations[currentSession.serialNumber];
+                                    if (loc) {
+                                        locationData = {
+                                            name: loc.name,
+                                            latitude: loc.lat,
+                                            longitude: loc.lng
+                                        };
+                                        console.log('Location data found:', locationData);
+                                    }
+                                } catch (e) {
+                                    console.warn('Failed to parse onu_locations:', e);
+                                }
+                            }
+
+                            updateDeviceInfo();
+                            updateStatus();
+                            showToast('Data perangkat berhasil dimuat', 'success');
+                            showLoading(false);
+                            return;
+                        } else {
+                            console.log('Device not found in cache for SN:', currentSession.serialNumber);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse cached devices:', e);
+                    }
+                }
+
+                // PRIORITY 2: Use session customerData (may have limited data)
                 if (currentSession.customerData && Object.keys(currentSession.customerData).length > 0) {
-                    console.log('Using session customerData as primary source');
+                    console.log('Using session customerData as fallback');
 
                     deviceData = {
                         serial_number: currentSession.serialNumber,
@@ -1404,77 +1475,64 @@
                         };
                     }
 
-                    // Also check localStorage for location
-                    const onuLocations = localStorage.getItem('onu_locations');
-                    if (onuLocations && !locationData) {
-                        const locations = JSON.parse(onuLocations);
-                        const loc = locations[currentSession.serialNumber];
-                        if (loc) {
-                            locationData = {
-                                name: loc.name,
-                                latitude: loc.lat,
-                                longitude: loc.lng
-                            };
-                        }
-                    }
-
-                    console.log('deviceData set to:', deviceData);
-                    console.log('About to call updateDeviceInfo...');
+                    console.log('deviceData set from session:', deviceData);
                     updateDeviceInfo();
-                    console.log('updateDeviceInfo completed');
                     updateStatus();
-                    console.log('updateStatus completed');
-                    showToast('Data perangkat berhasil dimuat', 'success');
+                    showToast('Data dimuat dari sesi login', 'success');
                     showLoading(false);
                     return;
                 }
 
-                // FALLBACK 1: Try localStorage cache
-                console.log('Session data incomplete, trying localStorage...');
-                const cachedDevices = localStorage.getItem('acs_devices');
-                if (cachedDevices) {
-                    try {
-                        const devices = JSON.parse(cachedDevices);
-                        console.log(`Found ${devices.length} devices in cache`);
-                        const device = devices.find(d => d.serial_number === currentSession.serialNumber);
-                        if (device) {
-                            console.log('Device found in cache:', device);
-                            deviceData = device;
+                // PRIORITY 3: Use Backend Proxy (customer_api.php) - Reliable for customers
+                console.log('Fetching live data from customer_api.php proxy...');
+                try {
+                    const response = await fetch(`${CUSTOMER_API_BASE}?sn=${encodeURIComponent(currentSession.serialNumber)}`);
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success && result.device) {
+                            console.log('✅ Live data fetched from proxy:', result.device);
+                            deviceData = result.device;
+
+                            if (result.location) {
+                                locationData = {
+                                    name: result.location.name,
+                                    latitude: result.location.latitude,
+                                    longitude: result.location.longitude
+                                };
+                            }
+
                             updateDeviceInfo();
                             updateStatus();
-                            showToast('Data dimuat dari cache', 'success');
+                            showToast('Status perangkat diperbarui (Live)', 'success');
+                            showLoading(false);
                             return;
                         }
-                    } catch (e) {
-                        console.warn('Failed to parse cached devices:', e);
                     }
+                } catch (proxyError) {
+                    console.log('Customer API Proxy error:', proxyError.message);
                 }
 
-                // FALLBACK 2: Try API (likely will fail with 401 for customer)
-                console.log('Trying API as last resort...');
+                // PRIORITY 4: Try Direct Go-ACS API (legacy, likely fails)
+                console.log('Trying direct API as last resort...');
                 try {
                     const response = await fetch(`${API_BASE}/devices?per_page=1000`);
                     if (response.ok) {
                         const result = await response.json();
                         const devices = Array.isArray(result) ? result : (result.data || []);
-                        console.log(`Loaded ${devices.length} devices from API`);
-
-                        // Cache for future use
-                        localStorage.setItem('acs_devices', JSON.stringify(devices));
+                        console.log(`Loaded ${devices.length} devices from direct API`);
 
                         const device = devices.find(d => d.serial_number === currentSession.serialNumber);
                         if (device) {
                             deviceData = device;
                             updateDeviceInfo();
                             updateStatus();
-                            showToast('Data dimuat dari API', 'success');
+                            showToast('Data dimuat dari direct API', 'success');
+                            showLoading(false);
                             return;
                         }
-                    } else {
-                        console.log('API returned:', response.status);
                     }
                 } catch (apiError) {
-                    console.log('API error:', apiError.message);
+                    console.log('Direct API error:', apiError.message);
                 }
 
                 // Last resort: Show minimal data from session
@@ -1484,11 +1542,13 @@
                         product_class: 'Unknown',
                         manufacturer: 'Unknown',
                         last_inform_time: null,
-                        parameters: {}
+                        parameters: {},
+                        wifi_services: {},
+                        wan_services: {}
                     };
                     updateDeviceInfo();
                     updateStatus();
-                    showToast('Hanya serial number tersedia. Login ulang dari halaman admin untuk data lengkap.', 'warning');
+                    showToast('⚠️ Data terbatas. Buka halaman Admin ACS untuk menyinkronkan data lengkap.', 'warning');
                 } else {
                     showToast('Tidak ada data perangkat tersedia', 'error');
                 }
@@ -1509,6 +1569,24 @@
 
             console.log('updateDeviceInfo: deviceData keys:', Object.keys(deviceData));
             console.log('updateDeviceInfo: full data:', JSON.stringify(deviceData, null, 2));
+
+            // Check if data is complete (has wifi_services and parameters)
+            const hasCompleteData = deviceData.wifi_services &&
+                Object.keys(deviceData.wifi_services).length > 0 &&
+                deviceData.parameters &&
+                Object.keys(deviceData.parameters).length > 0;
+
+            // Show/hide sync alert based on data completeness
+            const syncAlert = document.getElementById('sync-alert');
+            if (syncAlert) {
+                if (hasCompleteData) {
+                    syncAlert.style.display = 'none';
+                    console.log('✅ Complete device data available - WiFi management enabled');
+                } else {
+                    syncAlert.style.display = 'block';
+                    console.log('⚠️ Incomplete device data - showing sync alert');
+                }
+            }
 
             // Device Info
             const serialEl = document.getElementById('info-serial');
@@ -1813,6 +1891,30 @@
         }
 
         async function saveSSIDOnly() {
+            // Validate device data availability
+            if (!deviceData) {
+                showToast('❌ Data perangkat tidak tersedia. Refresh halaman atau hubungi admin.', 'error');
+                return;
+            }
+
+            // Check if we have complete data for WiFi management
+            const hasCompleteData = deviceData.wifi_services &&
+                Object.keys(deviceData.wifi_services).length > 0 &&
+                deviceData.parameters &&
+                Object.keys(deviceData.parameters).length > 0;
+
+            if (!hasCompleteData) {
+                showToast('⚠️ Data perangkat tidak lengkap. Admin perlu membuka halaman ACS terlebih dahulu.', 'error');
+                wifiModal.hide();
+                // Show the sync alert
+                const syncAlert = document.getElementById('sync-alert');
+                if (syncAlert) {
+                    syncAlert.style.display = 'block';
+                    syncAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
             const ssid = document.getElementById('wifi-ssid').value.trim();
 
             if (!ssid) {
@@ -1836,18 +1938,17 @@
                 parameters[ssidPath] = ssid;
 
                 const payload = {
-                    name: "SetParameterValues",
-                    payload: { parameters: parameters }
+                    action: 'update_wifi',
+                    serial_number: currentSession.serialNumber,
+                    parameters: parameters
                 };
 
-                const response = await fetch(`${API_BASE}/tasks?sn=${encodeURIComponent(currentSession.serialNumber)}`, {
+                const response = await fetch(CUSTOMER_API_BASE, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-Key': 'secret'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+
 
                 if (response.ok) {
                     showToast('✅ Nama WiFi berhasil diubah! Akan diterapkan dalam beberapa menit.', 'success');
@@ -1871,6 +1972,30 @@
         }
 
         async function savePasswordOnly() {
+            // Validate device data availability
+            if (!deviceData) {
+                showToast('❌ Data perangkat tidak tersedia. Refresh halaman atau hubungi admin.', 'error');
+                return;
+            }
+
+            // Check if we have complete data for WiFi management
+            const hasCompleteData = deviceData.wifi_services &&
+                Object.keys(deviceData.wifi_services).length > 0 &&
+                deviceData.parameters &&
+                Object.keys(deviceData.parameters).length > 0;
+
+            if (!hasCompleteData) {
+                showToast('⚠️ Data perangkat tidak lengkap. Admin perlu membuka halaman ACS terlebih dahulu.', 'error');
+                wifiModal.hide();
+                // Show the sync alert
+                const syncAlert = document.getElementById('sync-alert');
+                if (syncAlert) {
+                    syncAlert.style.display = 'block';
+                    syncAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
             const password = document.getElementById('wifi-password').value;
 
             if (!password) {
@@ -1901,18 +2026,17 @@
                 parameters[passPath] = password;
 
                 const payload = {
-                    name: "SetParameterValues",
-                    payload: { parameters: parameters }
+                    action: 'update_wifi',
+                    serial_number: currentSession.serialNumber,
+                    parameters: parameters
                 };
 
-                const response = await fetch(`${API_BASE}/tasks?sn=${encodeURIComponent(currentSession.serialNumber)}`, {
+                const response = await fetch(CUSTOMER_API_BASE, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-Key': 'secret'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+
 
                 if (response.ok) {
                     showToast('✅ Password WiFi berhasil diubah! Akan diterapkan dalam beberapa menit.', 'success');

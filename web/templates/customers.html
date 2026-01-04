@@ -625,13 +625,87 @@
                                 <label class="form-label">Alamat</label>
                                 <textarea class="form-control" id="input-address" rows="2"></textarea>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">PPPoE Username</label>
-                                <input type="text" class="form-control" id="input-pppoe-user">
+
+                            <!-- Portal Login Section -->
+                            <div class="col-12 mt-3 mb-2">
+                                <h6 class="text-primary">
+                                    <i class="fas fa-user-lock"></i> Login Portal Pelanggan
+                                </h6>
+                                <small class="text-muted">Kredensial untuk login ke dashboard pelanggan</small>
+                                <hr>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">PPPoE Password</label>
-                                <input type="text" class="form-control" id="input-pppoe-pass">
+                                <label class="form-label">
+                                    Username Portal
+                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip"
+                                        title="Username untuk login ke portal pelanggan"></i>
+                                </label>
+                                <input type="text" class="form-control" id="input-portal-user"
+                                    placeholder="Bisa sama dengan PPPoE username">
+                                <small class="text-muted">
+                                    <i class="fas fa-user"></i>
+                                    Digunakan untuk login ke customer_login.html
+                                </small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    Password Portal
+                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip"
+                                        title="Password untuk login portal (default: 123456)"></i>
+                                </label>
+                                <input type="text" class="form-control" id="input-portal-pass"
+                                    placeholder="Kosongkan untuk default: 123456">
+                                <small class="text-muted">
+                                    <i class="fas fa-key"></i>
+                                    Customer bisa ganti sendiri di dashboard
+                                </small>
+                            </div>
+
+                            <!-- PPPoE Credentials Section -->
+                            <div class="col-12 mt-3 mb-2">
+                                <h6 class="text-success">
+                                    <i class="fas fa-network-wired"></i> Kredensial PPPoE (Internet)
+                                </h6>
+                                <small class="text-muted">Untuk koneksi internet via MikroTik</small>
+                                <hr>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    PPPoE Username
+                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip"
+                                        title="Digunakan untuk koneksi internet & login portal pelanggan"></i>
+                                </label>
+                                <input type="text" class="form-control" id="input-pppoe-user"
+                                    placeholder="contoh: customer@isp">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb"></i>
+                                    Juga digunakan untuk mencari ONU secara otomatis
+                                </small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    PPPoE Password
+                                    <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip"
+                                        title="Password untuk koneksi PPPoE"></i>
+                                </label>
+                                <input type="text" class="form-control" id="input-pppoe-pass"
+                                    placeholder="Masukkan password PPPoE">
+                                <small class="text-muted">
+                                    <i class="fas fa-shield-alt"></i>
+                                    Simpan password ini untuk diberikan ke pelanggan
+                                </small>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="input-create-pppoe" checked>
+                                    <label class="form-check-label" for="input-create-pppoe">
+                                        <i class="fas fa-server text-primary"></i>
+                                        <strong>Tambahkan ke MikroTik</strong>
+                                        <small class="text-muted d-block ms-4">
+                                            Otomatis membuat PPPoE user di MikroTik jika belum ada
+                                        </small>
+                                    </label>
+                                </div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Tanggal Tagihan</label>
@@ -880,6 +954,8 @@
                     document.getElementById('input-billing-date').value = c.billing_date || 1;
                     document.getElementById('input-monthly-fee').value = c.monthly_fee || '';
                     document.getElementById('input-onu-serial').value = c.onu_serial || '';
+                    document.getElementById('input-portal-user').value = c.portal_username || '';
+                    document.getElementById('input-portal-pass').value = ''; // Reset password field for security
                     customerModal.show();
                 }
             } catch (e) {
@@ -905,7 +981,9 @@
                 pppoe_password: document.getElementById('input-pppoe-pass').value.trim(),
                 billing_date: document.getElementById('input-billing-date').value,
                 monthly_fee: document.getElementById('input-monthly-fee').value,
-                onu_serial: document.getElementById('input-onu-serial').value.trim()
+                onu_serial: document.getElementById('input-onu-serial').value.trim(),
+                portal_username: document.getElementById('input-portal-user').value.trim(),
+                portal_password: document.getElementById('input-portal-pass').value.trim()
             };
 
             if (!data.name || !data.phone) {

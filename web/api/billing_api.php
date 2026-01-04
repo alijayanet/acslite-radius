@@ -268,9 +268,9 @@ try {
                 $input['monthly_fee'] ?? 0,
                 $input['billing_date'] ?? 1,
                 $input['onu_serial'] ?? null,
-                $input['portal_username'] ?? ($input['pppoe_username'] ?? $customerId),
-                // Default password '123456' if not provided
-                password_hash($input['portal_password'] ?? '123456', PASSWORD_BCRYPT)
+                !empty($input['portal_username']) ? $input['portal_username'] : ($input['pppoe_username'] ?? $customerId),
+                // Default password '123456' if not provided or empty
+                password_hash(!empty($input['portal_password']) ? $input['portal_password'] : '123456', PASSWORD_BCRYPT)
             ]);
             
             $id = $pdo->lastInsertId();
@@ -334,6 +334,41 @@ try {
             $stmt->execute([$id]);
             
             jsonResponse(['success' => true, 'message' => 'Customer deleted successfully']);
+            break;
+            
+        case 'change_password':
+            $customerId = $input['customer_id'] ?? '';
+            $oldPassword = $input['old_password'] ?? '';
+            $newPassword = $input['new_password'] ?? '';
+            
+            if (!$customerId || !$oldPassword || !$newPassword) {
+                jsonResponse(['success' => false, 'error' => 'All fields required'], 400);
+            }
+            
+            if (strlen($newPassword) < 4) {
+                jsonResponse(['success' => false, 'error' => 'Password minimal 4 karakter'], 400);
+            }
+            
+            // Get customer
+            $stmt = $pdo->prepare("SELECT id, portal_password FROM customers WHERE id = ?");
+            $stmt->execute([$customerId]);
+            $customer = $stmt->fetch();
+            
+            if (!$customer) {
+                jsonResponse(['success' => false, 'error' => 'Customer not found'], 404);
+            }
+            
+            // Verify old password
+            if (!password_verify($oldPassword, $customer['portal_password'])) {
+                jsonResponse(['success' => false, 'error' => 'Password lama salah'], 401);
+            }
+            
+            // Update password
+            $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+            $stmt = $pdo->prepare("UPDATE customers SET portal_password = ? WHERE id = ?");
+            $stmt->execute([$hashedPassword, $customerId]);
+            
+            jsonResponse(['success' => true, 'message' => 'Password berhasil diubah']);
             break;
             
         case 'isolir':

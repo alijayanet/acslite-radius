@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACS-Lite Updater</title>
+    <title>ACS-Lite Radius v2 Updater</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -370,8 +370,10 @@
     <div class="container">
         <div class="card">
             <div class="card-header">
-                <h1><i class="fas fa-cloud-download-alt"></i> ACS-Lite Updater</h1>
-                <p>Update aplikasi dari GitHub repository</p>
+                <h1><i class="fas fa-server"></i> ACS-Lite Radius v2</h1>
+                <p>Radius & Billing Management System <span class="badge"
+                        style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem;">Radius
+                        Edition</span></p>
             </div>
 
             <div class="card-body">
@@ -390,6 +392,10 @@
                         <div class="version-value" id="current-version">Memuat...</div>
                     </div>
                     <div class="version-item">
+                        <div class="version-label">Edisi</div>
+                        <div class="version-value text-info">Radius</div>
+                    </div>
+                    <div class="version-item">
                         <div class="version-label">Versi Terbaru</div>
                         <div class="version-value" id="latest-version">Memuat...</div>
                     </div>
@@ -401,7 +407,8 @@
 
                 <div class="form-group">
                     <label for="repo-url"><i class="fab fa-github me-1"></i> Repository URL</label>
-                    <input type="text" class="form-control" id="repo-url" value="https://github.com/alijayanet/Go-ACS"
+                    <input type="text" class="form-control" id="repo-url"
+                        value="https://github.com/alijayanet/acslite-radius"
                         placeholder="https://github.com/username/repo">
                 </div>
 
@@ -438,7 +445,7 @@
             </div>
 
             <div class="footer">
-                <p>ACS-Lite &copy; 2024 | <a href="dashboard.html">Kembali ke Dashboard</a></p>
+                <p>ACS-Lite Radius v2 &copy; 2024 | <a href="dashboard.html">Kembali ke Dashboard</a></p>
             </div>
         </div>
     </div>

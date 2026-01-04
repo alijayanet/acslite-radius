@@ -68,11 +68,20 @@ fi
 
 echo "[INFO] SQL config: host=$DB_HOST_RADIUS port=$DB_PORT_RADIUS db=$DB_NAME_RADIUS user=$DB_USER_RADIUS"
 
-echo "[INFO] Backing up config files..."
-cp -n "$SQL_MOD_AVAIL" "${SQL_MOD_AVAIL}.bak.${TS}" || true
-[ -f "$DEFAULT_SITE" ] && cp -n "$DEFAULT_SITE" "${DEFAULT_SITE}.bak.${TS}" || true
-[ -f "$INNER_TUNNEL" ] && cp -n "$INNER_TUNNEL" "${INNER_TUNNEL}.bak.${TS}" || true
-[ -f "$QUERIES_CONF" ] && cp -n "$QUERIES_CONF" "${QUERIES_CONF}.bak.${TS}" || true
+# Create backup directory (not in sites-enabled to avoid duplicate virtual server errors)
+BACKUP_DIR="/root/freeradius_backups"
+mkdir -p "$BACKUP_DIR"
+
+echo "[INFO] Backing up config files to $BACKUP_DIR..."
+cp -n "$SQL_MOD_AVAIL" "$BACKUP_DIR/sql.bak.${TS}" || true
+[ -f "$DEFAULT_SITE" ] && cp -n "$DEFAULT_SITE" "$BACKUP_DIR/default.bak.${TS}" || true
+[ -f "$INNER_TUNNEL" ] && cp -n "$INNER_TUNNEL" "$BACKUP_DIR/inner-tunnel.bak.${TS}" || true
+[ -f "$QUERIES_CONF" ] && cp -n "$QUERIES_CONF" "$BACKUP_DIR/queries.conf.bak.${TS}" || true
+echo "[INFO] Backups saved to: $BACKUP_DIR"
+
+# Cleanup any old .bak files from sites-enabled (prevent duplicate server errors)
+rm -f "$FREERADIUS_DIR/sites-enabled/"*.bak* 2>/dev/null || true
+rm -f "$FREERADIUS_DIR/sites-enabled/"*.backup* 2>/dev/null || true
 
 # ========================================
 # 1. Enable SQL Module
@@ -244,6 +253,13 @@ SQL
 
 echo "  ✓ Tabel aplikasi khusus (onu_locations, pppoe_plans) dibuat"
 
+
+# ========================================
+# Cleanup backup files from sites-enabled
+# ========================================
+echo "[INFO] Cleaning up backup files from sites-enabled..."
+rm -f "$FREERADIUS_DIR/sites-enabled/"*.bak* 2>/dev/null || true
+echo "  ✓ Backup files removed"
 
 # ========================================
 # Restart FreeRADIUS
