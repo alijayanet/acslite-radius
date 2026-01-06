@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>ACS Dashboard</title>
 
     <!-- Security Headers -->
@@ -675,6 +678,8 @@
 
     <!-- Security Module (LOAD FIRST) -->
     <script src="security.js"></script>
+    <!-- Auth Helper Module -->
+    <script src="acs-auth.js"></script>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -887,13 +892,16 @@
         }
 
         function getHeaders() {
-            const headers = {};
+            // Use ACSAuth helper if available, fallback to manual session check
+            if (typeof ACSAuth !== 'undefined' && ACSAuth.getHeaders) {
+                return ACSAuth.getHeaders();
+            }
 
-            // Get API key from session (optional - GenieACS doesn't require billing API key)
+            // Fallback: Get API key from current session
+            const headers = {};
             if (currentSession && currentSession.apikey) {
                 headers['X-API-Key'] = currentSession.apikey;
             }
-
             return headers;
         }
 
@@ -1504,13 +1512,6 @@
 
         async function deleteDevice(sn) {
             try {
-                // Check if session exists
-                if (!currentSession || !currentSession.apiKey) {
-                    alert('Session expired. Please login again.');
-                    window.location.href = 'login.html';
-                    return;
-                }
-
                 // Validate serial number
                 sn = ACSecurity.validateSerialNumber(sn);
 
@@ -1599,13 +1600,6 @@
 
         async function refreshDevice(sn, btn) {
             try {
-                // Check if session exists
-                if (!currentSession || !currentSession.apiKey) {
-                    alert('Session expired. Please login again.');
-                    window.location.href = 'login.html';
-                    return;
-                }
-
                 // Rate limiting check
                 RateLimiter.check('refresh');
 
@@ -1647,13 +1641,6 @@
 
         async function summonDevice(sn, btn) {
             try {
-                // Check if session exists
-                if (!currentSession || !currentSession.apiKey) {
-                    alert('Session expired. Please login again.');
-                    window.location.href = 'login.html';
-                    return;
-                }
-
                 // Rate limiting check
                 RateLimiter.check('summon');
 
