@@ -7,7 +7,7 @@
 # ========================================
 DB_NAME="acs"
 DB_USER="root"
-DB_PASS="radius123"
+DB_PASS="secret123"
 INSTALL_DIR="/opt/acs"
 SERVICE_NAME="acslite"
 DB_DSN="$DB_USER:$DB_PASS@tcp(127.0.0.1:3306)/$DB_NAME?parseTime=true"
@@ -67,13 +67,39 @@ else
     echo "[INFO] MariaDB is already installed."
 fi
 
-# 2. Start and Enable Service
-echo "[INFO] Starting MariaDB Service..."
-systemctl start mariadb
-systemctl enable mariadb
+# 2. Detect and Start Database Service
+echo "[INFO] Starting Database Service..."
 
-# 2.1 Install PHP dependencies (curl module for Telegram API, etc.)
+# Auto-detect correct service name (mysql or mariadb)
+DB_SERVICE=""
+if systemctl list-unit-files | grep -q "^mariadb.service"; then
+    DB_SERVICE="mariadb"
+elif systemctl list-unit-files | grep -q "^mysql.service"; then
+    DB_SERVICE="mysql"
+else
+    echo "[WARNING] Could not detect MySQL/MariaDB service name. Trying both..."
+    systemctl start mariadb 2>/dev/null || systemctl start mysql 2>/dev/null
+    systemctl enable mariadb 2>/dev/null || systemctl enable mysql 2>/dev/null
+    DB_SERVICE="mysql"  # Default to mysql for commands
+fi
+
+if [ -n "$DB_SERVICE" ]; then
+    echo "[INFO] Detected database service: $DB_SERVICE"
+    systemctl start $DB_SERVICE
+    systemctl enable $DB_SERVICE
+    
+    # Verify service started
+    if systemctl is-active --quiet $DB_SERVICE; then
+        echo "[SUCCESS] Database service started successfully."
+    else
+        echo "[WARNING] Database service may not have started. Continuing anyway..."
+    fi
+fi
+
+# 2.1 Install PHP dependencies (curl + MySQL driver)
 echo "[INFO] Checking PHP modules..."
+
+# Install php-curl
 if ! php -m | grep -qi curl; then
     echo "[INFO] Installing php-curl module..."
     if command -v apt-get &> /dev/null; then
@@ -83,19 +109,104 @@ if ! php -m | grep -qi curl; then
     fi
     echo "[SUCCESS] php-curl installed."
 else
-    echo "[INFO] php-curl is already installed."
+    echo "[INFO] php-curl already installed."
 fi
 
-# 3. Secure Installation & Set Root Password
+# Install php-mysql (CRITICAL for PDO MySQL driver)
+if ! php -m | grep -qi pdo_mysql; then
+    echo "[INFO] Installing php-mysql module (required for database)..."
+    if command -v apt-get &> /dev/null; then
+        # Detect PHP version
+        PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
+        
+        # Install with Apache restart suppressed (we don't need Apache for ACS)
+        DEBIAN_FRONTEND=noninteractive apt-get install -y php-mysql php${PHP_VERSION}-mysql 2>&1 | grep -v "apache2.service failed" || true
+        
+        # Note: Apache errors are OK - we use PHP-FPM, not Apache
+        # If Apache fails due to port 80 conflict, it's not critical for ACS
+    elif command -v yum &> /dev/null; then
+        yum install -y php-mysql php-pdo
+    fi
+    echo "[SUCCESS] php-mysql installed."
+else
+    echo "[INFO] php-mysql already installed."
+fi
+
+# Note: If you see Apache errors above, it's OK - ACS uses PHP-FPM on port 8888, not Apache on port 80
+
+# 3. Configure MySQL Root User (Idempotent - safe for re-run)
 echo "[INFO] Configuring Database..."
 
-# Check if we can login without password (fresh install)
-if mysql -u root -e "status" &>/dev/null; then
-    echo "[INFO] Setting root password to '$DB_PASS'..."
-    mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_PASS'; FLUSH PRIVILEGES;"
+# First, check if password is ALREADY correct (for updates/re-runs)
+if mysql -u root -p$DB_PASS -e "SELECT 1" &> /dev/null; then
+    echo "[SUCCESS] MySQL root password already configured correctly. ✓"
+    echo "[INFO] Skipping password setup (already done)."
 else
-    echo "[INFO] Root password already set or requires authentication."
-    echo "[INFO] Attempting to connect with password..."
+    echo "[INFO] MySQL root password not working. Attempting to configure..."
+    
+    # Disable password validation plugin (allows simple passwords like 'secret123')
+    echo "[INFO] Disabling MySQL password validation..."
+    mysql -u root -e "UNINSTALL PLUGIN validate_password;" 2>/dev/null || \
+    sudo mysql -e "UNINSTALL PLUGIN validate_password;" 2>/dev/null || \
+    sudo mysql -e "UNINSTALL COMPONENT 'file://component_validate_password';" 2>/dev/null || true
+
+    # Try 1: Login without password (fresh install)
+    if mysql -u root -e "SELECT 1" &> /dev/null; then
+        echo "[INFO] Fresh install detected. Setting root password..."
+        mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_PASS'; FLUSH PRIVILEGES;"
+        
+        if [ $? -eq 0 ]; then
+            echo "[SUCCESS] Root password set successfully."
+        else
+            echo "[ERROR] Failed to set root password."
+            exit 1
+        fi
+    else
+        # Try 2: Fix auth plugin via sudo mysql (Ubuntu 20.04+ default)
+        echo "[INFO] Attempting to reset password via sudo mysql..."
+        
+        # Try with sudo mysql (works on Ubuntu/Debian with unix_socket auth)
+        if sudo mysql -e "SELECT 1" &> /dev/null; then
+            echo "[INFO] Sudo mysql access available. Resetting password..."
+            sudo mysql <<EOF
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_PASS';
+FLUSH PRIVILEGES;
+EOF
+            
+            if [ $? -eq 0 ]; then
+                echo "[SUCCESS] Root password reset via sudo mysql."
+            else
+                echo "[WARNING] Sudo mysql failed to reset password."
+            fi
+        else
+            echo "[WARNING] Sudo mysql access not available."
+        fi
+    fi
+    
+    # Final verification
+    echo "[INFO] Verifying password authentication..."
+    if mysql -u root -p$DB_PASS -e "SELECT 1" &> /dev/null; then
+        echo "[SUCCESS] MySQL root password authentication verified! ✓"
+    else
+        echo ""
+        echo "=========================================="
+        echo "⚠️  MySQL PASSWORD CONFIGURATION NEEDED"
+        echo "=========================================="
+        echo ""
+        echo "The MySQL root password needs to be set to: $DB_PASS"
+        echo ""
+        echo "Please run these commands manually:"
+        echo ""
+        echo "  sudo mysql"
+        echo "  ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_PASS';"
+        echo "  FLUSH PRIVILEGES;"
+        echo "  EXIT;"
+        echo ""
+        echo "Then re-run: sudo bash install.sh"
+        echo ""
+        echo "=========================================="
+        exit 1
+    fi
 fi
 
 # 4. Create Database
@@ -103,7 +214,7 @@ echo "[INFO] Creating database '$DB_NAME'..."
 mysql -u $DB_USER -p$DB_PASS -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
 
 if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to create database. Please check your password."
+    echo "[ERROR] Failed to create database."
     exit 1
 fi
 echo "[SUCCESS] Database ready."
@@ -347,7 +458,8 @@ CREATE TABLE IF NOT EXISTS hotspot_vouchers (
     INDEX idx_batch (batch_id),
     INDEX idx_profile (profile),
     INDEX idx_status (status),
-    INDEX idx_created (created_date)
+    INDEX idx_created (created_date),
+    INDEX idx_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Voucher Batches Table
@@ -387,8 +499,10 @@ CREATE TABLE IF NOT EXISTS hotspot_sales (
     customer_phone VARCHAR(20) NULL,
     payment_method ENUM('cash', 'transfer', 'qris', 'ewallet', 'other') DEFAULT 'cash',
     notes TEXT NULL,
+    FOREIGN KEY (voucher_id) REFERENCES hotspot_vouchers(id) ON DELETE CASCADE,
     INDEX idx_batch (batch_id),
-    INDEX idx_sale_date (sale_date)
+    INDEX idx_sale_date (sale_date),
+    INDEX idx_payment_method (payment_method)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Hotspot Profiles Table
@@ -418,12 +532,270 @@ INSERT IGNORE INTO hotspot_profiles (name, price, duration, duration_seconds, ra
 ('3HARI', 10000, '3d', 259200, '2M/2M', 'uptime'),
 ('1MINGGU', 20000, '7d', 604800, '3M/3M', 'uptime');
 
+-- Hotspot Profile Stats Table
+CREATE TABLE IF NOT EXISTS hotspot_profile_stats (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    profile VARCHAR(50) NOT NULL,
+    date DATE NOT NULL,
+    total_generated INT DEFAULT 0,
+    total_sold INT DEFAULT 0,
+    revenue DECIMAL(10,2) DEFAULT 0,
+    total_active INT DEFAULT 0,
+    total_expired INT DEFAULT 0,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_profile_date (profile, date),
+    INDEX idx_date (date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- ADDITIONAL INDEXES FOR PERFORMANCE
+-- ============================================
+
+CREATE INDEX idx_voucher_batch_status ON hotspot_vouchers(batch_id, status);
+CREATE INDEX idx_voucher_profile_status ON hotspot_vouchers(profile, status);
+CREATE INDEX idx_sale_batch_date ON hotspot_sales(batch_id, sale_date);
+
+-- ============================================
+-- VIEWS FOR REPORTING
+-- ============================================
+
+-- View: Daily revenue summary
+CREATE OR REPLACE VIEW v_daily_revenue AS
+SELECT
+    DATE(sale_date) as date,
+    COUNT(*) as total_sales,
+    SUM(actual_price) as revenue,
+    COUNT(DISTINCT batch_id) as batches_sold
+FROM hotspot_sales
+GROUP BY DATE(sale_date)
+ORDER BY date DESC;
+
+-- View: Profile performance
+CREATE OR REPLACE VIEW v_profile_performance AS
+SELECT
+    p.name as profile,
+    p.price,
+    p.duration,
+    COUNT(v.id) as total_generated,
+    SUM(CASE WHEN v.status = 'sold' OR v.status = 'active' THEN 1 ELSE 0 END) as total_sold,
+    SUM(CASE WHEN v.status = 'active' THEN 1 ELSE 0 END) as total_active,
+    SUM(CASE WHEN v.status = 'unused' THEN 1 ELSE 0 END) as total_unused,
+    COALESCE(SUM(s.actual_price), 0) as total_revenue
+FROM hotspot_profiles p
+LEFT JOIN hotspot_vouchers v ON p.name = v.profile
+LEFT JOIN hotspot_sales s ON v.id = s.voucher_id
+WHERE p.is_active = 1
+GROUP BY p.name, p.price, p.duration
+ORDER BY total_revenue DESC;
+
+-- View: Batch summary
+CREATE OR REPLACE VIEW v_batch_summary AS
+SELECT
+    b.batch_id,
+    b.profile,
+    b.quantity,
+    b.price,
+    b.created_date,
+    COUNT(v.id) as vouchers_count,
+    SUM(CASE WHEN v.status = 'unused' THEN 1 ELSE 0 END) as unused,
+    SUM(CASE WHEN v.status = 'sold' THEN 1 ELSE 0 END) as sold,
+    SUM(CASE WHEN v.status = 'active' THEN 1 ELSE 0 END) as active,
+    SUM(CASE WHEN v.status = 'expired' THEN 1 ELSE 0 END) as expired,
+    COALESCE(SUM(s.actual_price), 0) as revenue
+FROM voucher_batches b
+LEFT JOIN hotspot_vouchers v ON b.batch_id = v.batch_id
+LEFT JOIN hotspot_sales s ON v.id = s.voucher_id
+GROUP BY b.batch_id, b.profile, b.quantity, b.price, b.created_date
+ORDER BY b.created_date DESC;
+
+-- ============================================
+-- STORED PROCEDURES
+-- ============================================
+
+DELIMITER //
+
+-- Procedure: Update batch statistics
+CREATE PROCEDURE IF NOT EXISTS sp_update_batch_stats(IN p_batch_id VARCHAR(50))
+BEGIN
+    UPDATE voucher_batches b
+    SET
+        total_unused = (SELECT COUNT(*) FROM hotspot_vouchers WHERE batch_id = p_batch_id AND status = 'unused'),
+        total_sold = (SELECT COUNT(*) FROM hotspot_vouchers WHERE batch_id = p_batch_id AND status = 'sold'),
+        total_active = (SELECT COUNT(*) FROM hotspot_vouchers WHERE batch_id = p_batch_id AND status = 'active'),
+        total_expired = (SELECT COUNT(*) FROM hotspot_vouchers WHERE batch_id = p_batch_id AND status = 'expired'),
+        total_disabled = (SELECT COUNT(*) FROM hotspot_vouchers WHERE batch_id = p_batch_id AND status = 'disabled'),
+        revenue = COALESCE((SELECT SUM(actual_price) FROM hotspot_sales WHERE batch_id = p_batch_id), 0)
+    WHERE batch_id = p_batch_id;
+END//
+
+-- Procedure: Update profile daily stats
+CREATE PROCEDURE IF NOT EXISTS sp_update_profile_stats(IN p_profile VARCHAR(50), IN p_date DATE)
+BEGIN
+    INSERT INTO hotspot_profile_stats (profile, date, total_generated, total_sold, revenue, total_active, total_expired)
+    SELECT
+        p_profile,
+        p_date,
+        COUNT(*) as total_generated,
+        SUM(CASE WHEN v.status IN ('sold', 'active') THEN 1 ELSE 0 END) as total_sold,
+        COALESCE(SUM(s.actual_price), 0) as revenue,
+        SUM(CASE WHEN v.status = 'active' THEN 1 ELSE 0 END) as total_active,
+        SUM(CASE WHEN v.status = 'expired' THEN 1 ELSE 0 END) as total_expired
+    FROM hotspot_vouchers v
+    LEFT JOIN hotspot_sales s ON v.id = s.voucher_id AND DATE(s.sale_date) = p_date
+    WHERE v.profile = p_profile AND DATE(v.created_date) <= p_date
+    ON DUPLICATE KEY UPDATE
+        total_generated = VALUES(total_generated),
+        total_sold = VALUES(total_sold),
+        revenue = VALUES(revenue),
+        total_active = VALUES(total_active),
+        total_expired = VALUES(total_expired);
+END//
+
+DELIMITER ;
+
+-- ============================================
+-- TRIGGERS
+-- ============================================
+
+DELIMITER //
+
+-- Trigger: After voucher sale, update batch stats
+CREATE TRIGGER IF NOT EXISTS tr_after_voucher_sale
+AFTER INSERT ON hotspot_sales
+FOR EACH ROW
+BEGIN
+    -- Update voucher status
+    UPDATE hotspot_vouchers
+    SET status = 'sold', sold_date = NEW.sale_date
+    WHERE id = NEW.voucher_id;
+
+    -- Update batch stats
+    CALL sp_update_batch_stats(NEW.batch_id);
+END//
+
+-- Trigger: After voucher status change, update batch stats
+CREATE TRIGGER IF NOT EXISTS tr_after_voucher_status_update
+AFTER UPDATE ON hotspot_vouchers
+FOR EACH ROW
+BEGIN
+    IF OLD.status != NEW.status THEN
+        CALL sp_update_batch_stats(NEW.batch_id);
+    END IF;
+END//
+
+DELIMITER ;
+
 HOTSPOT
 
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] Hotspot voucher tables created."
 else
     echo "[WARNING] Hotspot tables may have failed. Check manually if needed."
+fi
+
+# ---------------------------------------------------------
+# PART 1.1: MIGRATE SETTINGS.JSON TO MYSQL
+# ---------------------------------------------------------
+echo ""
+echo ">>> Creating Settings Table..."
+
+mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<SETTINGS
+-- Settings Table (Migrated from settings.json)
+CREATE TABLE IF NOT EXISTS settings (
+    category VARCHAR(50) PRIMARY KEY,
+    settings_json JSON NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by VARCHAR(50) DEFAULT 'system',
+    INDEX idx_updated (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Application settings (migrated from settings.json)';
+
+-- Insert default settings
+INSERT INTO settings (category, settings_json, updated_by) VALUES
+('general', '{
+    "site_name": "ACS-Lite ISP Manager",
+    "company_name": "My ISP",
+    "timezone": "Asia/Jakarta",
+    "currency": "IDR",
+    "date_format": "d/m/Y",
+    "language": "id",
+    "address": "",
+    "phone": "",
+    "email": ""
+}', 'install_script'),
+
+('acs', '{
+    "api_url": "http://localhost:7547",
+    "api_key": "secret",
+    "periodic_inform_interval": 300,
+    "auto_refresh_interval": 15
+}', 'install_script'),
+
+('telegram', '{
+    "enabled": false,
+    "bot_token": "",
+    "chat_id": "",
+    "notify_isolir": true,
+    "notify_payment": true,
+    "notify_new_device": true
+}', 'install_script'),
+
+('billing', '{
+    "enabled": false,
+    "due_day": 1,
+    "grace_period": 7,
+    "auto_isolir": true,
+    "isolir_profile": "isolir"
+}', 'install_script'),
+
+('whatsapp', '{
+    "enabled": false,
+    "api_url": "",
+    "api_key": ""
+}', 'install_script'),
+
+('hotspot', '{
+    "backend": "mikrotik",
+    "backup_to_radius": false,
+    "selected_router_id": "router1",
+    "radius_server_ip": "",
+    "radius": {
+        "enabled": false,
+        "db_host": "127.0.0.1",
+        "db_port": 3306,
+        "db_name": "radius",
+        "db_user": "radius",
+        "db_pass": ""
+    }
+}', 'install_script')
+
+ON DUPLICATE KEY UPDATE
+    settings_json = VALUES(settings_json),
+    updated_at = CURRENT_TIMESTAMP,
+    updated_by = 'install_script';
+SETTINGS
+
+if [ $? -eq 0 ]; then
+    echo "[SUCCESS] Settings table created."
+    
+    # Run migration script if settings.json exists
+    if [ -f "web/data/settings.json" ]; then
+        echo "[INFO] Found existing settings.json, migrating to database..."
+        if [ -f "web/migrations/migrate_settings_to_db.php" ]; then
+            chmod +x web/migrations/migrate_settings_to_db.php
+            php web/migrations/migrate_settings_to_db.php
+            if [ $? -eq 0 ]; then
+                echo "[SUCCESS] Settings migrated from settings.json to MySQL."
+            else
+                echo "[WARNING] Settings migration script failed. Using defaults."
+            fi
+        else
+            echo "[INFO] Migration script not found, using default settings."
+        fi
+    else
+        echo "[INFO] No existing settings.json, using default settings."
+    fi
+else
+    echo "[WARNING] Settings table creation may have failed."
 fi
 
 
@@ -459,6 +831,12 @@ mkdir -p "$INSTALL_DIR/web/templates"
 mkdir -p "$INSTALL_DIR/web/api"
 mkdir -p "$INSTALL_DIR/web/data"
 mkdir -p "$INSTALL_DIR/web/js"
+
+# 3.1 Stop service if running (prevents "Text file busy" error)
+if systemctl is-active --quiet $SERVICE_NAME; then
+    echo "[INFO] Stopping existing service for update..."
+    systemctl stop $SERVICE_NAME
+fi
 
 # 4. Copy Files
 echo "[INFO] Copying application files..."
@@ -497,15 +875,21 @@ if [ -f "web/.htaccess" ]; then
     echo "[INFO] Copied web/.htaccess"
 fi
 
-# 5. Create .env File
-echo "[INFO] Creating .env configuration file..."
-cat <<EOF > "$INSTALL_DIR/.env"
+# 5. Create .env File (only if not exists)
+if [ -f "$INSTALL_DIR/.env" ]; then
+    echo "[INFO] .env file already exists. Keeping existing configuration."
+    echo "[INFO] If you need to reset .env, delete it first: rm $INSTALL_DIR/.env"
+else
+    echo "[INFO] Creating .env configuration file..."
+    cat <<EOF > "$INSTALL_DIR/.env"
 ACS_PORT=7547
 DB_DSN=$DB_DSN
 API_KEY=secret
 WEB_DIR=$INSTALL_DIR/web
 EOF
-chmod 600 "$INSTALL_DIR/.env"
+    chmod 600 "$INSTALL_DIR/.env"
+    echo "[SUCCESS] .env file created."
+fi
 
 # 6. Create Systemd Service File
 echo "[INFO] Creating systemd service file..."
@@ -534,7 +918,32 @@ SyslogIdentifier=$SERVICE_NAME
 WantedBy=multi-user.target
 EOF
 
-# 7. Enable and Start Service
+# 7. Check Port Availability
+echo "[INFO] Checking if port 7547 is available..."
+PORT_CHECK=$(lsof -i :7547 2>/dev/null)
+if [ -n "$PORT_CHECK" ]; then
+    echo ""
+    echo "⚠️  WARNING: Port 7547 is already in use!"
+    echo "============================================"
+    echo "$PORT_CHECK"
+    echo "============================================"
+    echo ""
+    echo "Another application is using port 7547."
+    echo "The ACS service may fail to start."
+    echo ""
+    echo "To fix this, you can:"
+    echo "  1. Stop the conflicting service"
+    echo "  2. Or run: sudo kill -9 \$(sudo lsof -t -i:7547)"
+    echo ""
+    read -p "Continue anyway? (y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "[INFO] Installation cancelled by user."
+        exit 0
+    fi
+fi
+
+# 8. Enable and Start Service
 echo "[INFO] Reloading systemd daemon..."
 systemctl daemon-reload
 systemctl enable $SERVICE_NAME
@@ -806,3 +1215,57 @@ Please check logs: journalctl -u $SERVICE_NAME -e
 📞 Support: wa.me/6281947215703"
 fi
 echo "=========================================="
+
+# ---------------------------------------------------------
+# OPTIONAL: FreeRADIUS Installation
+# ---------------------------------------------------------
+if systemctl is-active --quiet $SERVICE_NAME; then
+    echo ""
+    echo "=========================================="
+    echo "🎯 OPTIONAL: FreeRADIUS Installation"
+    echo "=========================================="
+    echo ""
+    echo "Do you want to install FreeRADIUS now?"
+    echo "This will add:"
+    echo "  ✅ PPPoE/Hotspot Authentication"
+    echo "  ✅ Accounting & Session Tracking"
+    echo "  ✅ RADIUS Dashboard (radius.html)"
+    echo ""
+    
+    if [ -f "./install_radius.sh" ]; then
+        echo "Press 'y' to install FreeRADIUS, or any other key to skip..."
+        read -t 10 -n 1 -r INSTALL_RADIUS || INSTALL_RADIUS="n"
+        echo ""
+        
+        if [[ $INSTALL_RADIUS =~ ^[Yy]$ ]]; then
+            echo ""
+            echo ">>> Starting FreeRADIUS installation..."
+            echo ""
+            bash ./install_radius.sh
+            
+            if [ $? -eq 0 ]; then
+                echo ""
+                echo "=========================================="
+                echo "✅ COMPLETE INSTALLATION SUCCESS!"
+                echo "=========================================="
+                echo "You now have:"
+                echo "  ✅ Go-ACS (TR-069) on port 7547"
+                echo "  ✅ FreeRADIUS on ports 1812/1813"
+                echo "  ✅ Full billing & hotspot system"
+                echo "=========================================="
+            else
+                echo ""
+                echo "⚠️  RADIUS installation encountered issues."
+                echo "You can retry manually: bash ./install_radius.sh"
+            fi
+        else
+            echo ""
+            echo "[INFO] FreeRADIUS installation skipped."
+            echo "[INFO] You can install it later with: bash ./install_radius.sh"
+        fi
+    else
+        echo "[WARNING] install_radius.sh not found in current directory."
+        echo "[INFO] Download it from the repository to enable RADIUS support."
+    fi
+    echo ""
+fi
