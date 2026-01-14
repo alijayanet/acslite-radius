@@ -31,8 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Database connection
 function getDB() {
-    // Try to load from .env
-    $envFile = '/opt/acs/.env';
     $config = [
         'host' => '127.0.0.1',
         'port' => '3306',
@@ -40,20 +38,25 @@ function getDB() {
         'username' => 'root',
         'password' => 'secret123'
     ];
-    
-    if (file_exists($envFile)) {
-        $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            if (strpos($line, 'DB_DSN=') === 0) {
-                $dsn = substr($line, 7);
-                // Parse: root:password@tcp(host:port)/dbname
-                if (preg_match('/^([^:]+):([^@]*)@tcp\(([^:]+):(\d+)\)\/(.+)/', $dsn, $m)) {
-                    $config['username'] = $m[1];
-                    $config['password'] = $m[2];
-                    $config['host'] = $m[3];
-                    $config['port'] = $m[4];
-                    $config['dbname'] = preg_replace('/\?.*/', '', $m[5]);
-                }
+
+    $envPaths = [
+        __DIR__ . '/.env',
+        __DIR__ . '/../.env',
+        __DIR__ . '/../../.env',
+        '/opt/acs/.env'
+    ];
+
+    foreach ($envPaths as $envFile) {
+        if (file_exists($envFile)) {
+            $envContent = file_get_contents($envFile);
+            // Handle DB_DSN format (preferred)
+            if (preg_match('/DB_DSN=([^:]+):([^@]*)@tcp\(([^:]+):(\d+)\)\/([^?\n\r]+)/', $envContent, $m)) {
+                $config['username'] = $m[1];
+                $config['password'] = $m[2];
+                $config['host'] = $m[3];
+                $config['port'] = $m[4];
+                $config['dbname'] = $m[5];
+                break;
             }
         }
     }
@@ -63,7 +66,11 @@ function getDB() {
             "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4",
             $config['username'],
             $config['password'],
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, 
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ]
         );
         return $pdo;
     } catch (PDOException $e) {

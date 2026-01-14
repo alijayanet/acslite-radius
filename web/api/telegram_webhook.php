@@ -218,7 +218,10 @@ function mainMenuKeyboard() {
                 ['text' => '📡 Hotspot', 'callback_data' => 'menu_hotspot']
             ],
             [
-                ['text' => '📊 Dashboard', 'callback_data' => 'dashboard'],
+                ['text' => '🛠️ MikroTik Tools', 'callback_data' => 'menu_mikrotik'],
+                ['text' => '📊 Dashboard', 'callback_data' => 'dashboard']
+            ],
+            [
                 ['text' => '❓ Help', 'callback_data' => 'help']
             ]
         ]
@@ -231,6 +234,10 @@ function customerMenuKeyboard() {
             [
                 ['text' => '📋 List Pelanggan', 'callback_data' => 'cust_list'],
                 ['text' => '🔍 Cari Pelanggan', 'callback_data' => 'cust_search']
+            ],
+            [
+                ['text' => '➕ Tambah Pelanggan', 'callback_data' => 'cust_add'],
+                ['text' => '✏️ Edit Pelanggan', 'callback_data' => 'cust_edit']
             ],
             [
                 ['text' => '🔴 List Isolir', 'callback_data' => 'cust_isolir'],
@@ -269,8 +276,16 @@ function pppoeMenuKeyboard() {
                 ['text' => '🟢 Active Sessions', 'callback_data' => 'pppoe_active']
             ],
             [
-                ['text' => '➕ Tambah User', 'callback_data' => 'pppoe_add'],
-                ['text' => '🔄 Disconnect All', 'callback_data' => 'pppoe_disconnect']
+                ['text' => '🔴 Offline Users', 'callback_data' => 'pppoe_offline'],
+                ['text' => '➕ Tambah User', 'callback_data' => 'pppoe_add']
+            ],
+            [
+                ['text' => '✏️ Edit User', 'callback_data' => 'pppoe_edit'],
+                ['text' => '❌ Hapus User', 'callback_data' => 'pppoe_delete']
+            ],
+            [
+                ['text' => '🔌 Connect User', 'callback_data' => 'pppoe_connect'],
+                ['text' => '🔌 Disconnect User', 'callback_data' => 'pppoe_disconnect']
             ],
             [
                 ['text' => '⬅️ Kembali', 'callback_data' => 'main_menu']
