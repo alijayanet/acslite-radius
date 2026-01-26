@@ -1,0 +1,92 @@
+INSTRUKSI FIX "NaN" di Download/Upload di radius.html
+======================================================
+
+Masalah: Kolom Download dan Upload menampilkan "NaN" (Not a Number)
+Penyebab: Data acctinputoctets dan acctoutputoctets bernilai null/undefined/string
+
+SOLUSI:
+-------
+
+1. Buka file: e:\acs-radius\web\templates\radius.html
+
+2. Cari fungsi formatBytes (sekitar line 1102-1107):
+
+   GANTI INI:
+   ```javascript
+   function formatBytes(bytes) {
+       if (!bytes || bytes === 0) return '0 B';
+       const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+       const i = Math.floor(Math.log(bytes) / Math.log(1024));
+       return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+   }
+   ```
+
+   DENGAN:
+   ```javascript
+   function formatBytes(bytes) {
+       const numBytes = parseInt(bytes) || 0;
+       if (numBytes === 0) return '0 B';
+       const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+       const i = Math.floor(Math.log(numBytes) / Math.log(1024));
+       return (numBytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+   }
+   ```
+
+3. Cari fungsi formatDuration (sekitar line 1110-1118):
+
+   GANTI INI:
+   ```javascript
+   function formatDuration(seconds) {
+       if (!seconds || seconds === 0) return '0s';
+       const h = Math.floor(seconds / 3600);
+       const m = Math.floor((seconds % 3600) / 60);
+       const s = seconds % 60;
+       if (h > 0) return `${h}h ${m}m ${s}s`;
+       if (m > 0) return `${m}m ${s}s`;
+       return `${s}s`;
+   }
+   ```
+
+   DENGAN:
+   ```javascript
+   function formatDuration(seconds) {
+       const numSeconds = parseInt(seconds) || 0;
+       if (numSeconds === 0) return '0s';
+       const h = Math.floor(numSeconds / 3600);
+       const m = Math.floor((numSeconds % 3600) / 60);
+       const s = numSeconds % 60;
+       if (h > 0) return `${h}h ${m}m ${s}s`;
+       if (m > 0) return `${m}m ${s}s`;
+       return `${s}s`;
+   }
+   ```
+
+4. Cari bagian loadActiveSessions (sekitar line 1134-1137):
+
+   GANTI INI:
+   ```javascript
+   tbody.innerHTML = sessions.map(s => {
+       const download = formatBytes(s.acctinputoctets || 0);
+       const upload = formatBytes(s.acctoutputoctets || 0);
+       const duration = formatDuration(s.acctsessiontime || 0);
+   ```
+
+   DENGAN:
+   ```javascript
+   tbody.innerHTML = sessions.map(s => {
+       const inputOctets = parseInt(s.acctinputoctets) || 0;
+       const outputOctets = parseInt(s.acctoutputoctets) || 0;
+       const sessionTime = parseInt(s.acctsessiontime) || 0;
+       
+       const download = formatBytes(inputOctets);
+       const upload = formatBytes(outputOctets);
+       const duration = formatDuration(sessionTime);
+   ```
+
+5. Save file dan refresh halaman radius.html di browser
+
+HASIL:
+------
+- Download/Upload akan tampil dengan benar (contoh: "123.45 MB")
+- Duration akan tampil dengan benar (contoh: "1h 23m 45s")
+- Tidak ada lagi "NaN"

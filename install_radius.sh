@@ -2,10 +2,20 @@
 
 DB_NAME_RADIUS="radius"
 DB_USER_RADIUS="radius"
-DB_PASS_RADIUS="radius123"
+
+# Generate random password if not set
+generate_random_password() {
+    openssl rand -base64 12 | tr -d "=+/" | cut -c1-16
+}
+
+# Check if DB_PASS_RADIUS is set, if not generate random
+if [ -z "$DB_PASS_RADIUS" ] || [ "$DB_PASS_RADIUS" == "radius123" ]; then
+    DB_PASS_RADIUS=$(generate_random_password)
+    echo "[INFO] Generated random RADIUS database password: $DB_PASS_RADIUS"
+fi
 
 MYSQL_ROOT_USER="root"
-MYSQL_ROOT_PASS="radius123"
+MYSQL_ROOT_PASS=""
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root (sudo ./install_radius.sh)"
@@ -15,6 +25,15 @@ fi
 echo "=========================================="
 echo "RADIUS Installer (FreeRADIUS + MySQL)"
 echo "=========================================="
+
+# Cleanup old backup files from previous installations (prevents duplicate virtual server errors)
+echo "[INFO] Cleaning up old FreeRADIUS backup files..."
+if [ -d "/etc/freeradius/3.0/sites-enabled" ]; then
+    rm -f /etc/freeradius/3.0/sites-enabled/*.bak* 2>/dev/null || true
+    rm -f /etc/freeradius/3.0/sites-enabled/*.backup* 2>/dev/null || true
+    echo "[INFO] Old backup files removed from sites-enabled"
+fi
+echo ""
 
 if command -v apt-get &> /dev/null; then
   apt-get update
@@ -53,27 +72,30 @@ echo "[INFO] Creating database '$DB_NAME_RADIUS' and user '$DB_USER_RADIUS'..."
 "${MYSQL_CMD[@]}" -e "GRANT ALL PRIVILEGES ON ${DB_NAME_RADIUS}.* TO '${DB_USER_RADIUS}'@'localhost'; FLUSH PRIVILEGES;"
 
 # -----------------------------------------------------------------
-# 1. Add NAS entry (router) to radius DB if not present
+# Note: NAS entry and demo user are added AFTER schema is loaded
+# (see lines ~255-285 below with proper ON DUPLICATE KEY UPDATE)
 # -----------------------------------------------------------------
-NAS_IP="${Mikrotik_IP:-103.197.92.22}"          # can be overridden via env var
-NAS_SECRET="${Mikrotik_SECRET:-radius}"      # same secret as used on MikroTik
-NAS_NAME="${Mikrotik_NAME:-mikrotik1}"
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT INTO nas (nasname, shortname, type, ports, secret, description) SELECT '${NAS_IP}', '${NAS_NAME}', 'other', 0, '${NAS_SECRET}', 'Added by install_radius.sh' WHERE NOT EXISTS (SELECT 1 FROM nas WHERE nasname='${NAS_IP}');"
 
-# -----------------------------------------------------------------
-# 2. Add default RADIUS user for testing (demo)
-# -----------------------------------------------------------------
-RADIUS_USER="${DEFAULT_RADIUS_USER:-demo}"
-RADIUS_PASS="${DEFAULT_RADIUS_PASS:-demo123}"
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT INTO radcheck (username, attribute, op, value) SELECT '${RADIUS_USER}', 'Cleartext-Password', ':=', '${RADIUS_PASS}' WHERE NOT EXISTS (SELECT 1 FROM radcheck WHERE username='${RADIUS_USER}');"
 
-# (Optional) Assign a static IP to the demo user – uncomment if needed
-#${MYSQL_CMD[@]} -e "INSERT INTO radreply (username, attribute, op, value) SELECT '${RADIUS_USER}', 'Framed-IP-Address', '=', '192.168.100.50' WHERE NOT EXISTS (SELECT 1 FROM radreply WHERE username='${RADIUS_USER}');"
-
+# Update settings.json (only if it exists)
 SETTINGS_JSON="/opt/acs/web/data/settings.json"
-if [ -f "$SETTINGS_JSON" ] && command -v php >/dev/null 2>&1; then
+if [ -f "$SETTINGS_JSON" ] && command -v php > /dev/null 2>&1; then
   echo "[INFO] Updating $SETTINGS_JSON with hotspot.radius DB config..."
-  SETTINGS_JSON="$SETTINGS_JSON" DB_NAME_RADIUS="$DB_NAME_RADIUS" DB_USER_RADIUS="$DB_USER_RADIUS" DB_PASS_RADIUS="$DB_PASS_RADIUS" php -r '$p=getenv("SETTINGS_JSON"); $s=json_decode(@file_get_contents($p), true) ?: []; if(!isset($s["hotspot"])) $s["hotspot"]=[]; if(!isset($s["hotspot"]["radius"])) $s["hotspot"]["radius"]=[]; $s["hotspot"]["radius"]["db_host"]="127.0.0.1"; $s["hotspot"]["radius"]["db_port"]=3306; $s["hotspot"]["radius"]["db_name"]=getenv("DB_NAME_RADIUS"); $s["hotspot"]["radius"]["db_user"]=getenv("DB_USER_RADIUS"); $s["hotspot"]["radius"]["db_pass"]=getenv("DB_PASS_RADIUS"); file_put_contents($p, json_encode($s, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));'
+  php -r '
+    $path = getenv("SETTINGS_JSON");
+    if (!$path || !file_exists($path)) exit(0);
+    $s = json_decode(@file_get_contents($path), true) ?: [];
+    if (!isset($s["hotspot"])) $s["hotspot"] = [];
+    if (!isset($s["hotspot"]["radius"])) $s["hotspot"]["radius"] = [];
+    $s["hotspot"]["radius"]["db_host"] = "127.0.0.1";
+    $s["hotspot"]["radius"]["db_port"] = 3306;
+    $s["hotspot"]["radius"]["db_name"] = getenv("DB_NAME_RADIUS");
+    $s["hotspot"]["radius"]["db_user"] = getenv("DB_USER_RADIUS");
+    $s["hotspot"]["radius"]["db_pass"] = getenv("DB_PASS_RADIUS");
+    file_put_contents($path, json_encode($s, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+  ' SETTINGS_JSON="$SETTINGS_JSON" DB_NAME_RADIUS="$DB_NAME_RADIUS" DB_USER_RADIUS="$DB_USER_RADIUS" DB_PASS_RADIUS="$DB_PASS_RADIUS"
+else
+  echo "[INFO] Skipping settings.json update (file not found or PHP not available)."
 fi
 
 echo "[INFO] Loading FreeRADIUS SQL schema into '${DB_NAME_RADIUS}'..."
@@ -115,26 +137,6 @@ CREATE TABLE IF NOT EXISTS radreply (
   PRIMARY KEY (id),
   KEY username (username(32))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-# -----------------------------------------------------------------
-# Insert dummy data (editable later)
-# -----------------------------------------------------------------
-# Dummy NAS entry (router)
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO nas (nasname, shortname, type, ports, secret, description) VALUES ('192.168.1.1', 'mikrotik1', 'other', 0, 'radius', 'Dummy NAS entry');"
-
-# Dummy PPPoE user (demo)
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radcheck (username, attribute, op, value) VALUES ('demo', 'Cleartext-Password', ':=', 'demo123');"
-
-# Dummy static IP for demo user
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radreply (username, attribute, op, value) VALUES ('demo', 'Framed-IP-Address', '=', '192.168.100.50');"
-
-# Dummy group and membership
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radgroupcheck (groupname, attribute, op, value) VALUES ('demo-group', 'Auth-Type', ':=', 'Accept');"
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radgroupreply (groupname, attribute, op, value) VALUES ('demo-group', 'Framed-IP-Address', '=', '192.168.100.51');"
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radusergroup (username, groupname, priority) VALUES ('demo', 'demo-group', 1);"
-
-# Dummy post‑auth record (optional)
-${MYSQL_CMD[@]} -D "${DB_NAME_RADIUS}" -e "INSERT IGNORE INTO radpostauth (username, pass, reply, authdate) VALUES ('demo', 'demo123', 'Access-Accept', NOW());"
 
 CREATE TABLE IF NOT EXISTS radacct (
   radacctid BIGINT(21) NOT NULL AUTO_INCREMENT,
@@ -223,15 +225,105 @@ CREATE TABLE IF NOT EXISTS radusergroup (
   KEY groupname (groupname(32))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Insert dummy data using proper SQL syntax
+INSERT IGNORE INTO nas (nasname, shortname, type, ports, secret, description) 
+VALUES ('192.168.1.1', 'mikrotik1', 'other', 0, 'radius', 'Dummy NAS entry for testing');
+
+INSERT IGNORE INTO radcheck (username, attribute, op, value) 
+VALUES ('demo', 'Cleartext-Password', ':=', 'demo123');
+
+INSERT IGNORE INTO radreply (username, attribute, op, value) 
+VALUES ('demo', 'Framed-IP-Address', '=', '192.168.100.50');
+
+INSERT IGNORE INTO radgroupcheck (groupname, attribute, op, value) 
+VALUES ('demo-group', 'Auth-Type', ':=', 'Accept');
+
+INSERT IGNORE INTO radgroupreply (groupname, attribute, op, value) 
+VALUES ('demo-group', 'Framed-IP-Address', '=', '192.168.100.51');
+
+INSERT IGNORE INTO radusergroup (username, groupname, priority) 
+VALUES ('demo', 'demo-group', 1);
+
+INSERT IGNORE INTO radpostauth (username, pass, reply, authdate) 
+VALUES ('demo', 'demo123', 'Access-Accept', NOW());
+
 EOF
+fi
+
+# -----------------------------------------------------------------
+# Ensure UNIQUE constraint on nasname for ON DUPLICATE KEY UPDATE to work
+# (FreeRADIUS default schema uses id as PRIMARY KEY, not nasname)
+# -----------------------------------------------------------------
+echo "[INFO] Ensuring UNIQUE constraint on nas.nasname..."
+"${MYSQL_CMD[@]}" "${DB_NAME_RADIUS}" -e "
+  -- Check if nasname already has UNIQUE constraint
+  SET @has_unique = (
+    SELECT COUNT(*) FROM information_schema.STATISTICS 
+    WHERE TABLE_SCHEMA = '${DB_NAME_RADIUS}' 
+    AND TABLE_NAME = 'nas' 
+    AND COLUMN_NAME = 'nasname' 
+    AND NON_UNIQUE = 0
+  );
+  -- Add UNIQUE constraint if not exists (ignore error if already exists)
+  SET @sql = IF(@has_unique = 0, 
+    'ALTER TABLE nas ADD UNIQUE INDEX idx_nasname_unique (nasname)', 
+    'SELECT 1'
+  );
+  PREPARE stmt FROM @sql;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+" 2>/dev/null || {
+  # Fallback: try direct ALTER (will fail silently if already exists)
+  "${MYSQL_CMD[@]}" "${DB_NAME_RADIUS}" -e "ALTER TABLE nas ADD UNIQUE INDEX idx_nasname_unique (nasname);" 2>/dev/null || true
+}
+echo "  ✓ UNIQUE constraint ensured on nas.nasname"
+
+# -----------------------------------------------------------------
+# Insert custom NAS (router) if environment variables are set
+# -----------------------------------------------------------------
+NAS_IP="${Mikrotik_IP:-192.168.1.1}"
+NAS_SECRET="${Mikrotik_SECRET:-radius}"
+NAS_NAME="${Mikrotik_NAME:-mikrotik1}"
+
+echo "[INFO] Inserting custom NAS entry (${NAS_NAME} @ ${NAS_IP})..."
+"${MYSQL_CMD[@]}" "${DB_NAME_RADIUS}" -e "
+  INSERT INTO nas (nasname, shortname, type, ports, secret, description) 
+  VALUES ('${NAS_IP}', '${NAS_NAME}', 'other', 0, '${NAS_SECRET}', 'Added by install_radius.sh') 
+  ON DUPLICATE KEY UPDATE 
+    secret='${NAS_SECRET}', 
+    shortname='${NAS_NAME}',
+    description='Updated by install_radius.sh';
+"
+
+
+# -----------------------------------------------------------------
+# Insert custom test user if environment variables are set
+# -----------------------------------------------------------------
+RADIUS_USER="${DEFAULT_RADIUS_USER:-demo}"
+RADIUS_PASS="${DEFAULT_RADIUS_PASS:-demo123}"
+
+if [ "$RADIUS_USER" != "demo" ] || [ "$RADIUS_PASS" != "demo123" ]; then
+  echo "[INFO] Inserting custom test user (${RADIUS_USER})..."
+  "${MYSQL_CMD[@]}" "${DB_NAME_RADIUS}" -e "
+    INSERT IGNORE INTO radcheck (username, attribute, op, value) 
+    VALUES ('${RADIUS_USER}', 'Cleartext-Password', ':=', '${RADIUS_PASS}');
+  "
 fi
 
 if [ -f "./configure_freeradius_sql.sh" ]; then
   echo "[INFO] Configuring FreeRADIUS to use SQL (authorize + accounting)..."
   chmod +x ./configure_freeradius_sql.sh
+  
+  # Export RADIUS credentials for configure_freeradius_sql.sh
+  export DB_NAME_RADIUS
+  export DB_USER_RADIUS
+  export DB_PASS_RADIUS
+  export DB_HOST_RADIUS="127.0.0.1"
+  export DB_PORT_RADIUS="3306"
+  
   ./configure_freeradius_sql.sh
 else
-  echo "[WARNING] configure_freadius_sql.sh not found. FreeRADIUS may not use SQL until configured."
+  echo "[WARNING] configure_freeradius_sql.sh not found. FreeRADIUS may not use SQL until configured."
 fi
 
 # Apply IPv4/IPv6 listen fix if script is present
@@ -242,7 +334,6 @@ if [ -f "./fix_freeradius_ipv4.sh" ]; then
 else
   echo "[WARNING] fix_freeradius_ipv4.sh not found. Skipping listen fix."
 fi
-
 
 echo "[INFO] Enabling and starting FreeRADIUS..."
 

@@ -7,14 +7,30 @@
 # ========================================
 DB_NAME="acs"
 DB_USER="root"
-DB_PASS="secret123"
 INSTALL_DIR="/opt/acs"
 SERVICE_NAME="acslite"
+
+# Generate random passwords if not set
+generate_random_password() {
+    openssl rand -base64 12 | tr -d "=+/" | cut -c1-16
+}
+
+# Check if DB_PASS is set, if not generate random
+if [ -z "$DB_PASS" ] || [ "$DB_PASS" == "secret123" ]; then
+    DB_PASS=$(generate_random_password)
+    echo "[INFO] Generated random database password: $DB_PASS"
+fi
+
+# Check if ADMIN_PASS is set, if not generate random
+if [ -z "$ADMIN_PASS" ] || [ "$ADMIN_PASS" == "admin123" ]; then
+    ADMIN_PASS=$(generate_random_password)
+    echo "[INFO] Generated random admin password: $ADMIN_PASS"
+fi
+
 DB_DSN="$DB_USER:$DB_PASS@tcp(127.0.0.1:3306)/$DB_NAME?parseTime=true"
 
 # Admin Login Credentials (stored in web/data/admin.json)
 ADMIN_USER="admin"
-ADMIN_PASS="admin123"
 
 # Note: Telegram notifications are configured in web/api/admin_api.php
 

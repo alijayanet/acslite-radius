@@ -41,17 +41,50 @@ All components are integrated and ready to deploy with **two simple commands**.
 > **All commands must be run as `root` (or with `sudo`).**  
 > The scripts are **non-interactive** – they will create the database, tables, dummy data and services automatically.
 
-### Step 1: Clone the Repository
+### ⚡ Single Command Installation (Recommended)
 
 ```bash
 git clone https://github.com/alijayanet/acslite-radius.git
 cd acslite-radius
+bash install.sh
 ```
 
-### Step 2: Install Go-ACS (Main Application)
+**What happens:**
+1. ✅ Installs Go-ACS (TR-069 server) on port 7547
+2. ✅ Creates MySQL databases (`acs` + billing tables)
+3. ✅ Sets up PHP API server on port 8888
+4. ✅ Configures cron jobs for auto-isolir & invoicing
+5. ✅ **Prompts to optionally install FreeRADIUS** (10-second timeout)
+
+**At the end, you'll see:**
+```
+=========================================
+🎯 OPTIONAL: FreeRADIUS Installation
+=========================================
+
+Do you want to install FreeRADIUS now?
+This will add:
+  ✅ PPPoE/Hotspot Authentication
+  ✅ Accounting & Session Tracking
+  ✅ RADIUS Dashboard (radius.html)
+
+Press 'y' to install FreeRADIUS, or any other key to skip...
+```
+
+- **Press `y`** → Full installation (ACS + RADIUS) in one go! 🎉
+- **Press `n`** or **wait 10 seconds** → Skip RADIUS (install later if needed)
+
+---
+
+### 📦 Manual Installation (Alternative)
+
+If you prefer step-by-step control:
+
+#### Step 1: Install Go-ACS (Main Application)
 
 ```bash
 bash install.sh
+# Press 'n' when prompted for RADIUS (or let it timeout)
 ```
 
 This will:
@@ -71,7 +104,7 @@ http://<SERVER_IP>:7547/web/index.html
 - Username: `admin`
 - Password: `admin123`
 
-### Step 3: Install FreeRADIUS (Optional but Recommended)
+#### Step 2: Install FreeRADIUS (Optional but Recommended)
 
 ```bash
 bash install_radius.sh
@@ -95,6 +128,31 @@ http://<SERVER_IP>:7547/web/radius.html
 - Database: `radius` / User: `radius` / Password: `radius123`
 - Test user: `demo` / Password: `demo123`
 - Default NAS: `192.168.1.1` / Secret: `radius`
+
+---
+
+### 🔧 Custom NAS Configuration (Optional)
+
+You can customize RADIUS NAS settings using environment variables **before** running `install_radius.sh`:
+
+```bash
+# Customize your MikroTik router settings
+export Mikrotik_IP="192.168.88.1"
+export Mikrotik_SECRET="your-radius-secret"
+export Mikrotik_NAME="main-router"
+export DEFAULT_RADIUS_USER="testuser"
+export DEFAULT_RADIUS_PASS="testpass123"
+
+# Then run the installer
+bash install_radius.sh
+```
+
+**Environment Variables:**
+- `Mikrotik_IP` – Router IP address (default: `192.168.1.1`)
+- `Mikrotik_SECRET` – RADIUS shared secret (default: `radius`)
+- `Mikrotik_NAME` – Router shortname (default: `mikrotik1`)
+- `DEFAULT_RADIUS_USER` – Test username (default: `demo`)
+- `DEFAULT_RADIUS_PASS` – Test password (default: `demo123`)
 
 ---
 
@@ -482,8 +540,8 @@ This project is licensed under the **MIT License** – see the [LICENSE](LICENSE
 **Alijaya-Net** – *Your ISP Automation Partner*
 
 - 📱 Phone / WhatsApp: **0819-4721-5703**
-- 📧 Email: `alijaya@gmail.com`
-- 🌐 Website: [alijaya-net](https://alijaya.net)
+- 📧 Email: `support@alijaya-net.id`
+- 🌐 Website: [alijaya-net.id](https://alijaya-net.id)
 - 🐛 GitHub Issues: [github.com/alijayanet/acslite-radius/issues](https://github.com/alijayanet/acslite-radius/issues)
 
 ### Need Help?
@@ -512,4 +570,3 @@ With a single `bash install.sh && bash install_radius.sh` you now have a **compl
 ---
 
 *Made with ❤️ by **Alijaya-Net** (0819-4721-5703) – Your network, automated.*
-
