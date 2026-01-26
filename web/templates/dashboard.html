@@ -1053,7 +1053,11 @@
         }
 
         function toggleUserMenu() {
-            // TODO: Implement user dropdown menu
+            // Toggle user dropdown menu
+            const userMenu = document.getElementById('user-menu');
+            if (userMenu) {
+                userMenu.classList.toggle('show');
+            }
         }
 
         function loadPage(page) {
@@ -1206,12 +1210,26 @@
                 return;
             }
 
-            // TODO: Save to database
-            alert('Pelanggan berhasil ditambahkan! (Demo)');
-            addCustomerModal.hide();
+            // Save customer to database via API
+            fetch(`${PHP_API}/customer_api.php?action=add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Pelanggan berhasil ditambahkan!');
+                    addCustomerModal.hide();
+                } else {
+                    alert('Gagal menambahkan pelanggan');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menyimpan pelanggan');
+            });
         }
-
-        // ========== QUICK ACTIONS ==========
 
         function openModal(type) {
             switch (type) {

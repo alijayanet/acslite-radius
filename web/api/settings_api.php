@@ -4,6 +4,9 @@
  * Central configuration management for ACS-Lite
  */
 
+// Include security headers
+require_once __DIR__ . '/security_headers.php';
+
 ini_set('display_errors', 0);
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');

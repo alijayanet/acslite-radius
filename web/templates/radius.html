@@ -321,11 +321,18 @@
                         </p>
                         <p class="mb-0 opacity-75 mt-1"><i class="fas fa-database me-1"></i><span
                                 id="db-status">-</span></p>
-                        <button class="btn btn-outline-warning btn-sm mt-2" onclick="cleanupOrphaned()"
-                            title="Bersihkan sesi yang menggantung (tidak ada Accounting-Stop)">
-                            <i class="fas fa-broom me-1"></i> Cleanup Orphaned
-                        </button>
+                        <div class="d-flex gap-2 mt-2 flex-wrap">
+                            <button class="btn btn-outline-info btn-sm" onclick="runDiagnostics()"
+                                title="Jalankan pemeriksaan kesehatan RADIUS">
+                                <i class="fas fa-stethoscope me-1"></i> Diagnostics
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="cleanupOrphaned()"
+                                title="Bersihkan sesi yang menggantung (tidak ada Accounting-Stop)">
+                                <i class="fas fa-broom me-1"></i> Cleanup
+                            </button>
+                        </div>
                     </div>
+
                     <div class="col-md-9">
                         <div class="row">
                             <div class="col router-stat">
@@ -616,7 +623,9 @@
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-network-wired me-2"></i>NAS Clients (MikroTik)</h5>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-info btn-sm" onclick="importFromMikrotik()"><i
+                                        class="fas fa-download me-1"></i> Import dari mikrotik.json</button>
                                 <button class="btn btn-outline-light btn-sm" onclick="openAddClientModal()"><i
                                         class="fas fa-plus me-1"></i> Add Client</button>
                                 <button class="btn btn-primary btn-sm" onclick="applyClients()"><i
@@ -624,6 +633,12 @@
                             </div>
                         </div>
                         <div class="card-body">
+                            <div class="alert alert-info mb-3"
+                                style="background: rgba(0,245,255,0.08); border: 1px solid var(--border-color); color: var(--text-primary);">
+                                <i class="fas fa-info-circle me-1"></i>
+                                NAS clients disimpan di database RADIUS (tabel <code>nas</code>).
+                                Secret di MikroTik harus <strong>sama persis</strong> dengan yang ada di sini.
+                            </div>
                             <div class="table-responsive">
                                 <table class="data-table">
                                     <thead>
@@ -631,12 +646,13 @@
                                             <th>Name</th>
                                             <th>IP / CIDR</th>
                                             <th>Secret</th>
+                                            <th>Description</th>
                                             <th class="text-end">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="clients-table">
                                         <tr>
-                                            <td colspan="4" class="text-center py-5"><i
+                                            <td colspan="5" class="text-center py-5"><i
                                                     class="fas fa-spinner fa-spin fa-2x text-muted"></i></td>
                                         </tr>
                                     </tbody>
@@ -645,6 +661,7 @@
                         </div>
                     </div>
                 </div>
+
 
                 <div class="tab-pane fade" id="tab-sync">
                     <div class="card">
@@ -768,22 +785,30 @@
         <div class="modal-dialog">
             <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
                 <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
-                    <h5 class="modal-title text-white">Add NAS Client</h5>
+                    <h5 class="modal-title text-white" id="clientModalTitle">Add NAS Client</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <input type="hidden" id="client-old-ip" value="">
+                    <input type="hidden" id="client-edit-mode" value="0">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label text-white">Name</label>
+                            <label class="form-label text-white">Name <span class="text-danger">*</span></label>
                             <input class="form-control" id="client-name" placeholder="mikrotik-1">
                         </div>
                         <div class="col-12">
-                            <label class="form-label text-white">IP / CIDR</label>
-                            <input class="form-control" id="client-ip" placeholder="192.168.88.1/32">
+                            <label class="form-label text-white">IP Address <span class="text-danger">*</span></label>
+                            <input class="form-control" id="client-ip" placeholder="192.168.88.1">
+                            <small class="text-muted">IP address MikroTik yang akan mengirim request ke RADIUS</small>
                         </div>
                         <div class="col-12">
-                            <label class="form-label text-white">Secret</label>
+                            <label class="form-label text-white">Secret <span class="text-danger">*</span></label>
                             <input class="form-control" id="client-secret" placeholder="sharedsecret" type="password">
+                            <small class="text-muted">Harus sama dengan secret di MikroTik (/radius)</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-white">Description</label>
+                            <input class="form-control" id="client-description" placeholder="Router kantor pusat">
                         </div>
                     </div>
                     <div class="mt-3" id="client-message"></div>
@@ -795,6 +820,7 @@
             </div>
         </div>
     </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="theme-toggle.js"></script>
@@ -958,61 +984,185 @@
             }
         }
 
+        async function runDiagnostics() {
+            // Show loading
+            const btn = event.target.closest('button');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Checking...';
+            btn.disabled = true;
+
+            try {
+                const res = await apiGet(`${RADIUS_API}?action=diagnostics`);
+
+                if (!res.success || !res.diagnostics) {
+                    alert('❌ Failed to run diagnostics: ' + (res.error || 'Unknown error'));
+                    return;
+                }
+
+                const d = res.diagnostics;
+                let msg = '';
+
+                // Build message
+                msg += '🔍 RADIUS DIAGNOSTICS REPORT\\n';
+                msg += '════════════════════════════════\\n\\n';
+
+                // Checks
+                msg += '📋 CHECKS:\\n';
+                msg += `  • FreeRADIUS Service: ${d.checks.freeradius_service ? '✅ Running' : '❌ Not Running'}\\n`;
+                msg += `  • Ports 1812/1813: ${d.checks.ports_1812_1813 ? '✅ Listening' : '❌ Not Listening'}\\n`;
+                msg += `  • Database: ${d.checks.database_connection ? '✅ Connected' : '❌ Failed'}\\n`;
+                msg += `  • SQL Module: ${d.checks.sql_module_enabled ? '✅ Enabled' : '❌ Disabled'}\\n`;
+                msg += `  • NAS Clients: ${d.checks.nas_clients_count} configured\\n`;
+                msg += `  • RADIUS Users: ${d.checks.radius_users_count} in database\\n\\n`;
+
+                // NAS Clients list
+                if (d.nas_clients && d.nas_clients.length > 0) {
+                    msg += '📡 NAS CLIENTS:\\n';
+                    d.nas_clients.forEach(n => {
+                        msg += `  • ${n.name}: ${n.ip}\\n`;
+                    });
+                    msg += '\\n';
+                }
+
+                // Issues and Recommendations
+                if (d.issues && d.issues.length > 0) {
+                    msg += '⚠️ ISSUES FOUND:\\n';
+                    d.issues.forEach((issue, i) => {
+                        msg += `  ${i + 1}. ${issue}\\n`;
+                    });
+                    msg += '\\n';
+
+                    msg += '💡 RECOMMENDATIONS:\\n';
+                    d.recommendations.forEach((rec, i) => {
+                        msg += `  ${i + 1}. ${rec}\\n`;
+                    });
+                } else {
+                    msg += '✅ All checks passed! RADIUS is properly configured.\\n';
+                }
+
+                msg += '\\n════════════════════════════════';
+
+                alert(msg);
+
+            } catch (e) {
+                alert('❌ Error running diagnostics: ' + e.message);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+
+
+
         async function loadClients() {
             const res = await apiGet(`${RADIUS_API}?action=get_clients`);
             clients = res.clients || [];
 
             const tbody = document.getElementById('clients-table');
             if (!clients.length) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No clients configured</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No clients configured. Click "Add Client" or "Import dari mikrotik.json"</td></tr>';
                 return;
             }
 
             tbody.innerHTML = clients.map((c, idx) => {
                 const secret = (c.secret && c.secret.length) ? '********' : '';
+                const desc = c.description || '';
+                const clientData = JSON.stringify(c).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 return `<tr>
-                    <td>${c.name || ''}</td>
-                    <td>${c.ip || ''}</td>
+                    <td><strong>${c.name || ''}</strong></td>
+                    <td><code>${c.ip || ''}</code></td>
                     <td>${secret}</td>
+                    <td><small class="text-muted">${desc}</small></td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteClient(${idx})"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick='openEditClientModal(${JSON.stringify(c)})'><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteClient(${idx}, '${c.ip || ''}')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             }).join('');
         }
 
         function openAddClientModal() {
+            document.getElementById('clientModalTitle').textContent = 'Add NAS Client';
             document.getElementById('client-name').value = '';
             document.getElementById('client-ip').value = '';
             document.getElementById('client-secret').value = '';
+            document.getElementById('client-description').value = '';
+            document.getElementById('client-old-ip').value = '';
+            document.getElementById('client-edit-mode').value = '0';
             document.getElementById('client-message').innerHTML = '';
             const modal = new bootstrap.Modal(document.getElementById('clientModal'));
             modal.show();
         }
 
+        function openEditClientModal(client) {
+            document.getElementById('clientModalTitle').textContent = 'Edit NAS Client';
+            document.getElementById('client-name').value = client.name || '';
+            document.getElementById('client-ip').value = client.ip || '';
+            document.getElementById('client-secret').value = ''; // Don't fill, let user enter new if needed
+            document.getElementById('client-description').value = client.description || '';
+            document.getElementById('client-old-ip').value = client.ip || '';
+            document.getElementById('client-edit-mode').value = '1';
+            document.getElementById('client-message').innerHTML = '<small class="text-muted">Leave secret empty to keep existing secret</small>';
+            const modal = new bootstrap.Modal(document.getElementById('clientModal'));
+            modal.show();
+        }
+
         async function saveClient() {
+            const editMode = document.getElementById('client-edit-mode').value === '1';
+            const oldIp = document.getElementById('client-old-ip').value;
+
             const payload = {
-                action: 'add_client',
+                action: editMode ? 'update_client' : 'add_client',
                 name: document.getElementById('client-name').value.trim(),
                 ip: document.getElementById('client-ip').value.trim(),
-                secret: document.getElementById('client-secret').value
+                secret: document.getElementById('client-secret').value,
+                description: document.getElementById('client-description').value.trim()
             };
+
+            if (editMode) {
+                payload.old_ip = oldIp;
+            }
+
             const res = await apiPost(RADIUS_API, payload);
             setMessage('client-message', !!res.success, res.message || res.error || 'Unknown');
             if (res.success) {
                 await loadClients();
+                if (!editMode) {
+                    // Close modal on add success
+                    bootstrap.Modal.getInstance(document.getElementById('clientModal'))?.hide();
+                }
             }
         }
 
-        async function deleteClient(idx) {
-            if (!confirm('Delete this NAS client?')) return;
-            const res = await apiPost(RADIUS_API, { action: 'delete_client', index: idx });
+        async function importFromMikrotik() {
+            const secret = prompt('Masukkan default RADIUS secret untuk router yang diimport:', 'radius');
+            if (secret === null) return; // Cancelled
+
+            const res = await apiPost(RADIUS_API, {
+                action: 'import_from_mikrotik',
+                default_secret: secret || 'radius'
+            });
+
+            if (res.success) {
+                alert('✅ ' + res.message);
+                await loadClients();
+            } else {
+                alert('❌ ' + (res.error || 'Import failed'));
+            }
+        }
+
+
+
+        async function deleteClient(idx, ip) {
+            if (!confirm(`Delete NAS client ${ip}?`)) return;
+            const res = await apiPost(RADIUS_API, { action: 'delete_client', index: idx, ip: ip });
             if (!res.success) {
                 alert(res.error || 'Failed');
                 return;
             }
             await loadClients();
         }
+
 
         async function applyClients() {
             const res = await apiPost(RADIUS_API, { action: 'apply_clients' });

@@ -651,15 +651,8 @@
             }
         }
 
-        async function loadOnuLocations() {
-            // TODO: Replace with actual API call
-            // For now, using localStorage as mock database
-            const saved = localStorage.getItem('onu_locations');
-            onuLocations = saved ? JSON.parse(saved) : {};
-        }
-
         function saveOnuLocations() {
-            // TODO: Replace with actual API call
+            // Save ONU locations to localStorage
             localStorage.setItem('onu_locations', JSON.stringify(onuLocations));
         }
 

@@ -1,12 +1,16 @@
 <?php
 /**
- * ACSLite Admin API
+ * Admin API
+ * For ACS-Lite Admin Management
  * 
  * Endpoints:
- * - POST with action=login              - Admin login
- * - POST with action=change_password    - Change admin password
- * - POST with action=change_credentials - Change username & password
+ * - GET ?action=get_admin     - Get admin credentials
+ * - POST action=change_credentials - Change username & password
+ * - POST action=change_password - Change password only
  */
+
+// Include security headers
+require_once __DIR__ . '/security_headers.php';
 
 ini_set('display_errors', 0);
 header('Content-Type: application/json');

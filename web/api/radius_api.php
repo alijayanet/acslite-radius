@@ -1,4 +1,20 @@
 <?php
+/**
+ * RADIUS API
+ * For ACS-Lite RADIUS Management
+ * 
+ * Endpoints:
+ * - GET ?action=dashboard     - Dashboard stats
+ * - GET ?action=nas            - List NAS
+ * - POST action=add_nas        - Add NAS
+ * - GET ?action=users          - List PPPoE users
+ * - POST action=add_user       - Add PPPoE user
+ * - GET ?action=sessions       - Active sessions
+ * - POST action=disconnect    - Disconnect session
+ */
+
+// Include security headers
+require_once __DIR__ . '/security_headers.php';
 
 ini_set('display_errors', 0);
 header('Content-Type: application/json');

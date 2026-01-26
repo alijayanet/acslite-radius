@@ -4,24 +4,19 @@
  * For ACS-Lite ISP Billing Integration
  * 
  * Endpoints:
- * - GET  ?action=test         - Test connection to router
- * - GET  ?action=profiles     - Get all PPPoE profiles
- * - GET  ?action=secrets      - Get all PPPoE users
- * - GET  ?action=active       - Get active connections
- * - POST action=isolir        - Isolir user (change to isolir profile)
- * - POST action=unisolir      - Un-isolir user (change to normal profile)
- * - POST action=change_profile - Change user profile
- * - POST action=disconnect    - Disconnect active session
- * - POST action=add_user      - Add new PPPoE user
- * - POST action=delete_user   - Delete PPPoE user
- * - POST action=save_config   - Save MikroTik configuration
+ * - GET ?action=get_routers      - List all MikroTik routers
+ * - GET ?action=get_router&id=   - Get single router
+ * - POST action=add_router      - Add MikroTik router
+ * - POST action=update_router   - Update router config
+ * - POST action=delete_router   - Delete router
+ * - POST action=save_config     - Save MikroTik configuration
  */
+
+// Include security headers
+require_once __DIR__ . '/security_headers.php';
 
 ini_set('display_errors', 0);
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
