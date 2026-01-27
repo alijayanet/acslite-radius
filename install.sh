@@ -169,39 +169,69 @@ else
     # Try 1: Login without password (fresh install)
     if mysql -u root -e "SELECT 1" &> /dev/null; then
         echo "[INFO] Fresh install detected. Setting root password..."
-        mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_PASS'; FLUSH PRIVILEGES;"
-        
-        if [ $? -eq 0 ]; then
+
+        # Use mysqladmin to set password (more reliable than SQL commands)
+        mysqladmin -u root password "$DB_PASS"
+        RESULT=$?
+
+        if [ $RESULT -eq 0 ]; then
             echo "[SUCCESS] Root password set successfully."
         else
             echo "[ERROR] Failed to set root password."
             exit 1
         fi
     else
-        # Try 2: Fix auth plugin via sudo mysql (Ubuntu 20.04+ default)
-        echo "[INFO] Attempting to reset password via sudo mysql..."
-        
-        # Try with sudo mysql (works on Ubuntu/Debian with unix_socket auth)
-        if sudo mysql -e "SELECT 1" &> /dev/null; then
-            echo "[INFO] Sudo mysql access available. Resetting password..."
-            sudo mysql <<EOF
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_PASS';
+        # Try 2: Reset password using systemctl and mysqld_safe method
+        echo "[INFO] Attempting to reset password via mysqld_safe method..."
+
+        # Kill any existing mysqld_safe or mysqld processes
+        killall mysqld_safe mysqld mariadbd 2>/dev/null || true
+        sleep 2
+
+        # Stop MariaDB service
+        systemctl stop mariadb 2>/dev/null || systemctl stop mysql 2>/dev/null
+        sleep 2
+
+        # Start MariaDB in safe mode with skip-grant-tables
+        mysqld_safe --skip-grant-tables --skip-networking &
+        MYSQLD_PID=$!
+
+        # Wait for MariaDB to start
+        sleep 5
+
+        # Set password using mysql command
+        mysql -u root <<EOF
+FLUSH PRIVILEGES;
+ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_PASS';
 FLUSH PRIVILEGES;
 EOF
-            
-            if [ $? -eq 0 ]; then
-                echo "[SUCCESS] Root password reset via sudo mysql."
-            else
-                echo "[WARNING] Sudo mysql failed to reset password."
-            fi
+
+        # Stop MariaDB by killing mysqld_safe process
+        kill $MYSQLD_PID 2>/dev/null
+        sleep 2
+
+        # Kill any remaining mysqld processes
+        killall mysqld mysqld_safe mariadbd 2>/dev/null || true
+        sleep 2
+
+        # Start MariaDB normally
+        systemctl start mariadb 2>/dev/null || systemctl start mysql 2>/dev/null
+
+        # Wait for MariaDB to start
+        sleep 3
+
+        # Verify password
+        if mysql -u root -p"$DB_PASS" -e "SELECT 1" &> /dev/null; then
+            echo "[SUCCESS] Root password set via mysqld_safe method."
         else
-            echo "[WARNING] Sudo mysql access not available."
+            echo "[ERROR] Failed to set root password via mysqld_safe method."
         fi
     fi
     
     # Final verification
     echo "[INFO] Verifying password authentication..."
     if mysql -u root -p$DB_PASS -e "SELECT 1" &> /dev/null; then
+        echo "[SUCCESS] MySQL root password authentication verified! "
         echo "[SUCCESS] MySQL root password authentication verified! ✓"
     else
         echo ""
@@ -214,7 +244,7 @@ EOF
         echo "Please run these commands manually:"
         echo ""
         echo "  sudo mysql"
-        echo "  ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$DB_PASS';"
+        echo "  ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_PASS';"
         echo "  FLUSH PRIVILEGES;"
         echo "  EXIT;"
         echo ""
@@ -891,10 +921,13 @@ if [ -f "web/.htaccess" ]; then
     echo "[INFO] Copied web/.htaccess"
 fi
 
-# 5. Create .env File (only if not exists)
+# 5. Create .env File (update if exists with new password)
 if [ -f "$INSTALL_DIR/.env" ]; then
-    echo "[INFO] .env file already exists. Keeping existing configuration."
-    echo "[INFO] If you need to reset .env, delete it first: rm $INSTALL_DIR/.env"
+    echo "[INFO] Updating .env file with new database password..."
+    # Use awk to update DB_DSN line (more robust than sed for special characters)
+    awk -v new_dsn="$DB_DSN" '/^DB_DSN=/ { print "DB_DSN=" new_dsn; next } { print }' "$INSTALL_DIR/.env" > "$INSTALL_DIR/.env.tmp"
+    mv "$INSTALL_DIR/.env.tmp" "$INSTALL_DIR/.env"
+    echo "[INFO] .env file updated."
 else
     echo "[INFO] Creating .env configuration file..."
     cat <<EOF > "$INSTALL_DIR/.env"
@@ -963,7 +996,36 @@ fi
 echo "[INFO] Reloading systemd daemon..."
 systemctl daemon-reload
 systemctl enable $SERVICE_NAME
+
+# Check if binary exists and is executable
+if [ ! -f "$INSTALL_DIR/acs" ]; then
+    echo "[ERROR] Binary not found at $INSTALL_DIR/acs"
+    echo "[ERROR] Please ensure you have uploaded the 'build' folder."
+    exit 1
+fi
+
+if [ ! -x "$INSTALL_DIR/acs" ]; then
+    echo "[INFO] Making binary executable..."
+    chmod +x "$INSTALL_DIR/acs"
+fi
+
+echo "[INFO] Starting $SERVICE_NAME service..."
 systemctl restart $SERVICE_NAME
+
+# Wait for service to start
+sleep 3
+
+# Check service status
+if systemctl is-active --quiet $SERVICE_NAME; then
+    echo "[SUCCESS] $SERVICE_NAME service started successfully."
+else
+    echo "[ERROR] $SERVICE_NAME service failed to start."
+    echo "[INFO] Checking service logs..."
+    journalctl -u $SERVICE_NAME -n 20 --no-pager || true
+    echo "[INFO] Checking if port 7547 is available..."
+    lsof -i :7547 2>/dev/null || echo "Port 7547 is available"
+    exit 1
+fi
 
 # ---------------------------------------------------------
 # PART 3: PHP API SERVER (Customer Portal)
@@ -1085,10 +1147,75 @@ configure_realtime() {
 configure_realtime
 
 # ---------------------------------------------------------
-# PART 5: AUTO-REFRESH CRON JOB
+# PART 5: NGINX WEB SERVER (Web Interface)
 # ---------------------------------------------------------
 echo ""
-echo ">>> STEP 5: Setting up Auto-Refresh Cron Job..."
+echo ">>> STEP 5: Installing Nginx Web Server..."
+
+# 1. Install Nginx
+if ! command -v nginx &> /dev/null; then
+    echo "[INFO] Installing Nginx..."
+    if command -v apt-get &> /dev/null; then
+        apt-get update
+        apt-get install -y nginx
+    elif command -v yum &> /dev/null; then
+        yum install -y nginx
+    else
+        echo "[ERROR] Unsupported package manager. Please install Nginx manually."
+        exit 1
+    fi
+    echo "[SUCCESS] Nginx installed."
+else
+    echo "[INFO] Nginx is already installed."
+fi
+
+# 2. Configure Nginx for Go-ACS web interface
+echo "[INFO] Configuring Nginx for Go-ACS web interface..."
+cat <<EOF > /etc/nginx/sites-available/goacs
+server {
+    listen 8080 default_server;
+    server_name _;
+
+    location / {
+        root /opt/acs/web;
+        index index.html;
+        try_files \$uri \$uri/ =404;
+    }
+
+    location /api/ {
+        proxy_pass http://localhost:7547;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+
+# 3. Enable Go-ACS site
+ln -sf /etc/nginx/sites-available/goacs /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+
+# 4. Test Nginx configuration
+nginx -t
+
+# 5. Enable and start Nginx
+systemctl enable nginx
+systemctl restart nginx
+
+if systemctl is-active --quiet nginx; then
+    echo "[SUCCESS] Nginx started successfully."
+    echo "[INFO] Web interface available at: http://$(hostname -I | awk '{print $1}')/"
+else
+    echo "[ERROR] Nginx failed to start."
+    exit 1
+fi
+
+# ---------------------------------------------------------
+# PART 6: AUTO-REFRESH CRON JOB
+# ---------------------------------------------------------
+echo ""
+echo ">>> STEP 6: Setting up Auto-Refresh Cron Job..."
 
 # Copy refresh script
 if [ -f "acs-refresh.sh" ]; then
@@ -1248,16 +1375,22 @@ if systemctl is-active --quiet $SERVICE_NAME; then
     echo "  ✅ RADIUS Dashboard (radius.html)"
     echo ""
     
-    if [ -f "./install_radius.sh" ]; then
+    if [ -f "./install_freeradius.sh" ]; then
         echo "Press 'y' to install FreeRADIUS, or any other key to skip..."
-        read -t 10 -n 1 -r INSTALL_RADIUS || INSTALL_RADIUS="n"
+        read -t 15 -n 1 -r INSTALL_RADIUS || INSTALL_RADIUS="n"
         echo ""
         
         if [[ $INSTALL_RADIUS =~ ^[Yy]$ ]]; then
             echo ""
             echo ">>> Starting FreeRADIUS installation..."
             echo ""
-            bash ./install_radius.sh
+
+            # Export MySQL credentials for install_radius.sh
+            export DB_PASS
+            export DB_USER
+            export DB_NAME
+
+            bash ./install_freeradius.sh
             
             if [ $? -eq 0 ]; then
                 echo ""
@@ -1277,11 +1410,11 @@ if systemctl is-active --quiet $SERVICE_NAME; then
         else
             echo ""
             echo "[INFO] FreeRADIUS installation skipped."
-            echo "[INFO] You can install it later with: bash ./install_radius.sh"
+            echo "[INFO] You can install it later with: bash ./install_freeradius.sh"
         fi
     else
-        echo "[WARNING] install_radius.sh not found in current directory."
-        echo "[INFO] Download it from the repository to enable RADIUS support."
+        echo "[WARNING] install_freeradius.sh not found in current directory."
+        echo "[INFO] Please ensure all script files are uploaded."
     fi
     echo ""
 fi
