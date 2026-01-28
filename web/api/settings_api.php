@@ -4,9 +4,6 @@
  * Central configuration management for ACS-Lite
  */
 
-// Include security headers
-require_once __DIR__ . '/security_headers.php';
-
 ini_set('display_errors', 0);
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -30,60 +27,11 @@ function jsonResponse($data, $status = 200) {
     exit;
 }
 
-// ========================================
-// DATABASE CONNECTION
-// ========================================
-function getAcsPDO() {
-    static $pdo = null;
-    
-    if ($pdo !== null) {
-        return $pdo;
-    }
-    
-    global $ENV_FILE;
-    
-    // Default configuration
-    $config = [
-        'host' => '127.0.0.1',
-        'port' => '3306',
-        'dbname' => 'acs',
-        'username' => 'root',
-        'password' => 'secret123'
-    ];
-    
-    // Try to get from .env
-    if (file_exists($ENV_FILE)) {
-        $lines = file($ENV_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            if (strpos($line, 'DB_DSN=') === 0) {
-                $dsn = substr($line, 7);
-                if (preg_match('/^([^:]+):([^@]*)@tcp\(([^:]+):(\d+)\)\/(.+)/', $dsn, $m)) {
-                    $config['username'] = $m[1];
-                    $config['password'] = $m[2];
-                    $config['host'] = $m[3];
-                    $config['port'] = $m[4];
-                    $config['dbname'] = preg_replace('/\?.*/', '', $m[5]);
-                }
-            }
-        }
-    }
-    
-    $pdo = new PDO(
-        "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4",
-        $config['username'],
-        $config['password'],
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false
-        ]
-    );
-    
-    return $pdo;
-}
-
-function getDefaultSettings() {
-    return [
+function loadSettings() {
+    global $SETTINGS_FILE;
+ 
+    // Default settings
+    $defaults = [
         'general' => [
             'site_name' => 'ACS-Lite ISP Manager',
             'company_name' => 'My ISP',
@@ -136,125 +84,32 @@ function getDefaultSettings() {
             'api_key' => ''
         ]
     ];
-}
 
-// ========================================
-// LOAD SETTINGS (Database-backed with file fallback)
-// ========================================
-function loadSettings() {
-    global $SETTINGS_FILE;
-    
-    // Try to load from database first
-    try {
-        $pdo = getAcsPDO();
-        
-        // Check if settings table exists
-        $stmt = $pdo->query("SHOW TABLES LIKE 'settings'");
-        if ($stmt->rowCount() === 0) {
-            // Table doesn't exist, fallback to file
-            error_log("[Settings] Table 'settings' not found, using file fallback");
-            return loadSettingsFromFile();
-        }
-        
-        $stmt = $pdo->query("SELECT category, settings_json FROM settings");
-        $rows = $stmt->fetchAll();
-        
-        $settings = [];
-        foreach ($rows as $row) {
-            $decoded = json_decode($row['settings_json'], true);
-            if ($decoded !== null) {
-                $settings[$row['category']] = $decoded;
-            }
-        }
-        
-        // Merge with defaults
-        $defaults = getDefaultSettings();
-        return array_replace_recursive($defaults, $settings);
-        
-    } catch (Exception $e) {
-        // Database error, fallback to file
-        error_log("[Settings] Database error: " . $e->getMessage() . ", using file fallback");
-        return loadSettingsFromFile();
-    }
-}
-
-// ========================================
-// LOAD SETTINGS FROM FILE (Fallback)
-// ========================================
-function loadSettingsFromFile() {
-    global $SETTINGS_FILE;
-    
-    $defaults = getDefaultSettings();
-    
     if (file_exists($SETTINGS_FILE)) {
         $loaded = json_decode(file_get_contents($SETTINGS_FILE), true) ?: [];
         return array_replace_recursive($defaults, $loaded);
     }
-    
+
     return $defaults;
 }
 
-// ========================================
-// SAVE SETTINGS (Database-backed with file fallback)
-// ========================================
 function saveSettings($settings) {
     global $SETTINGS_FILE;
-    
-    // Try to save to database first
-    try {
-        $pdo = getAcsPDO();
-        
-        // Check if settings table exists
-        $stmt = $pdo->query("SHOW TABLES LIKE 'settings'");
-        if ($stmt->rowCount() === 0) {
-            // Table doesn't exist, fallback to file
-            error_log("[Settings] Table 'settings' not found, saving to file instead");
-            return saveSettingsToFile($settings);
-        }
-        
-        foreach ($settings as $category => $data) {
-            $json = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            
-            $stmt = $pdo->prepare("
-                INSERT INTO settings (category, settings_json, updated_by) 
-                VALUES (:category, :json, 'settings_api')
-                ON DUPLICATE KEY UPDATE 
-                    settings_json = :json,
-                    updated_at = NOW(),
-                    updated_by = 'settings_api'
-            ");
-            
-            $stmt->execute([
-                'category' => $category,
-                'json' => $json
-            ]);
-        }
-        
-        // Also save to file as backup
-        saveSettingsToFile($settings);
-        
-        return true;
-        
-    } catch (Exception $e) {
-        // Database error, fallback to file
-        error_log("[Settings] Database save error: " . $e->getMessage() . ", saving to file instead");
-        return saveSettingsToFile($settings);
-    }
-}
 
-// ========================================
-// SAVE SETTINGS TO FILE (Fallback)
-// ========================================
-function saveSettingsToFile($settings) {
-    global $SETTINGS_FILE;
-    
     // Ensure directory exists
     $dir = dirname($SETTINGS_FILE);
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
     }
-    
-    return file_put_contents($SETTINGS_FILE, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+    $result = file_put_contents($SETTINGS_FILE, json_encode($settings, JSON_PRETTY_PRINT));
+
+    if ($result === false) {
+        error_log("Failed to write settings file: $SETTINGS_FILE");
+        return false;
+    }
+
+    return true;
 }
 
 function loadMikrotikConfig() {
@@ -289,7 +144,14 @@ function saveMikrotikConfig($config) {
         mkdir($dir, 0755, true);
     }
     
-    return file_put_contents($MIKROTIK_FILE, json_encode($config, JSON_PRETTY_PRINT));
+    $result = file_put_contents($MIKROTIK_FILE, json_encode($config, JSON_PRETTY_PRINT));
+
+    if ($result === false) {
+        error_log("Failed to write MikroTik config file: $MIKROTIK_FILE");
+        return false;
+    }
+
+    return true;
 }
 
 function loadAdminCredentials() {
@@ -312,7 +174,14 @@ function saveAdminCredentials($username, $password) {
     }
     
     $data = ['admin' => ['username' => $username, 'password' => $password]];
-    return file_put_contents($ADMIN_FILE, json_encode($data, JSON_PRETTY_PRINT));
+    $result = file_put_contents($ADMIN_FILE, json_encode($data, JSON_PRETTY_PRINT));
+
+    if ($result === false) {
+        error_log("Failed to write admin credentials file: $ADMIN_FILE");
+        return false;
+    }
+
+    return true;
 }
 
 function loadEnvConfig() {
@@ -414,7 +283,9 @@ try {
         case 'save_general':
             $settings = loadSettings();
             $settings['general'] = array_merge($settings['general'] ?? [], $input['general'] ?? []);
-            saveSettings($settings);
+            if (!saveSettings($settings)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'General settings saved']);
             break;
             
@@ -422,7 +293,9 @@ try {
         case 'save_acs':
             $settings = loadSettings();
             $settings['acs'] = array_merge($settings['acs'] ?? [], $input['acs'] ?? []);
-            saveSettings($settings);
+            if (!saveSettings($settings)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'ACS settings saved']);
             break;
 
@@ -433,7 +306,9 @@ try {
             if (isset($input['hotspot']['radius'])) {
                 $settings['hotspot']['radius'] = array_merge($settings['hotspot']['radius'] ?? [], $input['hotspot']['radius'] ?? []);
             }
-            saveSettings($settings);
+            if (!saveSettings($settings)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'Hotspot settings saved']);
             break;
             
@@ -447,7 +322,9 @@ try {
             }
             
             $settings['telegram'] = array_merge($settings['telegram'] ?? [], $input['telegram'] ?? []);
-            saveSettings($settings);
+            if (!saveSettings($settings)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'Telegram settings saved']);
             break;
             
@@ -455,7 +332,9 @@ try {
         case 'save_billing':
             $settings = loadSettings();
             $settings['billing'] = array_merge($settings['billing'] ?? [], $input['billing'] ?? []);
-            saveSettings($settings);
+            if (!saveSettings($settings)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'Billing settings saved']);
             break;
             
@@ -485,7 +364,9 @@ try {
                 }
             }
             
-            saveMikrotikConfig($mikrotik);
+            if (!saveMikrotikConfig($mikrotik)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to save MikroTik settings. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'MikroTik settings saved']);
             break;
             
@@ -506,7 +387,9 @@ try {
             ];
             
             $mikrotik['routers'][] = $newRouter;
-            saveMikrotikConfig($mikrotik);
+            if (!saveMikrotikConfig($mikrotik)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to add router. Check file permissions.'], 500);
+            }
             
             jsonResponse(['success' => true, 'message' => 'Router added', 'router' => $newRouter]);
             break;
@@ -525,7 +408,9 @@ try {
             });
             $mikrotik['routers'] = array_values($mikrotik['routers']);
             
-            saveMikrotikConfig($mikrotik);
+            if (!saveMikrotikConfig($mikrotik)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to delete router. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'Router deleted']);
             break;
             
@@ -550,7 +435,9 @@ try {
                 jsonResponse(['success' => false, 'error' => 'Current password is incorrect'], 400);
             }
             
-            saveAdminCredentials($admin['username'], $newPassword);
+            if (!saveAdminCredentials($admin['username'], $newPassword)) {
+                jsonResponse(['success' => false, 'error' => 'Failed to change password. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'Password changed successfully']);
             break;
             
@@ -570,7 +457,9 @@ try {
                 jsonResponse(['success' => false, 'error' => 'Password is incorrect'], 400);
             }
             
-            saveAdminCredentials($newUsername, $admin['password']);
+            if (!saveAdminCredentials($newUsername, $admin['password'])) {
+                jsonResponse(['success' => false, 'error' => 'Failed to change username. Check file permissions.'], 500);
+            }
             jsonResponse(['success' => true, 'message' => 'Username changed successfully']);
             break;
             
