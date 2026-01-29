@@ -537,7 +537,7 @@ try {
                         'port' => '3306',
                         'dbname' => 'acs',
                         'username' => 'root',
-                        'password' => 'secret123'
+                        'password' => 'h6Uems6h4HmW1y7'
                     ];
                     
                     if (file_exists($envFile)) {

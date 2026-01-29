@@ -7,33 +7,13 @@
 # - DateTime query fixes
 # - Auto-cleanup orphaned sessions
 
-# Load RADIUS credentials from environment variables (set by install_radius.sh)
-DB_NAME_RADIUS="${DB_NAME_RADIUS:-radius}"
-DB_USER_RADIUS="${DB_USER_RADIUS:-radius}"
-DB_PASS_RADIUS="${DB_PASS_RADIUS:-}"
-DB_HOST_RADIUS="${DB_HOST_RADIUS:-127.0.0.1}"
-DB_PORT_RADIUS="${DB_PORT_RADIUS:-3306}"
+DB_NAME_RADIUS="radius"
+DB_USER_RADIUS="radius"
+DB_PASS_RADIUS="radius123"
+DB_HOST_RADIUS="127.0.0.1"
+DB_PORT_RADIUS="3306"
 
 SETTINGS_JSON="/opt/acs/web/data/settings.json"
-
-# If password not set, try to load from settings.json
-if [ -z "$DB_PASS_RADIUS" ] && [ -f "$SETTINGS_JSON" ]; then
-    PHP_BIN=$(command -v php || true)
-    if [ -n "$PHP_BIN" ]; then
-        DB_HOST_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_host"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-        DB_PORT_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_port"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-        DB_NAME_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_name"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-        DB_USER_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_user"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-        DB_PASS_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_pass"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-    fi
-fi
-
-# Fallback to default if still not set
-[ -z "$DB_HOST_RADIUS" ] && DB_HOST_RADIUS="127.0.0.1"
-[ -z "$DB_PORT_RADIUS" ] && DB_PORT_RADIUS="3306"
-[ -z "$DB_NAME_RADIUS" ] && DB_NAME_RADIUS="radius"
-[ -z "$DB_USER_RADIUS" ] && DB_USER_RADIUS="radius"
-[ -z "$DB_PASS_RADIUS" ] && DB_PASS_RADIUS="radius123"
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root (sudo ./configure_freeradius_sql.sh)"
@@ -72,11 +52,11 @@ echo "[INFO] Using FreeRADIUS dir: $FREERADIUS_DIR"
 if [ -f "$SETTINGS_JSON" ]; then
   PHP_BIN=$(command -v php || true)
   if [ -n "$PHP_BIN" ]; then
-    DB_HOST_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_host"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-    DB_PORT_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_port"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-    DB_NAME_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_name"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-    DB_USER_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_user"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
-    DB_PASS_RADIUS=$(php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_pass"]??"";' SETTINGS_JSON="$SETTINGS_JSON")
+    DB_HOST_RADIUS=$(SETTINGS_JSON="$SETTINGS_JSON" php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_host"]??"";')
+    DB_PORT_RADIUS=$(SETTINGS_JSON="$SETTINGS_JSON" php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_port"]??"";')
+    DB_NAME_RADIUS=$(SETTINGS_JSON="$SETTINGS_JSON" php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_name"]??"";')
+    DB_USER_RADIUS=$(SETTINGS_JSON="$SETTINGS_JSON" php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_user"]??"";')
+    DB_PASS_RADIUS=$(SETTINGS_JSON="$SETTINGS_JSON" php -r '$s=json_decode(@file_get_contents(getenv("SETTINGS_JSON")),true)?:[]; echo $s["hotspot"]["radius"]["db_pass"]??"";')
   fi
 
   [ -z "$DB_HOST_RADIUS" ] && DB_HOST_RADIUS="127.0.0.1"
@@ -89,10 +69,16 @@ fi
 echo "[INFO] SQL config: host=$DB_HOST_RADIUS port=$DB_PORT_RADIUS db=$DB_NAME_RADIUS user=$DB_USER_RADIUS"
 
 echo "[INFO] Backing up config files..."
-cp -n "$SQL_MOD_AVAIL" "${SQL_MOD_AVAIL}.bak.${TS}" || true
-[ -f "$DEFAULT_SITE" ] && cp -n "$DEFAULT_SITE" "${DEFAULT_SITE}.bak.${TS}" || true
-[ -f "$INNER_TUNNEL" ] && cp -n "$INNER_TUNNEL" "${INNER_TUNNEL}.bak.${TS}" || true
-[ -f "$QUERIES_CONF" ] && cp -n "$QUERIES_CONF" "${QUERIES_CONF}.bak.${TS}" || true
+BACKUP_DIR="${FREERADIUS_DIR}/backups/${TS}"
+mkdir -p "$BACKUP_DIR"
+
+cp -n "$SQL_MOD_AVAIL" "${BACKUP_DIR}/" || true
+[ -f "$DEFAULT_SITE" ] && cp -n "$DEFAULT_SITE" "${BACKUP_DIR}/" || true
+[ -f "$INNER_TUNNEL" ] && cp -n "$INNER_TUNNEL" "${BACKUP_DIR}/" || true
+[ -f "$QUERIES_CONF" ] && cp -n "$QUERIES_CONF" "${BACKUP_DIR}/" || true
+
+# Cleanup any accidental in-place backups in sites-enabled that cause "Duplicate virtual server" errors
+rm -f "${DEFAULT_SITE}.bak."* "${INNER_TUNNEL}.bak."*
 
 # ========================================
 # 1. Enable SQL Module
@@ -115,6 +101,20 @@ perl -0777 -pi -e 's/\bport\s*=\s*(\d+)/port = '"$DB_PORT_RADIUS"'/g' "$SQL_MOD_
 perl -0777 -pi -e 's/\blogin\s*=\s*"[^"]*"/login = "'"$DB_USER_RADIUS"'"/g' "$SQL_MOD_AVAIL"
 perl -0777 -pi -e 's/\bpassword\s*=\s*"[^"]*"/password = "'"$DB_PASS_RADIUS"'"/g' "$SQL_MOD_AVAIL"
 perl -0777 -pi -e 's/\bradius_db\s*=\s*"[^"]*"/radius_db = "'"$DB_NAME_RADIUS"'"/g' "$SQL_MOD_AVAIL"
+# Enable read_clients to load NAS from SQL
+perl -0777 -pi -e 's/#\s*read_clients\s*=\s*yes/read_clients = yes/g' "$SQL_MOD_AVAIL"
+
+# Set driver to mysql (defaults to null)
+perl -0777 -pi -e 's/driver\s*=\s*"rlm_sql_null"/driver = "rlm_sql_mysql"/g' "$SQL_MOD_AVAIL"
+
+# Disable TLS in MySQL module to prevent "No such file" error for my_ca.crt
+perl -0777 -pi -e 's/\bca_file\s*=/ # ca_file =/g' "$SQL_MOD_AVAIL"
+perl -0777 -pi -e 's/\bcertificate_file\s*=/ # certificate_file =/g' "$SQL_MOD_AVAIL"
+perl -0777 -pi -e 's/\bprivate_key_file\s*=/ # private_key_file =/g' "$SQL_MOD_AVAIL"
+
+# Disable tls_required to prevent "SSL is required" error
+perl -0777 -pi -e 's/tls_required\s*=\s*yes/tls_required = no/g' "$SQL_MOD_AVAIL"
+
 echo "  ✓ SQL connection configured"
 
 # ========================================
@@ -208,17 +208,12 @@ fi
 # ========================================
 echo "[INFO] Step 6/6: Setting up auto-cleanup for orphaned sessions..."
 
-cat > /root/cleanup_radius_sessions.sh << EOFCLEANUP
+cat > /root/cleanup_radius_sessions.sh << 'EOFCLEANUP'
 #!/bin/bash
 # Auto-cleanup orphaned RADIUS sessions
 # Runs hourly via cron
-# Credentials configured by configure_freeradius_sql.sh
 
-DB_NAME_RADIUS="${DB_NAME_RADIUS:-radius}"
-DB_USER_RADIUS="${DB_USER_RADIUS:-radius}"
-DB_PASS_RADIUS="${DB_PASS_RADIUS:-radius123}"
-
-mysql -u "\${DB_USER_RADIUS}" -p"\${DB_PASS_RADIUS}" -D "\${DB_NAME_RADIUS}" << SQL
+mysql -u radius -pradius123 -D radius << SQL
 UPDATE radacct 
 SET acctstoptime = NOW(), 
     acctterminatecause = 'Auto-Cleanup-Orphaned' 
@@ -227,9 +222,8 @@ WHERE acctstoptime IS NULL
   AND (acctsessiontime IS NULL OR acctsessiontime = 0 OR acctupdatetime < DATE_SUB(NOW(), INTERVAL 2 HOUR));
 SQL
 
-echo "\$(date): Cleaned up orphaned RADIUS sessions" >> /var/log/radius_cleanup.log
+echo "$(date): Cleaned up orphaned RADIUS sessions" >> /var/log/radius_cleanup.log
 EOFCLEANUP
-
 
 chmod +x /root/cleanup_radius_sessions.sh
 
