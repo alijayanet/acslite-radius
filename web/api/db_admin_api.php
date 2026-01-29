@@ -1,16 +1,14 @@
 <?php
 /**
  * ACS-Lite Database Admin API
- *
+ * 
  * Endpoints:
  * - GET ?action=tables         - List all tables
  * - GET ?action=describe&table=xxx  - Describe table structure
- * - GET ?action=select&table=xxx    - Get data from table
+ * - GET ?action=select&table=xxx    - Get all data from table
+ * - POST action=query         - Execute custom SQL query
  * - POST action=insert        - Insert data into table
  * - POST action=create_table  - Create new table
- * - POST action=delete        - Delete row(s)
- *
- * SECURITY: Table name validation and SQL injection prevention
  */
 
 ini_set('display_errors', 0);
@@ -18,60 +16,10 @@ header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: SAMEORIGIN');
-header('X-XSS-Protection: 1; mode=block');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
-}
-
-// ========================================
-// SECURITY FUNCTIONS
-// ========================================
-
-// Whitelist of allowed table names
-$ALLOWED_TABLES = [
-    'customers', 'packages', 'invoices', 'payments',
-    'hotspot_vouchers', 'hotspot_profiles', 'voucher_batches', 'hotspot_sales',
-    'onu_locations', 'telegram_config', 'telegram_admins',
-    'settings', 'nas', 'radcheck', 'radreply', 'radacct',
-    'radgroupcheck', 'radgroupreply', 'radusergroup', 'radpostauth'
-];
-
-/**
- * Validate table name against whitelist
- */
-function isValidTableName($table) {
-    global $ALLOWED_TABLES;
-    return in_array($table, $ALLOWED_TABLES);
-}
-
-/**
- * Sanitize table name (additional safety layer)
- */
-function sanitizeTableName($table) {
-    // Only allow alphanumeric and underscore
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
-        return false;
-    }
-    return $table;
-}
-
-/**
- * Validate limit parameter
- */
-function validateLimit($limit) {
-    $limit = (int)$limit;
-    return max(1, min($limit, 1000));
-}
-
-/**
- * Validate column names
- */
-function isValidColumnName($name) {
-    return preg_match('/^[a-zA-Z0-9_]+$/', $name);
 }
 
 // ========================================
@@ -165,10 +113,6 @@ try {
             if (!$table) {
                 jsonResponse(['success' => false, 'error' => 'Table name required'], 400);
             }
-            // Validate table name
-            if (!isValidTableName($table)) {
-                jsonResponse(['success' => false, 'error' => 'Invalid or not allowed table name'], 403);
-            }
             $stmt = $db->query("DESCRIBE `$table`");
             $columns = $stmt->fetchAll();
             jsonResponse(['success' => true, 'table' => $table, 'columns' => $columns]);
@@ -177,17 +121,46 @@ try {
         // ---- SELECT ALL FROM TABLE ----
         case 'select':
             $table = $_GET['table'] ?? $input['table'] ?? '';
-            $limit = validateLimit($_GET['limit'] ?? $input['limit'] ?? 1000);
+            $limit = (int)($_GET['limit'] ?? $input['limit'] ?? 1000);
             if (!$table) {
                 jsonResponse(['success' => false, 'error' => 'Table name required'], 400);
-            }
-            // Validate table name
-            if (!isValidTableName($table)) {
-                jsonResponse(['success' => false, 'error' => 'Invalid or not allowed table name'], 403);
             }
             $stmt = $db->query("SELECT * FROM `$table` LIMIT $limit");
             $data = $stmt->fetchAll();
             jsonResponse(['success' => true, 'table' => $table, 'data' => $data, 'count' => count($data)]);
+            break;
+
+        // ---- EXECUTE CUSTOM QUERY ----
+        case 'query':
+            $sql = $input['sql'] ?? '';
+            if (!$sql) {
+                jsonResponse(['success' => false, 'error' => 'SQL query required'], 400);
+            }
+            
+            // Security check - only allow SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER
+            $sqlLower = strtolower(trim($sql));
+            $allowed = ['select', 'insert', 'update', 'delete', 'create', 'alter', 'describe', 'show'];
+            $isAllowed = false;
+            foreach ($allowed as $cmd) {
+                if (strpos($sqlLower, $cmd) === 0) {
+                    $isAllowed = true;
+                    break;
+                }
+            }
+            if (!$isAllowed) {
+                jsonResponse(['success' => false, 'error' => 'Query type not allowed'], 403);
+            }
+            
+            $stmt = $db->query($sql);
+            
+            // Check if it's a SELECT query
+            if (strpos($sqlLower, 'select') === 0 || strpos($sqlLower, 'show') === 0 || strpos($sqlLower, 'describe') === 0) {
+                $data = $stmt->fetchAll();
+                jsonResponse(['success' => true, 'data' => $data, 'count' => count($data)]);
+            } else {
+                $affected = $stmt->rowCount();
+                jsonResponse(['success' => true, 'message' => "Query executed. Rows affected: $affected", 'affected' => $affected]);
+            }
             break;
 
         // ---- INSERT DATA ----
@@ -197,21 +170,14 @@ try {
             if (!$table || empty($data)) {
                 jsonResponse(['success' => false, 'error' => 'Table and data required'], 400);
             }
-            // Validate table name
-            if (!isValidTableName($table)) {
-                jsonResponse(['success' => false, 'error' => 'Invalid or not allowed table name'], 403);
-            }
-            // Validate column names
-            foreach (array_keys($data) as $col) {
-                if (!isValidColumnName($col)) {
-                    jsonResponse(['success' => false, 'error' => "Invalid column name: $col"], 400);
-                }
-            }
+            
             $columns = array_keys($data);
             $placeholders = array_fill(0, count($columns), '?');
             $sql = "INSERT INTO `$table` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $placeholders) . ")";
+            
             $stmt = $db->prepare($sql);
             $stmt->execute(array_values($data));
+            
             jsonResponse(['success' => true, 'message' => 'Data inserted', 'id' => $db->lastInsertId()]);
             break;
 
@@ -224,11 +190,6 @@ try {
                 jsonResponse(['success' => false, 'error' => 'Table name and columns required'], 400);
             }
             
-            // Validate table name
-            if (!isValidTableName($tableName)) {
-                jsonResponse(['success' => false, 'error' => 'Invalid or not allowed table name'], 403);
-            }
-            
             // Build CREATE TABLE SQL
             $colDefs = [];
             foreach ($columns as $col) {
@@ -238,7 +199,7 @@ try {
                 $default = isset($col['default']) ? "DEFAULT '{$col['default']}'" : '';
                 $primary = ($col['primary'] ?? false) ? 'PRIMARY KEY AUTO_INCREMENT' : '';
                 
-                if ($name && isValidColumnName($name)) {
+                if ($name) {
                     $colDefs[] = "`$name` $type $nullable $default $primary";
                 }
             }
@@ -262,18 +223,6 @@ try {
                 jsonResponse(['success' => false, 'error' => 'Table and where conditions required'], 400);
             }
             
-            // Validate table name
-            if (!isValidTableName($table)) {
-                jsonResponse(['success' => false, 'error' => 'Invalid or not allowed table name'], 403);
-            }
-            
-            // Validate column names in WHERE clause
-            foreach (array_keys($where) as $col) {
-                if (!isValidColumnName($col)) {
-                    jsonResponse(['success' => false, 'error' => "Invalid column name: $col"], 400);
-                }
-            }
-            
             $conditions = [];
             $values = [];
             foreach ($where as $col => $val) {
@@ -290,15 +239,16 @@ try {
 
         default:
             jsonResponse([
-                'success' => true,
+                'success' => true, 
                 'message' => 'ACS Database Admin API',
                 'endpoints' => [
                     'GET ?action=tables' => 'List all tables',
-                    'GET ?action=describe&table=xxx' => 'Describe table structure (whitelisted tables only)',
-                    'GET ?action=select&table=xxx' => 'Get data from table (whitelisted tables only)',
-                    'POST action=insert, table=xxx, data={...}' => 'Insert row (whitelisted tables only)',
-                    'POST action=create_table, table_name=xxx, columns=[...]' => 'Create table (whitelisted tables only)',
-                    'POST action=delete, table=xxx, where={...}' => 'Delete row(s) (whitelisted tables only)'
+                    'GET ?action=describe&table=xxx' => 'Describe table structure',
+                    'GET ?action=select&table=xxx' => 'Get data from table',
+                    'POST action=query, sql=xxx' => 'Execute SQL query',
+                    'POST action=insert, table=xxx, data={...}' => 'Insert row',
+                    'POST action=create_table, table_name=xxx, columns=[...]' => 'Create table',
+                    'POST action=delete, table=xxx, where={...}' => 'Delete row(s)'
                 ]
             ]);
     }

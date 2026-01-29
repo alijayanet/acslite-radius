@@ -3,12 +3,16 @@
  * Telegram Webhook Handler for ACS-Lite Admin Bot
  * 
  * Features:
+ * - MikroTik: PPPoE management, Hotspot voucher generation
+ * - Billing: Customer, Invoice, Payment management
+ * - Isolir/Unisolir customers
+ * 
+ * Setup:
+ * 1. Set your BOT_TOKEN in database (telegram_config) or settings file
+ * 2. Set webhook: https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://yourdomain.com/api/telegram_webhook.php
+ * 3. Add authorized admin chat IDs in database (telegram_admins) or settings file
  */
 
-// Include security headers
-require_once __DIR__ . '/security_headers.php';
-
-ini_set('display_errors', 0);
 header('Content-Type: application/json');
 
 // ========================================
@@ -214,10 +218,7 @@ function mainMenuKeyboard() {
                 ['text' => '📡 Hotspot', 'callback_data' => 'menu_hotspot']
             ],
             [
-                ['text' => '🛠️ MikroTik Tools', 'callback_data' => 'menu_mikrotik'],
-                ['text' => '📊 Dashboard', 'callback_data' => 'dashboard']
-            ],
-            [
+                ['text' => '📊 Dashboard', 'callback_data' => 'dashboard'],
                 ['text' => '❓ Help', 'callback_data' => 'help']
             ]
         ]
@@ -230,10 +231,6 @@ function customerMenuKeyboard() {
             [
                 ['text' => '📋 List Pelanggan', 'callback_data' => 'cust_list'],
                 ['text' => '🔍 Cari Pelanggan', 'callback_data' => 'cust_search']
-            ],
-            [
-                ['text' => '➕ Tambah Pelanggan', 'callback_data' => 'cust_add'],
-                ['text' => '✏️ Edit Pelanggan', 'callback_data' => 'cust_edit']
             ],
             [
                 ['text' => '🔴 List Isolir', 'callback_data' => 'cust_isolir'],
@@ -272,16 +269,8 @@ function pppoeMenuKeyboard() {
                 ['text' => '🟢 Active Sessions', 'callback_data' => 'pppoe_active']
             ],
             [
-                ['text' => '🔴 Offline Users', 'callback_data' => 'pppoe_offline'],
-                ['text' => '➕ Tambah User', 'callback_data' => 'pppoe_add']
-            ],
-            [
-                ['text' => '✏️ Edit User', 'callback_data' => 'pppoe_edit'],
-                ['text' => '❌ Hapus User', 'callback_data' => 'pppoe_delete']
-            ],
-            [
-                ['text' => '🔌 Connect User', 'callback_data' => 'pppoe_connect'],
-                ['text' => '🔌 Disconnect User', 'callback_data' => 'pppoe_disconnect']
+                ['text' => '➕ Tambah User', 'callback_data' => 'pppoe_add'],
+                ['text' => '🔄 Disconnect All', 'callback_data' => 'pppoe_disconnect']
             ],
             [
                 ['text' => '⬅️ Kembali', 'callback_data' => 'main_menu']

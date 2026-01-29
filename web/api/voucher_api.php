@@ -1,20 +1,17 @@
 <?php
 /**
- * Voucher API
- * For ACS-Lite Hotspot Voucher Management
+ * Voucher API - Hotspot Voucher Management
  * 
- * Features:
- * - Generate random 5-digit vouchers (Mikhmon-style)
- * - Manual voucher generation (user=pass)
- * - Member generation (user≠pass)
- * - Batch management
- * - Sales tracking
+ * Handles voucher generation, sales, tracking, and management
+ * Compatible with RouterOS 6 and 7
+ * 
+ * @author ACS-Lite Team
+ * @version 1.0.0
  */
 
-// Include security headers
-require_once __DIR__ . '/security_headers.php';
-
+// Disable error display to prevent breaking JSON output
 ini_set('display_errors', 0);
+error_reporting(E_ALL);
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');

@@ -639,7 +639,7 @@
                 const result = await response.json();
                 devices = Array.isArray(result) ? result : (result.data || []);
 
-                // Load ONU locations (mock data for now - replace with API call)
+                // Load ONU locations from database
                 await loadOnuLocations();
 
                 // Update map
@@ -647,12 +647,50 @@
                 updateStats();
             } catch (error) {
                 console.error('Error loading devices:', error);
-                alert('Error loading devices: ' + error.message);
+                // Don't show alert on auto-refresh, just log it
+                if (!document.hidden) {
+                    console.warn('Failed to load devices, will retry on next refresh');
+                }
+            }
+        }
+
+        async function loadOnuLocations() {
+            try {
+                // Fetch from database via API
+                const response = await fetch(`${CUSTOMER_API_BASE}?action=get_all_locations`, {
+                    headers: getHeaders()
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.locations) {
+                        // Convert array to object keyed by serial_number
+                        onuLocations = {};
+                        result.locations.forEach(loc => {
+                            onuLocations[loc.serial_number] = {
+                                name: loc.name || loc.username || loc.serial_number,
+                                lat: parseFloat(loc.latitude),
+                                lng: parseFloat(loc.longitude)
+                            };
+                        });
+                        
+                        // Also save to localStorage as backup
+                        localStorage.setItem('onu_locations', JSON.stringify(onuLocations));
+                        console.log(`✅ Loaded ${Object.keys(onuLocations).length} ONU locations from database`);
+                    }
+                } else {
+                    throw new Error('Failed to fetch locations from API');
+                }
+            } catch (error) {
+                console.warn('Failed to load from database, using localStorage fallback:', error);
+                // Fallback to localStorage
+                const saved = localStorage.getItem('onu_locations');
+                onuLocations = saved ? JSON.parse(saved) : {};
             }
         }
 
         function saveOnuLocations() {
-            // Save ONU locations to localStorage
+            // TODO: Replace with actual API call
             localStorage.setItem('onu_locations', JSON.stringify(onuLocations));
         }
 
