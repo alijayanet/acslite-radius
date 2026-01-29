@@ -1,12 +1,14 @@
 <?php
 /**
- * Database Connection Test Script
+ * ACS-Lite Database Checker
+ * 
+ * File ini digunakan untuk mengecek dan menampilkan data yang ada di database
  * Akses: http://localhost/acs-lite/web/check_database.php
  */
 
 // Error reporting untuk debugging
-error_reporting(0);
-ini_set('display_errors', 0);
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Database configuration
 $config = [

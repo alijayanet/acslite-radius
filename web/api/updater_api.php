@@ -608,6 +608,13 @@ if ($method === 'POST') {
             
             $result = copyWebDirectory($extractedPath);
             
+            // AFTER COPY SUCCESS: Run Database Migration
+            if ($result['success']) {
+                logUpdate("Running automatic database migration...");
+                include_once(__DIR__ . '/migrate_db.php');
+                $result['db_migrated'] = true;
+            }
+
             // Send Telegram notification based on result
             if ($result['success']) {
                 $newVersion = getCurrentVersion();

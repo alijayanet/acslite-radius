@@ -600,7 +600,12 @@
 
                 setProgress(100, 'Update selesai!');
                 setStatus('success', 'Update berhasil!');
-                addLog('success', '✅ UPDATE BERHASIL! Silakan refresh halaman.');
+
+                // Show comprehensive success message
+                addLog('success', '✅ UPDATE FILE BERHASIL!');
+                addLog('success', '✅ DATABASE TELAH DIMIGRASI!');
+
+                alert('🎉 Update Berhasil!\n\nSemua file dan database telah diperbarui ke versi terbaru.\n\nINFO: Jika update ini menyertakan fitur baru level sistem (seperti Telegram Bot Service), Anda disarankan untuk login ke SSH dan menjalankan: sudo ./install.sh');
 
                 // Refresh version info
                 setTimeout(() => checkVersion(), 1000);

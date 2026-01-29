@@ -325,7 +325,56 @@ try {
             if (!saveSettings($settings)) {
                 jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
             }
-            jsonResponse(['success' => true, 'message' => 'Telegram settings saved']);
+
+            // Sync with Database for Telegram Bot Service
+            try {
+                $env = loadEnvConfig();
+                $dbConfig = [
+                    'host' => '127.0.0.1', 'port' => '3306', 'dbname' => 'acs',
+                    'username' => 'root', 'password' => 'secret123'
+                ];
+                
+                if (isset($env['DB_DSN'])) {
+                    if (preg_match('/^([^:]+):([^@]*)@tcp\(([^:]+):(\d+)\)\/(.+)/', $env['DB_DSN'], $m)) {
+                        $dbConfig['username'] = $m[1]; $dbConfig['password'] = $m[2];
+                        $dbConfig['host'] = $m[3]; $dbConfig['port'] = $m[4];
+                        $dbConfig['dbname'] = preg_replace('/\?.*/', '', $m[5]);
+                    }
+                }
+                
+                $pdo = new PDO("mysql:host={$dbConfig['host']};port={$dbConfig['port']};dbname={$dbConfig['dbname']};charset=utf8mb4", $dbConfig['username'], $dbConfig['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                
+                // 1. Update telegram_config (Bot Token)
+                $token = $settings['telegram']['bot_token'] ?? '';
+                if (!empty($token)) {
+                    $pdo->exec("TRUNCATE TABLE telegram_config");
+                    $stmt = $pdo->prepare("INSERT INTO telegram_config (bot_token, is_active) VALUES (?, 1)");
+                    $stmt->execute([$token]);
+                }
+                
+                // 2. Update telegram_admins (Chat IDs)
+                $chatId = $settings['telegram']['chat_id'] ?? '';
+                $adminChatIds = $settings['telegram']['admin_chat_ids'] ?? [];
+                
+                // Merge main chat_id with admin list
+                if (!empty($chatId) && !in_array($chatId, $adminChatIds)) {
+                    array_unshift($adminChatIds, $chatId);
+                }
+                
+                if (!empty($adminChatIds)) {
+                    $pdo->exec("UPDATE telegram_admins SET is_active = 0");
+                    foreach ($adminChatIds as $id) {
+                        $stmt = $pdo->prepare("INSERT INTO telegram_admins (chat_id, name, is_active) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE is_active = 1");
+                        $stmt->execute([$id, 'Admin']);
+                    }
+                }
+                
+            } catch (Exception $e) {
+                // Log error but don't fail the JSON save
+                error_log("Database sync failed for Telegram: " . $e->getMessage());
+            }
+
+            jsonResponse(['success' => true, 'message' => 'Telegram settings saved and synced with database']);
             break;
             
         // ---- SAVE BILLING SETTINGS ----

@@ -1,6 +1,6 @@
 <?php
 /**
- * Telegram Webhook Handler for ACS-Lite Admin Bot
+ * Telegram Command & Function Library for ACS-Lite Admin Bot
  * 
  * Features:
  * - MikroTik: PPPoE management, Hotspot voucher generation
@@ -8,9 +8,9 @@
  * - Isolir/Unisolir customers
  * 
  * Setup:
- * 1. Set your BOT_TOKEN in database (telegram_config) or settings file
- * 2. Set webhook: https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://yourdomain.com/api/telegram_webhook.php
- * 3. Add authorized admin chat IDs in database (telegram_admins) or settings file
+ * 1. Set your BOT_TOKEN in database (telegram_config) via Web UI
+ * 2. Add authorized admin chat IDs in database (telegram_admins) via Web UI
+ * 3. Run the Long Polling Service (telegram_bot_polling.php)
  */
 
 header('Content-Type: application/json');

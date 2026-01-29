@@ -456,7 +456,8 @@
                                             <option value="mikrotik">MikroTik</option>
                                             <option value="radius">RADIUS</option>
                                         </select>
-                                        <div class="form-text">Default: MikroTik. Set to RADIUS to use FreeRADIUS for hotspot auth.</div>
+                                        <div class="form-text">Default: MikroTik. Set to RADIUS to use FreeRADIUS for
+                                            hotspot auth.</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Enable RADIUS</label>
@@ -470,12 +471,15 @@
                                         <select class="form-select" id="radius-router">
                                             <option value="router1">router1</option>
                                         </select>
-                                        <div class="form-text">Router yang akan di-apply konfigurasi RADIUS (Hotspot/PPPoE).</div>
+                                        <div class="form-text">Router yang akan di-apply konfigurasi RADIUS
+                                            (Hotspot/PPPoE).</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">RADIUS Server IP (dilihat MikroTik)</label>
-                                        <input type="text" class="form-control" id="radius-server-ip" placeholder="contoh: 192.168.88.2">
-                                        <div class="form-text">Kosongkan untuk auto-detect dari server (tidak selalu akurat jika NAT).</div>
+                                        <input type="text" class="form-control" id="radius-server-ip"
+                                            placeholder="contoh: 192.168.88.2">
+                                        <div class="form-text">Kosongkan untuk auto-detect dari server (tidak selalu
+                                            akurat jika NAT).</div>
                                     </div>
                                 </div>
                             </div>
@@ -487,29 +491,35 @@
                                 <div class="row">
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">DB Host</label>
-                                        <input type="text" class="form-control" id="radius-db_host" placeholder="127.0.0.1">
+                                        <input type="text" class="form-control" id="radius-db_host"
+                                            placeholder="127.0.0.1">
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">DB Port</label>
-                                        <input type="number" class="form-control" id="radius-db_port" placeholder="3306">
+                                        <input type="number" class="form-control" id="radius-db_port"
+                                            placeholder="3306">
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">DB Name</label>
-                                        <input type="text" class="form-control" id="radius-db_name" placeholder="radius">
+                                        <input type="text" class="form-control" id="radius-db_name"
+                                            placeholder="radius">
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">DB User</label>
-                                        <input type="text" class="form-control" id="radius-db_user" placeholder="radius">
+                                        <input type="text" class="form-control" id="radius-db_user"
+                                            placeholder="radius">
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">DB Pass</label>
                                         <input type="password" class="form-control" id="radius-db_pass" placeholder="">
-                                        <div class="form-text">Password will be saved to server settings.json. Keep server access restricted.</div>
+                                        <div class="form-text">Password will be saved to server settings.json. Keep
+                                            server access restricted.</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">NAS Clients</label>
                                         <div class="alert alert-info mb-0 py-2" style="font-size: 0.85rem;">
-                                            Kelola NAS client (IP/secret) di <a href="radius.html"><strong>RADIUS Manager</strong></a>
+                                            Kelola NAS client (IP/secret) di <a href="radius.html"><strong>RADIUS
+                                                    Manager</strong></a>
                                         </div>
                                     </div>
                                 </div>
@@ -525,7 +535,8 @@
                                 <button type="button" class="btn btn-outline-primary" onclick="applyRadiusToMikrotik()">
                                     <i class="fas fa-sync-alt me-2"></i>Apply RADIUS to MikroTik
                                 </button>
-                                <button type="button" class="btn btn-outline-primary" onclick="applyPppoeRadiusToMikrotik()">
+                                <button type="button" class="btn btn-outline-primary"
+                                    onclick="applyPppoeRadiusToMikrotik()">
                                     <i class="fas fa-sitemap me-2"></i>Apply PPPoE RADIUS to MikroTik
                                 </button>
                             </div>
@@ -537,11 +548,12 @@
                 <div class="settings-section" id="section-telegram">
                     <div class="settings-card">
                         <div class="section-header">
-                            <h4><i class="fab fa-telegram me-2"></i>Telegram Notification</h4>
-                            <p>Configure Telegram bot for notifications</p>
+                            <h4><i class="fab fa-telegram me-2"></i>Telegram Bot (Long Polling)</h4>
+                            <p>Configure Telegram bot for admin commands and notifications</p>
                         </div>
 
                         <form id="form-telegram">
+                            <!-- Bot Configuration -->
                             <div class="setting-group">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div class="setting-group-title mb-0">
@@ -549,49 +561,91 @@
                                     </div>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="telegram-enabled">
-                                        <label class="form-check-label" for="telegram-enabled">Enable</label>
+                                        <label class="form-check-label" for="telegram-enabled">Enable Bot</label>
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-8 mb-3">
-                                        <label class="form-label">Bot Token</label>
+                                        <label class="form-label">Bot Token <small class="text-muted">(from
+                                                @BotFather)</small></label>
                                         <input type="text" class="form-control" id="telegram-bot_token"
                                             placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                                        <div class="form-text">Token dari @BotFather</div>
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Chat ID</label>
+                                        <label class="form-label">Chat ID Utama</label>
                                         <input type="text" class="form-control" id="telegram-chat_id"
-                                            placeholder="-1001234567890">
+                                            placeholder="1981178828">
+                                        <div class="form-text">ID grup/pribadi anda</div>
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-9 mb-3">
-                                        <label class="form-label">Webhook URL (IP Publik / Domain)</label>
-                                        <input type="text" class="form-control" id="telegram-webhook_url"
-                                            placeholder="https://103.xxx.xxx.xxx:8443 atau https://yourdomain.com">
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Port</label>
-                                        <select class="form-select" id="telegram-webhook_port">
-                                            <option value="">Default (dari URL)</option>
-                                            <option value="443">443 (HTTPS default)</option>
-                                            <option value="8443">8443</option>
-                                            <option value="80">80</option>
-                                            <option value="88">88</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="alert alert-info py-2 mb-3" style="font-size: 0.85rem;">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <strong>Telegram Webhook Requirements:</strong><br>
-                                    • Harus HTTPS dengan SSL valid (Let's Encrypt, Cloudflare, dll)<br>
-                                    • Port yang diizinkan: <strong>443, 8443, 80, 88</strong><br>
-                                    • Alternatif: Gunakan <a
-                                        href="https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/"
-                                        target="_blank">Cloudflare Tunnel</a> (gratis)
+                                <div class="alert alert-success py-2 mb-0" style="font-size: 0.85rem;">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Long Polling Mode</strong><br>
+                                    ✅ Works on local network<br>
+                                    ✅ No HTTPS required<br>
+                                    ✅ No public IP needed<br>
+                                    ✅ Auto-reconnect on errors
                                 </div>
                             </div>
 
+                            <!-- Service Management -->
+                            <div class="setting-group">
+                                <div class="setting-group-title">
+                                    <i class="fas fa-cogs"></i> Service Management
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Service Status</label>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span id="telegram-service-status" class="badge bg-secondary">Unknown</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                                onclick="checkTelegramService()">
+                                                <i class="fas fa-sync-alt"></i> Refresh
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-success btn-sm" onclick="startTelegramBot()">
+                                        <i class="fas fa-play me-1"></i>Start Bot
+                                    </button>
+                                    <button type="button" class="btn btn-warning btn-sm" onclick="restartTelegramBot()">
+                                        <i class="fas fa-redo me-1"></i>Restart Bot
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="stopTelegramBot()">
+                                        <i class="fas fa-stop me-1"></i>Stop Bot
+                                    </button>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="viewTelegramLogs()">
+                                        <i class="fas fa-file-alt me-1"></i>View Logs
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Admin Chat IDs -->
+                            <div class="setting-group">
+                                <div class="setting-group-title">
+                                    <i class="fas fa-users"></i> Authorized Admins
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Admin Chat IDs <small class="text-muted">(comma
+                                            separated)</small></label>
+                                    <input type="text" class="form-control" id="telegram-admin_chat_ids"
+                                        placeholder="123456789, 987654321">
+                                    <div class="form-text">
+                                        <strong>How to get your Chat ID:</strong><br>
+                                        1. Start your bot on Telegram: <code>/start</code><br>
+                                        2. Check logs: <code>tail -f /var/log/telegram_bot.log</code><br>
+                                        3. Look for: "Unauthorized access attempt from chat ID: 123456789"<br>
+                                        4. Copy that chat ID and add it here
+                                    </div>
+                                </div>
+                                <div id="admin-list-container" class="mb-3">
+                                    <!-- Admin list will be rendered here -->
+                                </div>
+                            </div>
+
+                            <!-- Notification Options -->
                             <div class="setting-group">
                                 <div class="setting-group-title">
                                     <i class="fas fa-bell"></i> Notification Options
@@ -617,29 +671,20 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox"
                                                 id="telegram-notify_new_device" checked>
-                                            <label class="form-check-label" for="telegram-notify_new_device">New
-                                                device
+                                            <label class="form-check-label" for="telegram-notify_new_device">New device
                                                 notifications</label>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Action Buttons -->
                             <div class="d-flex gap-2 flex-wrap">
                                 <button type="button" class="btn btn-save" onclick="saveTelegram()">
                                     <i class="fas fa-save me-2"></i>Save Settings
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary" onclick="testTelegram()">
                                     <i class="fas fa-paper-plane me-2"></i>Test Notification
-                                </button>
-                                <button type="button" class="btn btn-outline-primary" onclick="setWebhook()">
-                                    <i class="fas fa-link me-2"></i>Set Webhook
-                                </button>
-                                <button type="button" class="btn btn-outline-danger" onclick="deleteWebhook()">
-                                    <i class="fas fa-unlink me-2"></i>Delete Webhook
-                                </button>
-                                <button type="button" class="btn btn-outline-info" onclick="getWebhookInfo()">
-                                    <i class="fas fa-info-circle me-2"></i>Webhook Info
                                 </button>
                             </div>
                         </form>
