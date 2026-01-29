@@ -611,8 +611,10 @@ if ($method === 'POST') {
             // AFTER COPY SUCCESS: Run Database Migration
             if ($result['success']) {
                 logUpdate("Running automatic database migration...");
-                include_once(__DIR__ . '/migrate_db.php');
-                $result['db_migrated'] = true;
+                require_once(__DIR__ . '/migrate_db.php');
+                $migrationResult = runMigration();
+                $result['db_migrated'] = $migrationResult['success'];
+                $result['migration_details'] = $migrationResult['details'] ?? [];
             }
 
             // Send Telegram notification based on result
