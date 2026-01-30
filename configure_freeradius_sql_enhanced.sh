@@ -9,7 +9,7 @@
 
 DB_NAME_RADIUS="radius"
 DB_USER_RADIUS="radius"
-DB_PASS_RADIUS="radius123"
+DB_PASS_RADIUS="secret123"
 DB_HOST_RADIUS="127.0.0.1"
 DB_PORT_RADIUS="3306"
 
@@ -63,7 +63,7 @@ if [ -f "$SETTINGS_JSON" ]; then
   [ -z "$DB_PORT_RADIUS" ] && DB_PORT_RADIUS="3306"
   [ -z "$DB_NAME_RADIUS" ] && DB_NAME_RADIUS="radius"
   [ -z "$DB_USER_RADIUS" ] && DB_USER_RADIUS="radius"
-  [ -z "$DB_PASS_RADIUS" ] && DB_PASS_RADIUS="radius123"
+  [ -z "$DB_PASS_RADIUS" ] && DB_PASS_RADIUS="secret123"
 fi
 
 echo "[INFO] SQL config: host=$DB_HOST_RADIUS port=$DB_PORT_RADIUS db=$DB_NAME_RADIUS user=$DB_USER_RADIUS"
@@ -193,7 +193,7 @@ cat > /root/cleanup_radius_sessions.sh << 'EOFCLEANUP'
 # Auto-cleanup orphaned RADIUS sessions
 # Runs hourly via cron
 
-mysql -u radius -pradius123 -D radius << SQL
+mysql -u radius -psecret123 -D radius << SQL
 UPDATE radacct 
 SET acctstoptime = NOW(), 
     acctterminatecause = 'Auto-Cleanup-Orphaned' 

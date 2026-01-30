@@ -2,10 +2,10 @@
 
 DB_NAME_RADIUS="radius"
 DB_USER_RADIUS="radius"
-DB_PASS_RADIUS="radius123"
+DB_PASS_RADIUS="secret123"
 
 MYSQL_ROOT_USER="root"
-MYSQL_ROOT_PASS="radius123"
+MYSQL_ROOT_PASS="secret123"
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root (sudo ./install_radius.sh)"
@@ -49,7 +49,11 @@ fi
 echo "[INFO] Creating database '$DB_NAME_RADIUS' and user '$DB_USER_RADIUS'..."
 
 "${MYSQL_CMD[@]}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME_RADIUS};"
+
+# Create or update radius user with correct password
+echo "[INFO] Ensuring user '$DB_USER_RADIUS' has password '$DB_PASS_RADIUS'..."
 "${MYSQL_CMD[@]}" -e "CREATE USER IF NOT EXISTS '${DB_USER_RADIUS}'@'localhost' IDENTIFIED BY '${DB_PASS_RADIUS}';"
+"${MYSQL_CMD[@]}" -e "ALTER USER '${DB_USER_RADIUS}'@'localhost' IDENTIFIED BY '${DB_PASS_RADIUS}';"
 "${MYSQL_CMD[@]}" -e "GRANT ALL PRIVILEGES ON ${DB_NAME_RADIUS}.* TO '${DB_USER_RADIUS}'@'localhost'; FLUSH PRIVILEGES;"
 
 # -----------------------------------------------------------------
