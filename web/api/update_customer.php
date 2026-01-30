@@ -1,5 +1,5 @@
 <?php
-$config = ['host' => '127.0.0.1', 'port' => 3306, 'dbname' => 'acs', 'username' => 'root', 'password' => ''];
+$config = ['host' => '127.0.0.1', 'port' => 3306, 'dbname' => 'acs', 'username' => 'root', 'password' => 'secret123'];
 
 $envFile = '/opt/acs/.env';
 if (file_exists($envFile)) {

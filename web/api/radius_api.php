@@ -33,7 +33,7 @@ function loadSettings() {
                 'db_port' => 3306,
                 'db_name' => 'radius',
                 'db_user' => 'radius',
-                'db_pass' => 'radius123'
+                'db_pass' => 'secret123'
             ]
         ]
     ];

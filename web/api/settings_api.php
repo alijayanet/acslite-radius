@@ -537,7 +537,7 @@ try {
                         'port' => '3306',
                         'dbname' => 'acs',
                         'username' => 'root',
-                        'password' => 'h6Uems6h4HmW1y7'
+                        'password' => 'secret123'
                     ];
                     
                     if (file_exists($envFile)) {
@@ -654,6 +654,35 @@ try {
                 'message' => "Service {$service} restarted",
                 'status' => $status
             ]);
+            break;
+
+        // ---- TELEGRAM BOT SERVICE MANAGEMENT ----
+        case 'telegram_service_status':
+            $status = trim(@shell_exec('systemctl is-active telegram-bot 2>/dev/null') ?: 'inactive');
+            jsonResponse(['success' => true, 'status' => $status]);
+            break;
+
+        case 'telegram_service_start':
+            @shell_exec('sudo systemctl start telegram-bot 2>/dev/null');
+            $status = trim(@shell_exec('systemctl is-active telegram-bot 2>/dev/null'));
+            jsonResponse(['success' => $status === 'active', 'status' => $status]);
+            break;
+
+        case 'telegram_service_stop':
+            @shell_exec('sudo systemctl stop telegram-bot 2>/dev/null');
+            $status = trim(@shell_exec('systemctl is-active telegram-bot 2>/dev/null'));
+            jsonResponse(['success' => $status !== 'active', 'status' => $status]);
+            break;
+
+        case 'telegram_service_restart':
+            @shell_exec('sudo systemctl restart telegram-bot 2>/dev/null');
+            $status = trim(@shell_exec('systemctl is-active telegram-bot 2>/dev/null'));
+            jsonResponse(['success' => $status === 'active', 'status' => $status]);
+            break;
+
+        case 'telegram_service_logs':
+            $logs = @shell_exec('tail -n 50 /var/log/telegram_bot.log 2>/dev/null') ?: 'No logs found.';
+            jsonResponse(['success' => true, 'logs' => $logs]);
             break;
             
         default:

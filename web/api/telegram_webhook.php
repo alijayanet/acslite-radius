@@ -82,7 +82,7 @@ function getDB() {
         'port' => '3306',
         'dbname' => 'acs',
         'username' => 'root',
-        'password' => 'h6Uems6h4HmW1y7'
+        'password' => 'secret123'
     ];
     
     if (file_exists($envFile)) {
