@@ -103,6 +103,7 @@ http://<SERVER_IP>:7547/web/index.html
 **Default credentials:**
 - Username: `admin`
 - Password: `admin123`
+- ApiKey: `secret`
 
 #### Step 2: Install FreeRADIUS (Optional but Recommended)
 
@@ -570,3 +571,4 @@ With a single `bash install.sh && bash install_radius.sh` you now have a **compl
 ---
 
 *Made with ❤️ by **Alijaya-Net** (0819-4721-5703) – Your network, automated.*
+
