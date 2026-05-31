@@ -6,9 +6,21 @@ echo "===========================================\n";
 echo " Cek Data ONU & Sync ke Customers\n";
 echo "===========================================\n\n";
 
-$config = ['host' => '127.0.0.1', 'port' => 3306, 'dbname' => 'acs', 'username' => 'root', 'password' => 'secret123'];
+$config = ['host' => '127.0.0.1', 'port' => 3306, 'dbname' => 'acs', 'username' => 'root', 'password' => ''];
 
 $envFile = '/opt/acs/.env';
+$envPaths = [
+    __DIR__ . '/../../.env',
+    __DIR__ . '/../.env',
+    __DIR__ . '/.env',
+    '/opt/acs/.env'
+];
+foreach ($envPaths as $path) {
+    if (file_exists($path)) {
+        $envFile = $path;
+        break;
+    }
+}
 if (file_exists($envFile)) {
     $envContent = file_get_contents($envFile);
     if (preg_match('/DB_DSN=([^:]+):([^@]+)@tcp\(([^:]+):(\d+)\)\/([^?]+)/', $envContent, $m)) {

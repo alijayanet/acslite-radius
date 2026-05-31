@@ -2,17 +2,17 @@
 /**
  * ACSLite Customer Portal API
  * 
- * Endpoints (via direct call or path):
+ * Endpoints:
  * - POST with serial_number    - Save ONU location with customer credentials
  * - POST with username only    - Customer login  
  * - GET with sn parameter      - Get device data for customer
  */
 
+// Include security headers
+require_once __DIR__ . '/security_headers.php';
+
 ini_set('display_errors', 0); // Suppress errors to ensure valid JSON response
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 
 // Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -29,9 +29,27 @@ $config = [
     'password' => 'secret123'
 ];
 
+/**
+ * Get first existing .env file path
+ */
+function getEnvFile() {
+    $paths = [
+        __DIR__ . '/../../.env',
+        __DIR__ . '/../.env',
+        __DIR__ . '/.env',
+        '/opt/acs/.env'
+    ];
+    foreach ($paths as $path) {
+        if (file_exists($path)) {
+            return $path;
+        }
+    }
+    return null;
+}
+
 // Try to load from .env file
-$envFile = '/opt/acs/.env';
-if (file_exists($envFile)) {
+$envFile = getEnvFile();
+if ($envFile) {
     $envContent = file_get_contents($envFile);
     if (preg_match('/DB_DSN=([^:]+):([^@]+)@tcp\(([^:]+):(\d+)\)\/([^?]+)/', $envContent, $matches)) {
         $config['username'] = $matches[1];
@@ -119,8 +137,8 @@ function getGenieDevice($serialNumber = '') {
     
     // Get API key from .env
     $apiKey = 'secret'; // Default
-    $envFile = '/opt/acs/.env';
-    if (file_exists($envFile)) {
+    $envFile = getEnvFile();
+    if ($envFile) {
         $envContent = file_get_contents($envFile);
         if (preg_match('/API_KEY=(.+)/', $envContent, $matches)) {
             $apiKey = trim($matches[1]);
@@ -172,69 +190,158 @@ function getGenieDevice($serialNumber = '') {
         } elseif (is_array($result)) {
             $devices = $result;
         }
-        
         // Find device by serial number
         foreach ($devices as $d) {
             $sn = $d['serial_number'] ?? $d['_id'] ?? '';
             if (strpos($sn, $serialNumber) !== false || $sn === $serialNumber) {
+                // Get basic info
                 $device['product_class'] = $d['product_class'] ?? $d['_deviceId']['_ProductClass'] ?? 'Unknown';
                 $device['manufacturer'] = $d['manufacturer'] ?? $d['_deviceId']['_Manufacturer'] ?? 'Unknown';
                 $device['ip_address'] = $d['ip_address'] ?? $d['ip'] ?? null;
                 $device['last_inform_time'] = $d['last_inform_time'] ?? $d['_lastInform'] ?? null;
                 $device['rx_power'] = $d['rx_power'] ?? null;
                 $device['temperature'] = $d['temperature'] ?? null;
-                $device['online'] = $d['online'] ?? false;
                 
-                // Extract from parameters array
                 $params = $d['parameters'] ?? [];
-                
-                // PPPoE Username - check multiple possible paths
-                $pppoeKeys = [
-                    'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username',
-                    'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.2.WANPPPConnection.1.Username',
-                    'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.2.Username'
-                ];
-                foreach ($pppoeKeys as $key) {
-                    if (!empty($params[$key])) {
-                        $device['pppoe_user'] = $params[$key];
-                        break;
-                    }
-                }
-                
-                // WiFi SSID - check multiple possible paths
-                $ssidKeys = [
-                    'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID',
-                    'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.SSID'
-                ];
-                foreach ($ssidKeys as $key) {
-                    if (!empty($params[$key])) {
-                        $device['ssid'] = $params[$key];
-                        break;
-                    }
-                }
-                
-                // External IP Address (if ip_address is empty)
-                if (empty($device['ip_address'])) {
-                    $ipKeys = [
-                        'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress',
-                        'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.3.WANIPConnection.1.ExternalIPAddress'
-                    ];
-                    foreach ($ipKeys as $key) {
-                        if (!empty($params[$key])) {
-                            $device['ip_address'] = $params[$key];
-                            break;
-                        }
-                    }
-                }
-                
-                // Store full parameters for reference
                 $device['parameters'] = $params;
+
+                // --- AUTO-DETECT SERVICES (Required for Dashboard Sync) ---
+                
+                // 1. Detect WiFi Services
+                $wifiServices = [];
+                // Check common paths for SSID
+                $wifiPaths = [
+                    'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1' => 'Standard 2.4GHz',
+                    'Device.WiFi.SSID.1' => 'Standard WiFi'
+                ];
+                foreach ($wifiPaths as $basePath => $label) {
+                    if (isset($params["{$basePath}.SSID"])) {
+                        $wifiServices["wifi0"] = [
+                            'name' => $label,
+                            'ssid_path' => "{$basePath}.SSID",
+                            'password_path' => isset($params["{$basePath}.KeyPassphrase"]) ? "{$basePath}.KeyPassphrase" : (isset($params["{$basePath}.PreSharedKey.1.KeyPassphrase"]) ? "{$basePath}.PreSharedKey.1.KeyPassphrase" : null)
+                        ];
+                        break;
+                    }
+                }
+                $device['wifi_services'] = $wifiServices;
+
+                // 2. Detect WAN Services (for PPPoE Display)
+                $wanServices = [];
+                $wanPaths = [
+                    'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1' => 'WAN PPPoE',
+                    'Device.PPP.Interface.1' => 'PPP Interface'
+                ];
+                foreach ($wanPaths as $basePath => $label) {
+                    if (isset($params["{$basePath}.Username"])) {
+                        $wanServices["wan0"] = [
+                            'name' => $label,
+                            'username_path' => "{$basePath}.Username"
+                        ];
+                        break;
+                    }
+                }
+                $device['wan_services'] = $wanServices;
+                
+                // 3. Robust Online Check
+                if (!empty($device['last_inform_time'])) {
+                    $lastSeen = strtotime($device['last_inform_time']);
+                    $now = time();
+                    $device['online'] = ($now - $lastSeen) < (30 * 60); // 30 minutes
+                }
+
                 break;
             }
         }
     }
     
     return $device;
+}
+
+
+// ========================================
+// Helper: Find Device by PPPoE Username
+// ========================================
+function findDeviceByPPPoE($pppoeUsername) {
+    global $GENIEACS_URL;
+    
+    if (empty($pppoeUsername)) return null;
+    
+    // Get API key from .env
+    $apiKey = 'secret';
+    $envFile = getEnvFile();
+    if ($envFile) {
+        $envContent = file_get_contents($envFile);
+        if (preg_match('/API_KEY=(.+)/', $envContent, $matches)) {
+            $apiKey = trim($matches[1]);
+        }
+    }
+    
+    // Fetch all devices
+    $acsUrl = "{$GENIEACS_URL}/api/devices";
+    $response = null;
+    
+    try {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 5,
+                'ignore_errors' => true,
+                'header' => "Accept: application/json\r\nX-API-Key: {$apiKey}\r\n"
+            ]
+        ]);
+        $response = @file_get_contents($acsUrl, false, $context);
+    } catch (Exception $e) {
+        // Try curl
+        if (function_exists('curl_init')) {
+            try {
+                $ch = curl_init();
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $acsUrl,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 5,
+                    CURLOPT_HTTPHEADER => ["X-API-Key: {$apiKey}", "Accept: application/json"]
+                ]);
+                $response = curl_exec($ch);
+                curl_close($ch);
+            } catch (Exception $e2) {
+                return null;
+            }
+        }
+    }
+    
+    if (!$response) return null;
+    
+    $result = json_decode($response, true);
+    $devices = [];
+    
+    if (isset($result['data'])) {
+        $devices = $result['data'];
+    } elseif (is_array($result)) {
+        $devices = $result;
+    }
+    
+    // Search for device with matching PPPoE username
+    $pppoeKeys = [
+        'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username',
+        'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.2.WANPPPConnection.1.Username',
+        'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.2.Username'
+    ];
+    
+    foreach ($devices as $d) {
+        $params = $d['parameters'] ?? [];
+        
+        // Check each possible PPPoE path
+        foreach ($pppoeKeys as $key) {
+            if (isset($params[$key]) && $params[$key] === $pppoeUsername) {
+                // Found matching device! Return full device data
+                $serialNumber = $d['serial_number'] ?? $d['_id'] ?? '';
+                return getGenieDevice($serialNumber);
+            }
+        }
+    }
+    
+    return null;
 }
 
 // ========================================
@@ -293,12 +400,43 @@ if ($method === 'POST') {
                 if ($customer && (verifyPassword($password, $customer['portal_password']))) {
                     // Fetch device data using Serial Number or PPPoE
                     $serial = $customer['onu_serial'];
-                    if (!$serial && $customer['pppoe_username']) {
-                        // Optional: Try to find serial via PPPoE from Go ACS (not implemented here)
+                    $deviceInfo = null;
+                    
+                    // PRIORITY 1: Try using onu_serial if available
+                    if (!empty($serial)) {
+                        $deviceInfo = getGenieDevice($serial);
+                    }
+                    
+                    // PRIORITY 2: If no serial or device not found, try PPPoE username
+                    if ((!$deviceInfo || empty($deviceInfo['serial_number'])) && !empty($customer['pppoe_username'])) {
+                        $deviceInfo = findDeviceByPPPoE($customer['pppoe_username']);
+                        
+                        // If found via PPPoE, update the serial in our response
+                        if ($deviceInfo && !empty($deviceInfo['serial_number'])) {
+                            $serial = $deviceInfo['serial_number'];
+                            
+                            // Optionally: Update database with found serial for future use
+                            if (empty($customer['onu_serial'])) {
+                                try {
+                                    $updateStmt = $db->prepare("UPDATE customers SET onu_serial = ? WHERE id = ?");
+                                    $updateStmt->execute([$serial, $customer['id']]);
+                                } catch (PDOException $e) {
+                                    // Ignore update errors
+                                }
+                            }
+                        }
+                    }
+                    
+                    // If still no device found, return minimal data
+                    if (!$deviceInfo) {
+                        $deviceInfo = [
+                            'serial_number' => $serial ?: 'Unknown',
+                            'product_class' => 'Unknown',
+                            'manufacturer' => 'Unknown',
+                            'pppoe_user' => $customer['pppoe_username']
+                        ];
                     }
 
-                    $deviceInfo = getGenieDevice($serial);
-                    
                     jsonResponse([
                         'success' => true,
                         'source' => 'billing_db',
@@ -350,6 +488,56 @@ if ($method === 'POST') {
         }
 
         jsonResponse(['success' => false, 'message' => 'Invalid username or password'], 401);
+    }
+
+    // ---- UPDATE WIFI (SSID/PASSWORD) ----
+    if (isset($data['action']) && $data['action'] === 'update_wifi') {
+        $serial = $data['serial_number'] ?? '';
+        $parameters = $data['parameters'] ?? [];
+
+        if (empty($serial) || empty($parameters)) {
+            jsonResponse(['success' => false, 'error' => 'Serial number and parameters are required'], 400);
+        }
+
+        // Get API key from .env
+        $apiKey = 'secret';
+        $envFile = getEnvFile();
+        if ($envFile) {
+            $envContent = file_get_contents($envFile);
+            if (preg_match('/API_KEY=(.+)/', $envContent, $matches)) {
+                $apiKey = trim($matches[1]);
+            }
+        }
+
+        $acsUrl = "{$GENIEACS_URL}/api/tasks?sn=" . urlencode($serial);
+        $payload = [
+            'name' => 'SetParameterValues',
+            'payload' => ['parameters' => $parameters]
+        ];
+
+        // Send task to GenieACS
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $acsUrl,
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                "X-API-Key: {$apiKey}",
+                "Content-Type: application/json"
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_TIMEOUT => 10
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode >= 200 && $httpCode < 300) {
+            jsonResponse(['success' => true, 'message' => 'Task queued successfully']);
+        } else {
+            jsonResponse(['success' => false, 'error' => 'Failed to queue task', 'details' => $response], $httpCode ?: 500);
+        }
     }
 
     // ---- SAVE ONU LOCATION ----
@@ -463,41 +651,16 @@ if ($method === 'POST') {
 }
 
 // ========================================
-// GET Request Handler - Get Device Data or All Locations
+// GET Request Handler - Get Device Data
 // ========================================
 if ($method === 'GET') {
-    $db = getDB($config);
-    
-    // Check if requesting all locations
-    $action = $_GET['action'] ?? '';
-    
-    if ($action === 'get_all_locations') {
-        // Return all ONU locations from database
-        $locations = [];
-        
-        if ($db) {
-            try {
-                $stmt = $db->prepare("SELECT serial_number, name, username, latitude, longitude FROM onu_locations ORDER BY updated_at DESC");
-                $stmt->execute();
-                $locations = $stmt->fetchAll();
-            } catch (PDOException $e) {
-                // error_log("Get all locations error: " . $e->getMessage());
-            }
-        }
-        
-        jsonResponse([
-            'success' => true,
-            'locations' => $locations,
-            'count' => count($locations)
-        ]);
-    }
-    
-    // Otherwise, get single device data by serial number
     $serialNumber = $_GET['sn'] ?? '';
     
     if (empty($serialNumber)) {
-        jsonResponse(['success' => false, 'message' => 'Serial number is required (use ?sn=XXX) or use ?action=get_all_locations'], 400);
+        jsonResponse(['success' => false, 'message' => 'Serial number is required (use ?sn=XXX)'], 400);
     }
+
+    $db = getDB($config);
     
     // Get location data from database
     $location = null;

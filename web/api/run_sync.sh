@@ -12,7 +12,7 @@ echo "===========================================\n";
 echo " Auto-Sync ONU Serial ke Tabel Customers\n";
 echo "===========================================\n\n";
 
-$config = ['host' => '127.0.0.1', 'port' => 3306, 'dbname' => 'acs', 'username' => 'root', 'password' => 'secret123'];
+$config = ['host' => '127.0.0.1', 'port' => 3306, 'dbname' => 'acs', 'username' => 'root', 'password' => ''];
 
 $envFile = '/opt/acs/.env';
 if (file_exists($envFile)) {

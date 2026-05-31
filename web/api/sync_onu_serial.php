@@ -27,6 +27,18 @@ $config = [
 
 // Load from .env if exists
 $envFile = '/opt/acs/.env';
+$envPaths = [
+    __DIR__ . '/../../.env',
+    __DIR__ . '/../.env',
+    __DIR__ . '/.env',
+    '/opt/acs/.env'
+];
+foreach ($envPaths as $path) {
+    if (file_exists($path)) {
+        $envFile = $path;
+        break;
+    }
+}
 if (file_exists($envFile)) {
     echo "📄 Loading config from .env...\n";
     $envContent = file_get_contents($envFile);

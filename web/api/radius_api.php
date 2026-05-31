@@ -1,4 +1,20 @@
 <?php
+/**
+ * RADIUS API
+ * For ACS-Lite RADIUS Management
+ * 
+ * Endpoints:
+ * - GET ?action=dashboard     - Dashboard stats
+ * - GET ?action=nas            - List NAS
+ * - POST action=add_nas        - Add NAS
+ * - GET ?action=users          - List PPPoE users
+ * - POST action=add_user       - Add PPPoE user
+ * - GET ?action=sessions       - Active sessions
+ * - POST action=disconnect    - Disconnect session
+ */
+
+// Include security headers
+require_once __DIR__ . '/security_headers.php';
 
 ini_set('display_errors', 0);
 header('Content-Type: application/json');
@@ -33,7 +49,7 @@ function loadSettings() {
                 'db_port' => 3306,
                 'db_name' => 'radius',
                 'db_user' => 'radius',
-                'db_pass' => 'secret123'
+                'db_pass' => 'radius123'
             ]
         ]
     ];
@@ -88,6 +104,17 @@ function deleteRadiusUser(PDO $db, $username) {
 }
 
 function serviceIsActive() {
+    $os = strtoupper(substr(PHP_OS, 0, 3));
+    if ($os === 'WIN') {
+        // On Windows, check if radius.exe is running (common for some Windows builds)
+        // Or if freeradius service is running via net start or sc
+        $out = @shell_exec('sc query freeradius | findstr RUNNING');
+        if (!$out) {
+            $out = @shell_exec('tasklist /FI "IMAGENAME eq radius.exe" | findstr radius.exe');
+        }
+        return !empty(trim((string)$out));
+    }
+    
     $out = @shell_exec('systemctl is-active freeradius 2>/dev/null');
     return trim((string)$out) === 'active';
 }
@@ -295,6 +322,121 @@ try {
             jsonResponse(['success' => true, 'message' => 'RADIUS DB connection OK']);
             break;
 
+        case 'diagnostics':
+            // Comprehensive diagnostics to prevent long debugging sessions
+            $diagnostics = [
+                'checks' => [],
+                'issues' => [],
+                'recommendations' => []
+            ];
+            
+            // 1. Check FreeRADIUS service
+            $serviceActive = serviceIsActive();
+            $diagnostics['checks']['freeradius_service'] = $serviceActive;
+            if (!$serviceActive) {
+                $diagnostics['issues'][] = 'FreeRADIUS service is not running';
+                $diagnostics['recommendations'][] = 'Run: sudo systemctl start freeradius';
+                
+                // Try to get error from journal
+                $journalError = @shell_exec('journalctl -u freeradius -n 5 --no-pager 2>/dev/null');
+                if ($journalError && strpos($journalError, 'duplicate') !== false) {
+                    $diagnostics['issues'][] = 'Duplicate client configuration detected';
+                    $diagnostics['recommendations'][] = 'Check /etc/freeradius/3.0/clients.conf for duplicate IP addresses';
+                }
+            }
+            
+            // 2. Check ports
+            $portsOpen = false;
+            $portCheck = @shell_exec('netstat -ulnp 2>/dev/null | grep -E "1812|1813"');
+            if (!empty(trim((string)$portCheck))) {
+                $portsOpen = true;
+            } else {
+                // Try ss command
+                $portCheck = @shell_exec('ss -ulnp 2>/dev/null | grep -E "1812|1813"');
+                $portsOpen = !empty(trim((string)$portCheck));
+            }
+            $diagnostics['checks']['ports_1812_1813'] = $portsOpen;
+            if (!$portsOpen && $serviceActive) {
+                $diagnostics['issues'][] = 'RADIUS ports (1812/1813) not listening';
+                $diagnostics['recommendations'][] = 'Check firewall: sudo ufw allow 1812/udp && sudo ufw allow 1813/udp';
+            }
+            
+            // 3. Check database connection
+            $dbOk = false;
+            $dbError = null;
+            try {
+                $pdo = pdoRadius();
+                $pdo->query('SELECT 1');
+                $dbOk = true;
+            } catch (Exception $e) {
+                $dbError = $e->getMessage();
+            }
+            $diagnostics['checks']['database_connection'] = $dbOk;
+            if (!$dbOk) {
+                $diagnostics['issues'][] = 'Cannot connect to RADIUS database: ' . $dbError;
+                $diagnostics['recommendations'][] = 'Check database credentials in Settings > Hotspot > RADIUS';
+            }
+            
+            // 4. Check NAS clients configured
+            $nasCount = 0;
+            $nasClients = [];
+            if ($dbOk) {
+                try {
+                    $stmt = $pdo->query("SELECT nasname, shortname, secret FROM nas");
+                    $nasClients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $nasCount = count($nasClients);
+                } catch (Exception $e) {}
+            }
+            $diagnostics['checks']['nas_clients_count'] = $nasCount;
+            if ($nasCount === 0) {
+                $diagnostics['issues'][] = 'No NAS clients configured';
+                $diagnostics['recommendations'][] = 'Add NAS client in RADIUS Manager > NAS Clients tab';
+            }
+            
+            // 5. Check for duplicate NAS IPs in clients.conf
+            $duplicateCheck = @shell_exec('grep -h "ipaddr" /etc/freeradius/3.0/clients*.conf 2>/dev/null | sort | uniq -d');
+            if (!empty(trim((string)$duplicateCheck))) {
+                $diagnostics['issues'][] = 'Duplicate IP addresses found in clients configuration';
+                $diagnostics['recommendations'][] = 'Remove duplicate entries from /etc/freeradius/3.0/clients.conf';
+            }
+            
+            // 6. Check if SQL module is enabled
+            $sqlEnabled = file_exists('/etc/freeradius/3.0/mods-enabled/sql');
+            $diagnostics['checks']['sql_module_enabled'] = $sqlEnabled;
+            if (!$sqlEnabled) {
+                $diagnostics['issues'][] = 'SQL module is not enabled in FreeRADIUS';
+                $diagnostics['recommendations'][] = 'Run: sudo ln -s /etc/freeradius/3.0/mods-available/sql /etc/freeradius/3.0/mods-enabled/';
+            }
+            
+            // 7. Check users exist
+            $userCount = 0;
+            if ($dbOk) {
+                try {
+                    $userCount = (int)$pdo->query("SELECT COUNT(DISTINCT username) FROM radcheck")->fetchColumn();
+                } catch (Exception $e) {}
+            }
+            $diagnostics['checks']['radius_users_count'] = $userCount;
+            if ($userCount === 0) {
+                $diagnostics['issues'][] = 'No RADIUS users found in radcheck table';
+                $diagnostics['recommendations'][] = 'Run Sync to populate users from vouchers/customers';
+            }
+            
+            // Summary
+            $diagnostics['healthy'] = empty($diagnostics['issues']);
+            $diagnostics['summary'] = $diagnostics['healthy'] 
+                ? 'All checks passed! RADIUS is properly configured.' 
+                : count($diagnostics['issues']) . ' issue(s) found. See recommendations.';
+            
+            // Include NAS list for reference
+            $diagnostics['nas_clients'] = array_map(function($n) {
+                return ['name' => $n['shortname'], 'ip' => $n['nasname']];
+            }, $nasClients);
+            
+            jsonResponse(['success' => true, 'diagnostics' => $diagnostics]);
+            break;
+
+
+
         case 'cleanup_orphaned':
             $pdo = pdoRadius();
             
@@ -328,53 +470,236 @@ try {
             break;
 
         case 'get_clients':
-            $data = loadClients();
-            jsonResponse(['success' => true, 'clients' => maskedClients($data)]);
+            // Load from RADIUS database (nas table) instead of JSON
+            try {
+                $pdo = pdoRadius();
+                $stmt = $pdo->query("SELECT nasname, shortname, type, secret, description FROM nas ORDER BY shortname ASC");
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $clients = [];
+                foreach ($rows as $row) {
+                    $clients[] = [
+                        'name' => $row['shortname'] ?? $row['nasname'],
+                        'ip' => $row['nasname'],
+                        'secret' => '********', // Masked for security
+                        'type' => $row['type'] ?? 'other',
+                        'description' => $row['description'] ?? ''
+                    ];
+                }
+                jsonResponse(['success' => true, 'clients' => $clients, 'source' => 'database']);
+            } catch (Exception $e) {
+                // Fallback to JSON if DB fails
+                $data = loadClients();
+                jsonResponse(['success' => true, 'clients' => maskedClients($data), 'source' => 'json', 'db_error' => $e->getMessage()]);
+            }
             break;
 
         case 'add_client':
             $name = trim($input['name'] ?? '');
             $ip = trim($input['ip'] ?? '');
             $secret = (string)($input['secret'] ?? '');
+            $description = trim($input['description'] ?? 'Added via RADIUS Manager');
 
             if ($name === '' || $ip === '' || $secret === '') {
                 jsonResponse(['success' => false, 'error' => 'Name, IP, and secret are required'], 400);
             }
 
-            $data = loadClients();
-            $clients = $data['clients'] ?? [];
-            $clients[] = ['name' => $name, 'ip' => $ip, 'secret' => $secret];
-            $data['clients'] = $clients;
-            saveClients($data);
+            try {
+                $pdo = pdoRadius();
+                
+                // Use INSERT ... ON DUPLICATE KEY UPDATE for upsert
+                $stmt = $pdo->prepare("
+                    INSERT INTO nas (nasname, shortname, type, ports, secret, description) 
+                    VALUES (?, ?, 'other', 0, ?, ?)
+                    ON DUPLICATE KEY UPDATE 
+                        shortname = VALUES(shortname),
+                        secret = VALUES(secret),
+                        description = VALUES(description)
+                ");
+                $stmt->execute([$ip, $name, $secret, $description]);
+                
+                // Also save to JSON for backup
+                $data = loadClients();
+                $clients = $data['clients'] ?? [];
+                // Remove existing with same IP
+                $clients = array_values(array_filter($clients, fn($c) => ($c['ip'] ?? '') !== $ip));
+                $clients[] = ['name' => $name, 'ip' => $ip, 'secret' => $secret];
+                $data['clients'] = $clients;
+                saveClients($data);
 
-            jsonResponse(['success' => true, 'message' => 'Client added']);
+                jsonResponse(['success' => true, 'message' => "NAS client '{$name}' ({$ip}) added/updated in database"]);
+            } catch (Exception $e) {
+                jsonResponse(['success' => false, 'error' => 'Database error: ' . $e->getMessage()], 500);
+            }
+            break;
+
+        case 'update_client':
+            $oldIp = trim($input['old_ip'] ?? '');
+            $name = trim($input['name'] ?? '');
+            $ip = trim($input['ip'] ?? '');
+            $secret = (string)($input['secret'] ?? '');
+            $description = trim($input['description'] ?? '');
+
+            if ($oldIp === '' || $name === '' || $ip === '') {
+                jsonResponse(['success' => false, 'error' => 'old_ip, name, and ip are required'], 400);
+            }
+
+            try {
+                $pdo = pdoRadius();
+                
+                if ($secret !== '' && $secret !== '********') {
+                    // Update with new secret
+                    $stmt = $pdo->prepare("
+                        UPDATE nas SET nasname = ?, shortname = ?, secret = ?, description = ?
+                        WHERE nasname = ?
+                    ");
+                    $stmt->execute([$ip, $name, $secret, $description, $oldIp]);
+                } else {
+                    // Update without changing secret
+                    $stmt = $pdo->prepare("
+                        UPDATE nas SET nasname = ?, shortname = ?, description = ?
+                        WHERE nasname = ?
+                    ");
+                    $stmt->execute([$ip, $name, $description, $oldIp]);
+                }
+                
+                if ($stmt->rowCount() === 0) {
+                    jsonResponse(['success' => false, 'error' => 'NAS client not found'], 404);
+                }
+
+                jsonResponse(['success' => true, 'message' => "NAS client '{$name}' updated"]);
+            } catch (Exception $e) {
+                jsonResponse(['success' => false, 'error' => 'Database error: ' . $e->getMessage()], 500);
+            }
             break;
 
         case 'delete_client':
-            $index = (int)($input['index'] ?? -1);
-            $data = loadClients();
-            $clients = $data['clients'] ?? [];
-
-            if ($index < 0 || $index >= count($clients)) {
-                jsonResponse(['success' => false, 'error' => 'Invalid index'], 400);
+            // Support both index (legacy) and ip (new)
+            $ip = trim($input['ip'] ?? '');
+            $index = isset($input['index']) ? (int)$input['index'] : -1;
+            
+            if ($ip === '' && $index >= 0) {
+                // Legacy: delete by index from get_clients result
+                try {
+                    $pdo = pdoRadius();
+                    $stmt = $pdo->query("SELECT nasname FROM nas ORDER BY shortname ASC");
+                    $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                    if ($index < count($rows)) {
+                        $ip = $rows[$index];
+                    }
+                } catch (Exception $e) {
+                    // Fallback to JSON
+                    $data = loadClients();
+                    $clients = $data['clients'] ?? [];
+                    if ($index >= 0 && $index < count($clients)) {
+                        $ip = $clients[$index]['ip'] ?? '';
+                    }
+                }
             }
 
-            array_splice($clients, $index, 1);
-            $data['clients'] = $clients;
-            saveClients($data);
-            jsonResponse(['success' => true, 'message' => 'Client deleted']);
+            if ($ip === '') {
+                jsonResponse(['success' => false, 'error' => 'IP address is required'], 400);
+            }
+
+            try {
+                $pdo = pdoRadius();
+                $stmt = $pdo->prepare("DELETE FROM nas WHERE nasname = ?");
+                $stmt->execute([$ip]);
+                
+                // Also remove from JSON
+                $data = loadClients();
+                $clients = $data['clients'] ?? [];
+                $clients = array_values(array_filter($clients, fn($c) => ($c['ip'] ?? '') !== $ip));
+                $data['clients'] = $clients;
+                saveClients($data);
+
+                jsonResponse(['success' => true, 'message' => "NAS client {$ip} deleted"]);
+            } catch (Exception $e) {
+                jsonResponse(['success' => false, 'error' => 'Database error: ' . $e->getMessage()], 500);
+            }
             break;
 
         case 'apply_clients':
-            $data = loadClients();
-            $clients = $data['clients'] ?? [];
-            $content = buildClientsConf($clients);
-            $path = writeClientsConf($content);
+            // Sync NAS from database to clients.conf file
+            try {
+                $pdo = pdoRadius();
+                $stmt = $pdo->query("SELECT nasname, shortname, secret FROM nas");
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $clients = [];
+                foreach ($rows as $row) {
+                    $clients[] = [
+                        'name' => $row['shortname'] ?? 'client',
+                        'ip' => $row['nasname'],
+                        'secret' => $row['secret']
+                    ];
+                }
+                
+                $content = buildClientsConf($clients);
+                $path = writeClientsConf($content);
 
-            @shell_exec('systemctl restart freeradius 2>/dev/null');
+                if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                    @shell_exec('net stop freeradius && net start freeradius');
+                } else {
+                    @shell_exec('systemctl restart freeradius 2>/dev/null');
+                }
 
-            jsonResponse(['success' => true, 'message' => "Applied clients to {$path} and restarted freeradius" ]);
+                jsonResponse(['success' => true, 'message' => "Applied " . count($clients) . " NAS clients to {$path} and restarted freeradius"]);
+            } catch (Exception $e) {
+                // Fallback to JSON
+                $data = loadClients();
+                $clients = $data['clients'] ?? [];
+                $content = buildClientsConf($clients);
+                $path = writeClientsConf($content);
+                
+                @shell_exec('systemctl restart freeradius 2>/dev/null');
+                jsonResponse(['success' => true, 'message' => "Applied clients from JSON to {$path} (DB error: {$e->getMessage()})"]);
+            }
             break;
+
+        case 'import_from_mikrotik':
+            // Import routers from mikrotik.json to NAS table
+            $mikrotikFile = __DIR__ . '/../data/mikrotik.json';
+            if (!file_exists($mikrotikFile)) {
+                jsonResponse(['success' => false, 'error' => 'mikrotik.json not found'], 404);
+            }
+            
+            $mikrotikData = json_decode(file_get_contents($mikrotikFile), true) ?: [];
+            $routers = $mikrotikData['routers'] ?? [];
+            
+            if (empty($routers)) {
+                jsonResponse(['success' => false, 'error' => 'No routers found in mikrotik.json']);
+            }
+            
+            $defaultSecret = $input['default_secret'] ?? 'radius';
+            $imported = 0;
+            
+            try {
+                $pdo = pdoRadius();
+                $stmt = $pdo->prepare("
+                    INSERT INTO nas (nasname, shortname, type, ports, secret, description) 
+                    VALUES (?, ?, 'other', 0, ?, ?)
+                    ON DUPLICATE KEY UPDATE 
+                        shortname = VALUES(shortname),
+                        description = VALUES(description)
+                ");
+                
+                foreach ($routers as $r) {
+                    $ip = $r['ip'] ?? '';
+                    $name = $r['name'] ?? $r['id'] ?? 'mikrotik';
+                    if ($ip === '') continue;
+                    
+                    $stmt->execute([$ip, $name, $defaultSecret, "Imported from mikrotik.json"]);
+                    $imported++;
+                }
+                
+                jsonResponse(['success' => true, 'message' => "Imported {$imported} router(s) from mikrotik.json. Default secret: {$defaultSecret}"]);
+            } catch (Exception $e) {
+                jsonResponse(['success' => false, 'error' => 'Database error: ' . $e->getMessage()], 500);
+            }
+            break;
+
+
 
         case 'run_sync':
             // Cross-platform PHP execution
@@ -633,20 +958,26 @@ try {
                 'endpoints' => [
                     'GET ?action=status' => 'Get FreeRADIUS service status + DB stats',
                     'GET ?action=test_db' => 'Test RADIUS DB connection',
-                    'GET ?action=get_clients' => 'List NAS clients',
-                    'POST action=add_client' => 'Add NAS client',
-                    'POST action=delete_client' => 'Delete NAS client',
+                    'POST action=cleanup_orphaned' => 'Cleanup orphaned sessions (no Accounting-Stop)',
+                    'GET ?action=get_clients' => 'List NAS clients from database (nas table)',
+                    'POST action=add_client' => 'Add/update NAS client to database',
+                    'POST action=update_client' => 'Update existing NAS client',
+                    'POST action=delete_client' => 'Delete NAS client from database',
                     'POST action=apply_clients' => 'Write clients.conf and restart freeradius',
-                    'POST action=run_sync' => 'Run radius_sync.php',
+                    'POST action=import_from_mikrotik' => 'Import routers from mikrotik.json to NAS table',
+                    'POST action=run_sync' => 'Run radius_sync.php (sync vouchers/customers to radcheck)',
+                    'GET ?action=active_sessions' => 'Get currently active sessions',
+                    'POST action=disconnect_session' => 'Disconnect a session by username',
                     'GET ?action=accounting&limit=200' => 'Get accounting rows (radacct)',
-                    'GET ?action=list_pppoe_users&limit=500' => 'List PPPoE RADIUS users (managed via Filter-Id=pppoe)',
-                    'POST action=add_pppoe_user' => 'Add/update PPPoE RADIUS user (Cleartext-Password, Mikrotik-Rate-Limit, Session-Timeout)',
-                    'POST action=delete_pppoe_user' => 'Delete PPPoE RADIUS user (only managed users)',
-                    'GET ?action=list_pppoe_plans' => 'List PPPoE plans (stored in web/data/pppoe_plans.json)',
-                    'POST action=add_pppoe_plan' => 'Add PPPoE plan (name, rate_limit, session_timeout)',
+                    'GET ?action=list_pppoe_users&limit=500' => 'List PPPoE RADIUS users (Filter-Id=pppoe)',
+                    'POST action=add_pppoe_user' => 'Add/update PPPoE RADIUS user',
+                    'POST action=delete_pppoe_user' => 'Delete PPPoE RADIUS user',
+                    'GET ?action=list_pppoe_plans' => 'List PPPoE plans',
+                    'POST action=add_pppoe_plan' => 'Add PPPoE plan',
                     'POST action=delete_pppoe_plan' => 'Delete PPPoE plan'
                 ]
             ]);
+
     }
 } catch (Exception $e) {
     jsonResponse(['success' => false, 'error' => $e->getMessage()], 500);

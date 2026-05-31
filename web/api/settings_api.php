@@ -4,6 +4,9 @@
  * Central configuration management for ACS-Lite
  */
 
+// Include security headers
+require_once __DIR__ . '/security_headers.php';
+
 ini_set('display_errors', 0);
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -20,6 +23,18 @@ $SETTINGS_FILE = __DIR__ . '/../data/settings.json';
 $MIKROTIK_FILE = __DIR__ . '/../data/mikrotik.json';
 $ADMIN_FILE = __DIR__ . '/../data/admin.json';
 $ENV_FILE = '/opt/acs/.env';
+$envPaths = [
+    __DIR__ . '/../../.env',
+    __DIR__ . '/../.env',
+    __DIR__ . '/.env',
+    '/opt/acs/.env'
+];
+foreach ($envPaths as $path) {
+    if (file_exists($path)) {
+        $ENV_FILE = $path;
+        break;
+    }
+}
 
 function jsonResponse($data, $status = 200) {
     http_response_code($status);
@@ -27,11 +42,60 @@ function jsonResponse($data, $status = 200) {
     exit;
 }
 
-function loadSettings() {
-    global $SETTINGS_FILE;
- 
-    // Default settings
-    $defaults = [
+// ========================================
+// DATABASE CONNECTION
+// ========================================
+function getAcsPDO() {
+    static $pdo = null;
+    
+    if ($pdo !== null) {
+        return $pdo;
+    }
+    
+    global $ENV_FILE;
+    
+    // Default configuration
+    $config = [
+        'host' => '127.0.0.1',
+        'port' => '3306',
+        'dbname' => 'acs',
+        'username' => 'root',
+        'password' => 'secret123'
+    ];
+    
+    // Try to get from .env
+    if (file_exists($ENV_FILE)) {
+        $lines = file($ENV_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            if (strpos($line, 'DB_DSN=') === 0) {
+                $dsn = substr($line, 7);
+                if (preg_match('/^([^:]+):([^@]*)@tcp\(([^:]+):(\d+)\)\/(.+)/', $dsn, $m)) {
+                    $config['username'] = $m[1];
+                    $config['password'] = $m[2];
+                    $config['host'] = $m[3];
+                    $config['port'] = $m[4];
+                    $config['dbname'] = preg_replace('/\?.*/', '', $m[5]);
+                }
+            }
+        }
+    }
+    
+    $pdo = new PDO(
+        "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset=utf8mb4",
+        $config['username'],
+        $config['password'],
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false
+        ]
+    );
+    
+    return $pdo;
+}
+
+function getDefaultSettings() {
+    return [
         'general' => [
             'site_name' => 'ACS-Lite ISP Manager',
             'company_name' => 'My ISP',
@@ -84,32 +148,125 @@ function loadSettings() {
             'api_key' => ''
         ]
     ];
+}
 
+// ========================================
+// LOAD SETTINGS (Database-backed with file fallback)
+// ========================================
+function loadSettings() {
+    global $SETTINGS_FILE;
+    
+    // Try to load from database first
+    try {
+        $pdo = getAcsPDO();
+        
+        // Check if settings table exists
+        $stmt = $pdo->query("SHOW TABLES LIKE 'settings'");
+        if ($stmt->rowCount() === 0) {
+            // Table doesn't exist, fallback to file
+            error_log("[Settings] Table 'settings' not found, using file fallback");
+            return loadSettingsFromFile();
+        }
+        
+        $stmt = $pdo->query("SELECT category, settings_json FROM settings");
+        $rows = $stmt->fetchAll();
+        
+        $settings = [];
+        foreach ($rows as $row) {
+            $decoded = json_decode($row['settings_json'], true);
+            if ($decoded !== null) {
+                $settings[$row['category']] = $decoded;
+            }
+        }
+        
+        // Merge with defaults
+        $defaults = getDefaultSettings();
+        return array_replace_recursive($defaults, $settings);
+        
+    } catch (Exception $e) {
+        // Database error, fallback to file
+        error_log("[Settings] Database error: " . $e->getMessage() . ", using file fallback");
+        return loadSettingsFromFile();
+    }
+}
+
+// ========================================
+// LOAD SETTINGS FROM FILE (Fallback)
+// ========================================
+function loadSettingsFromFile() {
+    global $SETTINGS_FILE;
+    
+    $defaults = getDefaultSettings();
+    
     if (file_exists($SETTINGS_FILE)) {
         $loaded = json_decode(file_get_contents($SETTINGS_FILE), true) ?: [];
         return array_replace_recursive($defaults, $loaded);
     }
-
+    
     return $defaults;
 }
 
+// ========================================
+// SAVE SETTINGS (Database-backed with file fallback)
+// ========================================
 function saveSettings($settings) {
     global $SETTINGS_FILE;
+    
+    // Try to save to database first
+    try {
+        $pdo = getAcsPDO();
+        
+        // Check if settings table exists
+        $stmt = $pdo->query("SHOW TABLES LIKE 'settings'");
+        if ($stmt->rowCount() === 0) {
+            // Table doesn't exist, fallback to file
+            error_log("[Settings] Table 'settings' not found, saving to file instead");
+            return saveSettingsToFile($settings);
+        }
+        
+        foreach ($settings as $category => $data) {
+            $json = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO settings (category, settings_json, updated_by) 
+                VALUES (:category, :json, 'settings_api')
+                ON DUPLICATE KEY UPDATE 
+                    settings_json = :json,
+                    updated_at = NOW(),
+                    updated_by = 'settings_api'
+            ");
+            
+            $stmt->execute([
+                'category' => $category,
+                'json' => $json
+            ]);
+        }
+        
+        // Also save to file as backup
+        saveSettingsToFile($settings);
+        
+        return true;
+        
+    } catch (Exception $e) {
+        // Database error, fallback to file
+        error_log("[Settings] Database save error: " . $e->getMessage() . ", saving to file instead");
+        return saveSettingsToFile($settings);
+    }
+}
 
+// ========================================
+// SAVE SETTINGS TO FILE (Fallback)
+// ========================================
+function saveSettingsToFile($settings) {
+    global $SETTINGS_FILE;
+    
     // Ensure directory exists
     $dir = dirname($SETTINGS_FILE);
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
     }
-
-    $result = file_put_contents($SETTINGS_FILE, json_encode($settings, JSON_PRETTY_PRINT));
-
-    if ($result === false) {
-        error_log("Failed to write settings file: $SETTINGS_FILE");
-        return false;
-    }
-
-    return true;
+    
+    return file_put_contents($SETTINGS_FILE, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 }
 
 function loadMikrotikConfig() {
@@ -144,14 +301,7 @@ function saveMikrotikConfig($config) {
         mkdir($dir, 0755, true);
     }
     
-    $result = file_put_contents($MIKROTIK_FILE, json_encode($config, JSON_PRETTY_PRINT));
-
-    if ($result === false) {
-        error_log("Failed to write MikroTik config file: $MIKROTIK_FILE");
-        return false;
-    }
-
-    return true;
+    return file_put_contents($MIKROTIK_FILE, json_encode($config, JSON_PRETTY_PRINT));
 }
 
 function loadAdminCredentials() {
@@ -174,14 +324,7 @@ function saveAdminCredentials($username, $password) {
     }
     
     $data = ['admin' => ['username' => $username, 'password' => $password]];
-    $result = file_put_contents($ADMIN_FILE, json_encode($data, JSON_PRETTY_PRINT));
-
-    if ($result === false) {
-        error_log("Failed to write admin credentials file: $ADMIN_FILE");
-        return false;
-    }
-
-    return true;
+    return file_put_contents($ADMIN_FILE, json_encode($data, JSON_PRETTY_PRINT));
 }
 
 function loadEnvConfig() {
@@ -283,9 +426,7 @@ try {
         case 'save_general':
             $settings = loadSettings();
             $settings['general'] = array_merge($settings['general'] ?? [], $input['general'] ?? []);
-            if (!saveSettings($settings)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
-            }
+            saveSettings($settings);
             jsonResponse(['success' => true, 'message' => 'General settings saved']);
             break;
             
@@ -293,9 +434,7 @@ try {
         case 'save_acs':
             $settings = loadSettings();
             $settings['acs'] = array_merge($settings['acs'] ?? [], $input['acs'] ?? []);
-            if (!saveSettings($settings)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
-            }
+            saveSettings($settings);
             jsonResponse(['success' => true, 'message' => 'ACS settings saved']);
             break;
 
@@ -306,9 +445,7 @@ try {
             if (isset($input['hotspot']['radius'])) {
                 $settings['hotspot']['radius'] = array_merge($settings['hotspot']['radius'] ?? [], $input['hotspot']['radius'] ?? []);
             }
-            if (!saveSettings($settings)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
-            }
+            saveSettings($settings);
             jsonResponse(['success' => true, 'message' => 'Hotspot settings saved']);
             break;
             
@@ -322,68 +459,15 @@ try {
             }
             
             $settings['telegram'] = array_merge($settings['telegram'] ?? [], $input['telegram'] ?? []);
-            if (!saveSettings($settings)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
-            }
-
-            // Sync with Database for Telegram Bot Service
-            try {
-                $env = loadEnvConfig();
-                $dbConfig = [
-                    'host' => '127.0.0.1', 'port' => '3306', 'dbname' => 'acs',
-                    'username' => 'root', 'password' => 'secret123'
-                ];
-                
-                if (isset($env['DB_DSN'])) {
-                    if (preg_match('/^([^:]+):([^@]*)@tcp\(([^:]+):(\d+)\)\/(.+)/', $env['DB_DSN'], $m)) {
-                        $dbConfig['username'] = $m[1]; $dbConfig['password'] = $m[2];
-                        $dbConfig['host'] = $m[3]; $dbConfig['port'] = $m[4];
-                        $dbConfig['dbname'] = preg_replace('/\?.*/', '', $m[5]);
-                    }
-                }
-                
-                $pdo = new PDO("mysql:host={$dbConfig['host']};port={$dbConfig['port']};dbname={$dbConfig['dbname']};charset=utf8mb4", $dbConfig['username'], $dbConfig['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-                
-                // 1. Update telegram_config (Bot Token)
-                $token = $settings['telegram']['bot_token'] ?? '';
-                if (!empty($token)) {
-                    $pdo->exec("TRUNCATE TABLE telegram_config");
-                    $stmt = $pdo->prepare("INSERT INTO telegram_config (bot_token, is_active) VALUES (?, 1)");
-                    $stmt->execute([$token]);
-                }
-                
-                // 2. Update telegram_admins (Chat IDs)
-                $chatId = $settings['telegram']['chat_id'] ?? '';
-                $adminChatIds = $settings['telegram']['admin_chat_ids'] ?? [];
-                
-                // Merge main chat_id with admin list
-                if (!empty($chatId) && !in_array($chatId, $adminChatIds)) {
-                    array_unshift($adminChatIds, $chatId);
-                }
-                
-                if (!empty($adminChatIds)) {
-                    $pdo->exec("UPDATE telegram_admins SET is_active = 0");
-                    foreach ($adminChatIds as $id) {
-                        $stmt = $pdo->prepare("INSERT INTO telegram_admins (chat_id, name, is_active) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE is_active = 1");
-                        $stmt->execute([$id, 'Admin']);
-                    }
-                }
-                
-            } catch (Exception $e) {
-                // Log error but don't fail the JSON save
-                error_log("Database sync failed for Telegram: " . $e->getMessage());
-            }
-
-            jsonResponse(['success' => true, 'message' => 'Telegram settings saved and synced with database']);
+            saveSettings($settings);
+            jsonResponse(['success' => true, 'message' => 'Telegram settings saved']);
             break;
             
         // ---- SAVE BILLING SETTINGS ----
         case 'save_billing':
             $settings = loadSettings();
             $settings['billing'] = array_merge($settings['billing'] ?? [], $input['billing'] ?? []);
-            if (!saveSettings($settings)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to save settings. Check file permissions.'], 500);
-            }
+            saveSettings($settings);
             jsonResponse(['success' => true, 'message' => 'Billing settings saved']);
             break;
             
@@ -413,9 +497,7 @@ try {
                 }
             }
             
-            if (!saveMikrotikConfig($mikrotik)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to save MikroTik settings. Check file permissions.'], 500);
-            }
+            saveMikrotikConfig($mikrotik);
             jsonResponse(['success' => true, 'message' => 'MikroTik settings saved']);
             break;
             
@@ -436,9 +518,7 @@ try {
             ];
             
             $mikrotik['routers'][] = $newRouter;
-            if (!saveMikrotikConfig($mikrotik)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to add router. Check file permissions.'], 500);
-            }
+            saveMikrotikConfig($mikrotik);
             
             jsonResponse(['success' => true, 'message' => 'Router added', 'router' => $newRouter]);
             break;
@@ -457,9 +537,7 @@ try {
             });
             $mikrotik['routers'] = array_values($mikrotik['routers']);
             
-            if (!saveMikrotikConfig($mikrotik)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to delete router. Check file permissions.'], 500);
-            }
+            saveMikrotikConfig($mikrotik);
             jsonResponse(['success' => true, 'message' => 'Router deleted']);
             break;
             
@@ -484,9 +562,7 @@ try {
                 jsonResponse(['success' => false, 'error' => 'Current password is incorrect'], 400);
             }
             
-            if (!saveAdminCredentials($admin['username'], $newPassword)) {
-                jsonResponse(['success' => false, 'error' => 'Failed to change password. Check file permissions.'], 500);
-            }
+            saveAdminCredentials($admin['username'], $newPassword);
             jsonResponse(['success' => true, 'message' => 'Password changed successfully']);
             break;
             
@@ -506,9 +582,7 @@ try {
                 jsonResponse(['success' => false, 'error' => 'Password is incorrect'], 400);
             }
             
-            if (!saveAdminCredentials($newUsername, $admin['password'])) {
-                jsonResponse(['success' => false, 'error' => 'Failed to change username. Check file permissions.'], 500);
-            }
+            saveAdminCredentials($newUsername, $admin['password']);
             jsonResponse(['success' => true, 'message' => 'Username changed successfully']);
             break;
             
@@ -531,7 +605,7 @@ try {
             // Try to get from database if still empty
             if (empty($token) || empty($chatId)) {
                 try {
-                    $envFile = '/opt/acs/.env';
+                    $envFile = $ENV_FILE;
                     $dbConfig = [
                         'host' => '127.0.0.1',
                         'port' => '3306',
@@ -654,35 +728,6 @@ try {
                 'message' => "Service {$service} restarted",
                 'status' => $status
             ]);
-            break;
-
-        // ---- TELEGRAM BOT SERVICE MANAGEMENT ----
-        case 'telegram_service_status':
-            $status = trim(@shell_exec('systemctl is-active telegram-bot 2>/dev/null') ?: 'inactive');
-            jsonResponse(['success' => true, 'status' => $status]);
-            break;
-
-        case 'telegram_service_start':
-            @shell_exec('sudo systemctl start telegram-bot 2>/dev/null');
-            $status = trim(@shell_exec('systemctl is-active telegram-bot 2>/dev/null'));
-            jsonResponse(['success' => $status === 'active', 'status' => $status]);
-            break;
-
-        case 'telegram_service_stop':
-            @shell_exec('sudo systemctl stop telegram-bot 2>/dev/null');
-            $status = trim(@shell_exec('systemctl is-active telegram-bot 2>/dev/null'));
-            jsonResponse(['success' => $status !== 'active', 'status' => $status]);
-            break;
-
-        case 'telegram_service_restart':
-            @shell_exec('sudo systemctl restart telegram-bot 2>/dev/null');
-            $status = trim(@shell_exec('systemctl is-active telegram-bot 2>/dev/null'));
-            jsonResponse(['success' => $status === 'active', 'status' => $status]);
-            break;
-
-        case 'telegram_service_logs':
-            $logs = @shell_exec('tail -n 50 /var/log/telegram_bot.log 2>/dev/null') ?: 'No logs found.';
-            jsonResponse(['success' => true, 'logs' => $logs]);
             break;
             
         default:

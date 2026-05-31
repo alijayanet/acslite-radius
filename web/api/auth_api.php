@@ -4,10 +4,10 @@
  * Handles login with API Key validation from multiple sources
  */
 
+// Include security headers
+require_once __DIR__ . '/security_headers.php';
+
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
 
 // Handle preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -102,8 +102,20 @@ function handleLogin($input) {
     
     // 3. Try .env file
     if (empty($validApiKey)) {
-        $envFile = '/opt/acs/.env';
-        if (file_exists($envFile)) {
+        $envPaths = [
+            '/opt/acs/.env',
+            __DIR__ . '/../../.env',
+            __DIR__ . '/../.env',
+            __DIR__ . '/.env'
+        ];
+        $envFile = null;
+        foreach ($envPaths as $path) {
+            if (file_exists($path)) {
+                $envFile = $path;
+                break;
+            }
+        }
+        if ($envFile) {
             $envContent = file_get_contents($envFile);
             $envLines = explode("\n", $envContent);
             foreach ($envLines as $line) {
