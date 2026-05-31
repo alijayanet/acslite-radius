@@ -1,0 +1,107 @@
+{
+  "admins.0": "6281947215703",
+  "admin_username": "admin",
+  "admin_password": "admin",
+  "genieacs_url": "http://192.168.8.151:7557",
+  "genieacs_username": "admim",
+  "genieacs_password": "admin",
+  "mikrotik_host": "192.168.88.1",
+  "mikrotik_port": "8728",
+  "mikrotik_user": "admin",
+  "mikrotik_password": "admin",
+  "main_interface": "ether1-ISP",
+  "pppoe_monitor_enable": true,
+  "technician_numbers.0": "62838076656",
+  "technician_numbers.1": "62822180947",
+  "technician_group_id": "120363031495796203@g.us",
+  "whatsapp_keep_alive": true,
+  "whatsapp_restart_on_error": true,
+  "rx_power_warning": "-35",
+  "rx_power_critical": "-37",
+  "rx_power_notification_enable": true,
+  "rx_power_warning_interval": "36000000",
+  "company_header": "ALIJAYA DIGITAL NETWORK",
+  "footer_info": "Info Hubungi : 081947215703",
+  "customerPortalOtp": false,
+  "otp_length": "4",
+  "otp_expiry_minutes": "5",
+  "server_host": "192.168.8.151",
+  "pppoe_notifications.enabled": true,
+  "pppoe_notifications.loginNotifications": true,
+  "pppoe_notifications.logoutNotifications": true,
+  "pppoe_notifications.includeOfflineList": true,
+  "pppoe_notifications.maxOfflineListCount": "20",
+  "trouble_report.enabled": true,
+  "trouble_report.categories": "Internet Lambat,Tidak Bisa Browsing,WiFi Tidak Muncul,Koneksi Putus-Putus,Lainnya",
+  "trouble_report.auto_ticket": true,
+  "rxpower_recap_enable": true,
+  "rxpower_recap_interval": "21600000",
+  "offline_notification_enable": true,
+  "offline_notification_interval": "43200000",
+  "server_port": "3005",
+  "logo_filename": "logo.png",
+  "company_website": "https://alijaya.net",
+  "company_slogan": "Solusi Internet Terdepan",
+  "invoice_notes": "Pembayaran dapat dilakukan melalui transfer bank atau pembayaran tunai di kantor kami. Terima kasih atas kepercayaan Anda.",
+  "payment_bank_name": "BRI",
+  "payment_account_number": "4206-01-003953-53-1",
+  "payment_account_holder": "WARJAYA",
+  "payment_cash_address": "Jl. Pantai Tanjungpura Desa Ujunggebang",
+  "payment_cash_hours": "08:00 - 20:00",
+  "contact_phone": "081-9472-15703",
+  "contact_email": "alijayanet@gmail.com",
+  "contact_address": "Jl. Pantai Tanjungpura Desa Ujunggebang",
+  "contact_whatsapp": "081947215703",
+  "payment_gateway": {
+    "active": "midtrans",
+    "midtrans": {
+      "enabled": true,
+      "production": false,
+      "server_key": "SB-Mid-server-XXXXXXXXXXXXXXXXXXXXXXXX",
+      "client_key": "SB-Mid-client-XXXXXXXXXXXXXXXXXXXXXXXX",
+      "merchant_id": "G123456789"
+    },
+    "xendit": {
+      "enabled": false,
+      "production": false,
+      "api_key": "xnd_public_development_XXXXXXXXXXXXXXXXXXXXXXXX",
+      "callback_token": "your_callback_token_here"
+    },
+    "tripay": {
+      "enabled": true,
+      "production": false,
+      "api_key": "your_tripay_api_key_here",
+      "private_key": "your_tripay_private_key_here",
+      "merchant_code": "your_merchant_code_here"
+    }
+  },
+  "auto_suspension_enabled": true,
+  "suspension_grace_period_days": "7",
+  "default_pppoe_profile": "default",
+  "isolir_profile": "isolir",
+  "user_auth_mode": "mikrotik",
+  "radius": {
+    "enabled": true,
+    "auth_port": "1812",
+    "acct_port": "1813",
+    "secret": "R4d1u5S3cr3t2024!",
+    "host": "0.0.0.0"
+  },
+  "radius_nas_clients": [
+    {
+      "ip": "192.168.88.1",
+      "secret": "mikrotik123",
+      "name": "Mikrotik Utama"
+    },
+    {
+      "ip": "192.168.1.1",
+      "secret": "mikrotik123",
+      "name": "Main Mikrotik"
+    },
+    {
+      "ip": "192.168.8.1",
+      "secret": "alijaya060111",
+      "name": "RB4011"
+    }
+  ]
+}
